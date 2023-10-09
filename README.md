@@ -1,21 +1,49 @@
 # "Proyecto FP Web"
 
-## Hotel "Aura de Mallorca"
+## Hotel Aura de Mallorca
+
+*Aura de Mallorca: Vive la magia de la isla en un rincón exclusivo.*
 
 Web de un hotel con servicios extra para complejidad de implementar
 api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no, además de que tenga un sección dentro de la web sugerida por "Homerti" de un gestor de traducciones que consumirá la propia página como otras seleccionadas.
 
-Opcional feature: crear una seccion de comunidad,
+Optional feature: crear una seccion de comunidad.
 
 ### Web del Hotel
+
+#### Modals
+
+Los modales serán ventanas "pop-up" para hacer la web más cómoda y sin tantas secciones, habrá modales de login, register y edit profile.
 
 #### Secciones
 
 ##### Inicio
 
-##### Gestor de traducciones
+* Página de bienvenida al Hotel Aura de Mallorca.
 
-- Un gestor de traducciones que traducirá las descripciones y
+##### Servicios
+
+* Página de servicios del hotel, donde se verá toda la información y
+habrá la posibilidad de reservar directamente cada servicio.
+
+##### Contacto
+
+* Página de contacto donde a través de un formulario se podrá poner al cliente en comunicación con la empresa.
+
+##### Reservar (Reservas botón)
+
+* Página de reservas, aquí estará la funcionalidad principal de la web:
+  * Primero, habrá dos botones para elegir si ver tus reservas ya hechas o hacer una nueva reserva (cada una será un modal).
+  * Seleccionar fechas de check-in y check-out (aquí se comprobará si está disponible por el servicio de detección meteorológica).
+  * Decidir el plan (si VIP o Basic).
+  * Datos personales (si está logeado se autorellena y no se puede modificar).
+  * Datos de facturación (billing, y lo mismo que con los personales en cuanto al sistema de sesiones).
+  * Forma de pago.
+  * Página de confirmación de reserva (reserva realizada)
+
+##### Gestor de traducciones (SÓLO ADMIN)
+
+* Un gestor de traducciones que traducirá las descripciones y
 otros campos que se generarán estableciendo unos nombres de keys
 para posterior uso de api, json o importacion de base de datos
 en la aplicacion en la que se utilizará.
@@ -41,19 +69,19 @@ y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_
   [{
   "literal_key": "footer_21",
   "values": {
-   "en": "___",
-   "es": "___",
-   "ca": "___",
-   "de": "___"
+   "en": "__*",
+   "es": "__*",
+   "ca": "__*",
+   "de": "__*"
   }
  },
  {
   "literal_key": "footer_57",
   "values": {
-   "en": "___",
-   "es": "___",
-   "ca": "___",
-   "de": "___"
+   "en": "__*",
+   "es": "__*",
+   "ca": "__*",
+   "de": "__*"
   }
  }
 ]
@@ -65,16 +93,31 @@ y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_
   {
   "literal_key": "footer_23",
   "values": {
-   "en": "___",
-   "es": "___",
-   "ca": "___",
-   "de": "___"
+   "en": "__*",
+   "es": "__*",
+   "ca": "__*",
+   "de": "__*"
   }
  }
 
+###### Diseño y planificación
+
+* Planificación:
+
+  Se usa el diagrama de Gantt con Gantt Project y Trello (Kanban metodologia ágil).
+
+* Diseño;
+
+  Se usa Figma para el Wireframe y el Prototype.
+
+  [Herramienta de contraste de colores (accesibilidad)](https://webaim.org/resources/contrastchecker/)
+
 ###### Desarrollo
 
-- Backend:
-Creado haciendo mkdir (nombre carpeta), luego entrando al folder y hacer ```npm init``` y ```npm install express```.
-- Frontend:
-Creado haciendo ```npm create vite@latest appname```.
+* Backend:
+
+  Creado haciendo mkdir (nombre carpeta), luego entrando al folder y hacer ```npm init``` y ```npm install express```.
+
+* Frontend:
+
+  Creado haciendo ```npm create vite@latest appname```.
