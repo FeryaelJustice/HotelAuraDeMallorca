@@ -1,17 +1,26 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2023-09-30" view-index="0" gantt-divider-location="351" resource-divider-location="300" version="3.2.3247" locale="es_ES">
-    <description/>
-    <view zooming-state="default:2" id="gantt-chart">
+<?xml version="1.0" encoding="UTF-8"?><project name="Proyecto Web Aura de Mallorca FP Web" company="Fernando GS" webLink="http://" view-date="2023-12-25" view-index="0" gantt-divider-location="351" resource-divider-location="300" version="3.2.3247" locale="es_ES">
+    <description>
+        <![CDATA[Proyecto Web Aura de Mallorca FP Web]]>
+    </description>
+    <view zooming-state="default:4" id="gantt-chart">
         <field id="tpd3" name="Nombre" width="200" order="0"/>
         <field id="tpd4" name="Fecha de inicio" width="75" order="1"/>
         <field id="tpd5" name="Fecha de fin" width="75" order="2"/>
+        <option id="taskLabelUp" value="name"/>
+        <option id="taskLabelDown" value="taskDates"/>
+        <option id="taskLabelLeft" value="id"/>
+        <option id="taskLabelRight" value="advancement"/>
         <option id="filter.completedTasks" value="false"/>
+        <timeline>
+            <![CDATA[2,0]]>
+        </timeline>
     </view>
     <view id="resource-table">
-        <field id="0" name="Nombre" width="210" order="0"/>
-        <field id="1" name="Función" width="86" order="1"/>
+        <field id="0" name="Nombre" width="208" order="0"/>
+        <field id="1" name="Función" width="85" order="1"/>
     </view>
     <!-- -->
-    <calendars>
+    <calendars base-id="Ninguna">
         <day-types>
             <day-type id="0"/>
             <day-type id="1"/>
@@ -34,11 +43,65 @@
             <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
             <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
         </taskproperties>
+        <task id="17" name="Fase 1: Análisis y Diseño" meeting="false" start="2023-09-25" duration="12" complete="0" expand="true">
+            <depend id="18" type="2" difference="0" hardness="Strong"/>
+            <task id="0" name="Estudio de Requisitos" color="#8cb6ce" meeting="false" start="2023-09-25" duration="5" complete="0" thirdDate="2023-10-02" thirdDate-constraint="0" expand="false">
+                <notes>
+                    <![CDATA[Investigar y recopilar requisitos del Hotel Aura de Mallorca.
+Entrevistar a los representantes del hotel para obtener información adicional.]]>
+                </notes>
+                <task id="2" name="Investigar y recopilar requisitos del Hotel Aura de Mallorca" color="#8cb6ce" meeting="false" start="2023-09-25" duration="5" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" expand="true"/>
+                <task id="14" name="Finalización del Estudio de Requisitos" color="#8cb6ce" meeting="true" start="2023-09-29" duration="0" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" expand="true"/>
+            </task>
+            <task id="1" name="Definición del Diseño" color="#8cb6ce" meeting="false" start="2023-09-29" duration="7" complete="0" thirdDate="2023-09-25" thirdDate-constraint="0" expand="false">
+                <task id="12" name="Diseñar la estructura de la web, navegación, y esquema de base de datos." color="#8cb6ce" meeting="false" start="2023-09-29" duration="7" complete="0" thirdDate="2023-10-02" thirdDate-constraint="0" expand="true"/>
+                <task id="15" name="Finalización de la Definición del Diseño" color="#8cb6ce" meeting="false" start="2023-10-09" duration="1" complete="0" thirdDate="2023-10-02" thirdDate-constraint="0" expand="true"/>
+            </task>
+            <task id="13" name="Prototipado de la Web" color="#000000" meeting="false" start="2023-10-10" duration="1" complete="0" thirdDate="2023-10-02" thirdDate-constraint="0" expand="false">
+                <task id="3" name="Crear un prototipo interactivo de la interfaz de usuario utilizando herramientas como Figma o Adobe XD." color="#8cb6ce" meeting="false" start="2023-10-10" duration="1" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" expand="true"/>
+                <task id="16" name="Finalización del Prototipo de la Web" color="#8cb6ce" meeting="true" start="2023-10-10" duration="0" complete="0" thirdDate="2023-10-10" thirdDate-constraint="0" expand="true"/>
+            </task>
+        </task>
+        <task id="18" name="Fase 2: Desarrollo" color="#8cb6ce" meeting="false" start="2023-10-11" duration="25" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="4" expand="false">
+            <depend id="19" type="2" difference="0" hardness="Strong"/>
+            <task id="21" name="Desarrollo: Página de inicio" color="#8cb6ce" meeting="false" start="2023-10-11" duration="6" complete="0" thirdDate="2023-10-12" thirdDate-constraint="0" expand="true"/>
+            <task id="22" name="Desarrollo: Página de reservas" color="#8cb6ce" meeting="false" start="2023-10-16" duration="13" complete="0" thirdDate="2023-10-12" thirdDate-constraint="0" expand="true"/>
+            <task id="23" name="Desarrollo: Página de servicios" color="#8cb6ce" meeting="false" start="2023-10-27" duration="8" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
+            <task id="25" name="Desarrollo: Página de contacto" color="#8cb6ce" meeting="false" start="2023-11-07" duration="4" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
+            <task id="24" name="Desarrollo: Sistema multiidioma" color="#8cb6ce" meeting="false" start="2023-10-11" duration="25" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
+            <task id="30" name="Finalización del Desarrollo" color="#8cb6ce" meeting="true" start="2023-11-14" duration="0" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
+        </task>
+        <task id="19" name="Fase 3: Pruebas (testing)" color="#8cb6ce" meeting="false" start="2023-11-15" duration="29" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="0" expand="false">
+            <depend id="20" type="2" difference="0" hardness="Strong"/>
+            <task id="26" name="Pruebas de funcionalidad" color="#8cb6ce" meeting="false" start="2023-11-15" duration="4" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+            <task id="27" name="Pruebas de rendimiento" color="#8cb6ce" meeting="false" start="2023-11-20" duration="3" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+            <task id="28" name="Pruebas de seguridad" color="#8cb6ce" meeting="false" start="2023-12-22" duration="2" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+            <task id="31" name="Finalización del Testing" color="#8cb6ce" meeting="true" start="2023-12-25" duration="0" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+        </task>
+        <task id="20" name="Fase 4: Implantación" color="#8cb6ce" meeting="false" start="2023-12-26" duration="4" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="2" expand="false">
+            <task id="29" name="Despliegue en Hosting o Local" color="#8cb6ce" meeting="false" start="2023-12-26" duration="4" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
+            <task id="32" name="Finalización del Despliegue" color="#8cb6ce" meeting="true" start="2023-12-29" duration="0" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
+        </task>
     </tasks>
-    <resources/>
-    <allocations/>
-    <vacations/>
+    <resources>
+        <resource id="0" name="Fernando" function="SoftwareDevelopment:2" contacts="fernandogonzalez@paucasesnovescifp.cat " phone="0"/>
+    </resources>
+    <allocations>
+        <allocation task-id="0" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+        <allocation task-id="13" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+        <allocation task-id="1" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+        <allocation task-id="2" resource-id="0" function="SoftwareDevelopment:2" responsible="false" load="100.0"/>
+        <allocation task-id="18" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+        <allocation task-id="19" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+        <allocation task-id="20" resource-id="0" function="SoftwareDevelopment:2" responsible="true" load="100.0"/>
+    </allocations>
+    <vacations>
+        <vacation start="2023-09-23" end="2023-09-25" resourceid="0"/>
+    </vacations>
     <previous/>
     <roles roleset-name="Default"/>
     <roles roleset-name="SoftwareDevelopment"/>
+    <roles>
+        <role id="1" name="Desarrollador"/>
+    </roles>
 </project>
