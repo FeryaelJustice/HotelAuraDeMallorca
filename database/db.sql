@@ -1,7 +1,7 @@
 -- Create the database
-CREATE DATABASE IF NOT EXISTS gestortraducciones;
+CREATE DATABASE IF NOT EXISTS hotelaurademallorca;
 
-USE gestortraducciones;
+USE hotelaurademallorca;
 
 -- Create the table app_user
 CREATE TABLE app_user (
