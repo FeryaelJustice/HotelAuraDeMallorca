@@ -5,7 +5,7 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
-
+  const url = process.env.REACT_APP_API_URL;
   return (
     <>
       <div>
@@ -17,6 +17,7 @@ function App() {
         </a>
       </div>
       <h1>Vite + React</h1>
+      <h2>{url}</h2>
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
