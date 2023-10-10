@@ -42,7 +42,7 @@ habrá la posibilidad de reservar directamente cada servicio.
   * Forma de pago.
   * Página de confirmación de reserva (reserva realizada)
 
-##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO HACER FRONT Y BACK EN OTRO PROYECTO)
+##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO HACER FRONT Y BACK EN OTRO PROYECTO, está en la carpeta (./cms/))
 
 * Un gestor de traducciones que traducirá las descripciones y
 otros campos que se generarán estableciendo unos nombres de keys
@@ -56,7 +56,7 @@ las nuevas traducciones. En cuanto al backend (mismo que el de la web también),
 del frontend en su base de datos para así poder utilizarla en la app
 cliente como hemos mencionado.
 
-  En cuanto a la BDD, estarán: "pagina", "seccion" y "literales" (que son las traducciones) y cada literal tendra asociado una seccion que a su vez
+  En cuanto a la BDD, estarán: "pagina", "idioma", "pagina-idioma", "seccion" y "literales" (que son las traducciones) y cada literal tendra asociado una seccion que a su vez
 tendra asociado con fk una pagina, y ademas asociado un idioma,
 y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_2, footer_3..."
 
