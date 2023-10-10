@@ -4,8 +4,9 @@
 
 *Aura de Mallorca: Vive la magia de la isla en un rincón exclusivo.*
 
+En React y Express JS.
 Web de un hotel con servicios extra para complejidad de implementar
-api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no, además de que tenga un sección dentro de la web sugerida por "Homerti" de un gestor de traducciones que consumirá la propia página como otras seleccionadas.
+api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no, además de que tenga un sección dentro de la web sugerida por "Homerti" de un gestor de traducciones EXTERNO EN OTRO DOMINIO Y HOSTING que consumirá la propia página como otras seleccionadas.
 
 Optional feature: crear una seccion de comunidad.
 
@@ -41,12 +42,12 @@ habrá la posibilidad de reservar directamente cada servicio.
   * Forma de pago.
   * Página de confirmación de reserva (reserva realizada)
 
-##### Gestor de traducciones (SÓLO ADMIN)
+##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO HACER FRONT Y BACK EN OTRO PROYECTO)
 
 * Un gestor de traducciones que traducirá las descripciones y
 otros campos que se generarán estableciendo unos nombres de keys
 para posterior uso de api, json o importacion de base de datos
-en la aplicacion en la que se utilizará.
+en la aplicacion en la que se utilizará. Se hace en Vue y laravel.
 
   Constará de un frontend en React (integrado con el mismo de la web, ya que es una sección) donde haremos la interfaz web
 en donde se introducirán las traducciones manualmente, así
