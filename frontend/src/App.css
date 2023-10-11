@@ -74,7 +74,6 @@ nav a {
   font-weight: bold;
 }
 
-#nav a:hover,
 #nav-menu a:hover {
   color: rgb(224, 228, 0);
   background-color: #383838;
