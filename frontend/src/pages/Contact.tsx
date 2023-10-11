@@ -1,7 +1,8 @@
 export function Contact() {
     return (
         <div>
-            Contact
-        </div>
+            <p>
+                Contactersfsefsefsefsefefsffsefsefsfsfsefsefsefsfsefsedawdawdawdawdawdawd
+            </p>  </div>
     );
 }

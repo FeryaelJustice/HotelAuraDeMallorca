@@ -1,33 +1,51 @@
 import { NavLink } from "react-router-dom"
+import { useState } from 'react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars } from "@fortawesome/free-solid-svg-icons";
 
 export function Header() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const handleToggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+
+    const closeMenu = () => {
+        setIsMenuOpen(false);
+    };
     return (
-        <header id="header">
+        <header id="header" className="header">
             <img src="/logo.svg" alt="logo" aria-description="logo" className="logo" id="logo" width={'300px'} height={'40px'} />
-            <nav id="nav">
-                <NavLink to="/" style={({ isActive }) => (
-                    isActive ? {
-                        textDecoration: 'none',
-                        color: 'red'
-                    } : {}
-                )}>Home</NavLink>
-                <NavLink to="/services" style={({ isActive }) => (
-                    isActive ? {
-                        textDecoration: 'none',
-                        color: 'red'
-                    } : {}
-                )}>Services</NavLink>
-                <NavLink to="/contact" style={({ isActive }) => (
-                    isActive ? {
-                        textDecoration: 'none',
-                        color: 'red'
-                    } : {}
-                )}>Contact</NavLink>
+            <nav id="nav" className="navigation">
+                <NavLink to="/" className={({ isActive }) => {
+                    return isActive ? 'is-active' : undefined
+                }}>Home</NavLink>
+                <NavLink to="/services" className={({ isActive }) => {
+                    return isActive ? 'is-active' : undefined
+                }}>Services</NavLink>
+                <NavLink to="/contact" className={({ isActive }) => {
+                    return isActive ? 'is-active' : undefined
+                }}>Contact</NavLink>
+                <div id="nav-actions">
+                    <button>Book</button>
+                    <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" />
+                </div>
             </nav>
-            <div id="nav-actions">
-                <button>Book</button>
-                <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" />
-            </div>
+            <button className="menu-toggle" >
+                <FontAwesomeIcon icon={faBars} onClick={handleToggleMenu} />
+            </button>
+            {isMenuOpen && (
+                <div id="nav-menu">
+                    <NavLink to="/" className={({ isActive }) => {
+                        return isActive ? 'is-active' : undefined
+                    }} onClick={closeMenu}>Home</NavLink>
+                    <NavLink to="/services" className={({ isActive }) => {
+                        return isActive ? 'is-active' : undefined
+                    }} onClick={closeMenu}>Services</NavLink>
+                    <NavLink to="/contact" className={({ isActive }) => {
+                        return isActive ? 'is-active' : undefined
+                    }} onClick={closeMenu}>Contact</NavLink>
+                </div>)}
         </header>
     )
 }

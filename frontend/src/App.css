@@ -1,8 +1,208 @@
-.card {
-  padding: 2em;
+.app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+header {
+  display: flex;
+  flex-direction: row;
+  padding: 16px;
+  background-color: #ffffff;
+}
+
+.logo {
+  width: 200px;
+  height: 40px;
+}
+
+nav {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  margin-left: 4%;
+}
+
+nav a {
+  margin-right: 48px;
+  color: #000000;
+}
+
+#nav-menu {
+  position: absolute;
+  top: 70px;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+#nav-menu a {
+  display: block;
+  padding: 16px;
+  color: #000000;
+  text-decoration: none;
+}
+
+#nav-menu a:hover {
+  background-color: #f0f0f0;
+}
+
+#nav-actions {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+#nav-actions button {
+  margin-right: 12px;
+}
+
+#nav-actions img {
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+#nav .is-active,
+#nav-menu .is-active {
+  color: #535bf2;
+  font-weight: bold;
+}
+
+#nav a:hover,
+#nav-menu a:hover {
+  color: rgb(224, 228, 0);
+  background-color: #383838;
+  font-weight: bold;
+  transition: 0.6s;
+}
+
+#nav-menu {
+  margin-top: 4px;
+  border-radius: 12px;
 }
 
 #user-icon {
   width: 40px;
   height: 40px;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+.main {
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.footer {
+  width: 100%;
+  background-color: #FFFFFF;
+  color: #000000;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.8em;
+  padding: 25px 0;
+}
+
+.card {
+  padding: 2em;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+p {
+  word-break: break-all;
+}
+
+button {
+  border-radius: 12px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #000000;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #ffffff;
+  }
+
+  header {
+    background-color: #000000;
+    color: #ffffff;
+  }
+
+  nav a {
+    color: #ffffff;
+  }
+
+  main {
+    color: #000000;
+  }
+
+  footer {
+    color: #000000;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  header {
+    justify-content: space-between;
+  }
+
+  #nav {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  #nav-menu {
+    display: block;
+    /* Agrega estilos para el menú desplegable aquí */
+  }
+
+  .menu-toggle:hover #nav-menu {
+    display: block;
+  }
 }

@@ -11,7 +11,7 @@ function App() {
     <Router>
       <div className='app'>
         <Header />
-        <main>
+        <main id='main' className='main'>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
