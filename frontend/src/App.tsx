@@ -4,12 +4,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './partials';
 import { Home, Services, Contact, NotFound } from './pages';
+import ScrollToTop from './ScrollToTop';
 
 function App() {
   // const url = process.env.REACT_APP_API_URL;
   return (
     <Router>
       <div className='app'>
+
+        <ScrollToTop />
         <Header />
         <main id='main' className='main'>
           <Routes>
