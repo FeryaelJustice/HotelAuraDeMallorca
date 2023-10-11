@@ -1,7 +1,8 @@
 export function Footer() {
     return (
         <footer id="footer" className="footer">
-            Footer
+            Footer:
+            Server is running in {import.meta.env.MODE}
         </footer>
     )
 }

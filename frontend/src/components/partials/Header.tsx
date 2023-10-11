@@ -15,7 +15,9 @@ export function Header() {
     };
     return (
         <header id="header" className="header">
-            <img src="/logo.svg" alt="logo" aria-description="logo" className="logo" id="logo" width={'300px'} height={'40px'} />
+            <NavLink id="logo" className="logo" to="/">
+                <img src="/logo.svg" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+            </NavLink>
             <nav id="nav" className="navigation">
                 <NavLink to="/" className={({ isActive }) => {
                     return isActive ? 'is-active' : undefined

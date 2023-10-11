@@ -8,7 +8,10 @@
     left: 50%;
     padding: 5px 15px;
     transform: translate(-50%, -50%);
-    color: #000000;
+    color: #ffffff;
     font-size: 3em;
     font-weight: bolder;
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: black;
+    text-shadow: 2px 2px #000000;
 }
