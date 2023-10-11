@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom"
 export function Header() {
     return (
         <header id="header">
-            <img src="/logo.svg" alt="logo" aria-aria-description="logo" className="logo" id="logo" />
+            <img src="/logo.svg" alt="logo" aria-description="logo" className="logo" id="logo" width={'300px'} height={'40px'} />
             <nav id="nav">
                 <NavLink to="/" style={({ isActive }) => (
                     isActive ? {
