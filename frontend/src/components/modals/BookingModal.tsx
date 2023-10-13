@@ -5,6 +5,7 @@ import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import Form from 'react-bootstrap/Form';
+import { Booking, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
 
 interface BookingModalProps {
     show: boolean,
@@ -44,6 +45,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             case BookingSteps.StepPayment:
                 // Realizar la reserva
                 try {
+                    let user = new User();
+                    let service = new Service(); // podrá ver 1 o más
+                    let payment = new Payment();
+                    let booking = new Booking();
                     // Llama a la API para realizar la reserva
                     // axios.post('/api/reserve', { /* Datos de reserva */ }).then((response) => {
                     //     setCurrentStep(BookingSteps.StepPlan);
