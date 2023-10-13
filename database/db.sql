@@ -5,12 +5,20 @@ USE hotelaurademallorca;
 
 -- Create the table app_user
 CREATE TABLE app_user (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_name VARCHAR(255),
     user_surnames VARCHAR(255),
     user_email VARCHAR(255),
     user_password_hash VARCHAR(255),
     user_verified BOOLEAN
+);
+
+-- Create the table app_user
+CREATE TABLE guest (
+    id INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    guest_name VARCHAR(255),
+    guest_surnames VARCHAR(255),
+    guest_email VARCHAR(255)
 );
 
 -- Create the table role
@@ -58,7 +66,7 @@ CREATE TABLE service (
 
 -- Create the table booking
 CREATE TABLE booking (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
     plan_id INT,
     room_id INT,
@@ -89,7 +97,7 @@ CREATE TABLE weather (
 
 -- Create the table payment (transaction)
 CREATE TABLE payment (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
     booking_id INT,
     payment_amount DECIMAL(10, 2),
@@ -98,10 +106,20 @@ CREATE TABLE payment (
     FOREIGN KEY (booking_id) REFERENCES booking(id)
 );
 
+-- RESTRICTIONS
+ALTER TABLE
+    `app_user`
+ADD
+    UNIQUE INDEX `user_id_UNIQUE` (`id` ASC);
+
+ALTER TABLE
+    `guest`
+ADD
+    UNIQUE INDEX `guest_id_UNIQUE` (`id` ASC);
+
 -- INSERTS of example data
 INSERT INTO
     app_user (
-        id,
         user_name,
         user_surnames,
         user_email,
@@ -110,7 +128,6 @@ INSERT INTO
     )
 VALUES
     (
-        1,
         'John Doe',
         'Gonzalez Serr',
         'john@example.com',
@@ -118,7 +135,6 @@ VALUES
         true
     ),
     (
-        2,
         'Jane Smith',
         'Gonzalez Serr',
         'jane@example.com',
@@ -126,12 +142,34 @@ VALUES
         false
     ),
     (
-        3,
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
         '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
         false
+    );
+
+INSERT INTO
+    guest (
+        guest_name,
+        guest_surnames,
+        guest_email
+    )
+VALUES
+    (
+        'John Doe',
+        'Gonzalez Serr',
+        'john@example.com'
+    ),
+    (
+        'Jane Smith',
+        'Gonzalez Serr',
+        'jane@example.com'
+    ),
+    (
+        'Fer',
+        'Gonzalez Serr',
+        'fer@example.com'
     );
 
 INSERT INTO

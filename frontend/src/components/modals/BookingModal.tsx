@@ -45,16 +45,23 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             case BookingSteps.StepPayment:
                 // Realizar la reserva
                 try {
-                    let user = new User();
+                    let user = new User({
+                        id: null,
+                        name: name,
+                        surnames: surnames,
+                        email: email,
+                        password: '1234', // get on current logged user or a petition
+                        verified: true,
+                    });
                     let plan = new Plan();
                     let room = new Room();
                     let service = new Service(); // podrá ver 1 o más
                     let payment = new Payment();
                     let booking = new Booking({
-                        id: 1,
-                        userID: 2,
-                        planID: 3,
-                        roomID: 4,
+                        id: null,
+                        userID: user.id,
+                        planID: plan.id,
+                        roomID: room.id,
                         startDate: new Date(),
                         endDate: new Date(),
                     });
@@ -65,6 +72,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     //     console.error(error);
                     //     setApiError(error)
                     // });
+                    console.log(booking)
                     setCurrentStep(BookingSteps.StepPlan);
                 } catch (error) {
                     // Manejo de errores
