@@ -46,9 +46,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 // Realizar la reserva
                 try {
                     let user = new User();
+                    let plan = new Plan();
+                    let room = new Room();
                     let service = new Service(); // podrá ver 1 o más
                     let payment = new Payment();
-                    let booking = new Booking();
+                    let booking = new Booking({
+                        id: 1,
+                        userID: 2,
+                        planID: 3,
+                        roomID: 4,
+                        startDate: new Date(),
+                        endDate: new Date(),
+                    });
                     // Llama a la API para realizar la reserva
                     // axios.post('/api/reserve', { /* Datos de reserva */ }).then((response) => {
                     //     setCurrentStep(BookingSteps.StepPlan);
