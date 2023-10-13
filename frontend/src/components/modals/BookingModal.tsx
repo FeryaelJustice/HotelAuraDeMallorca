@@ -25,11 +25,24 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Step form 1
     const [validated, setValidated] = useState(false);
     const [apiError, setApiError] = useState('');
+    const [name, setName] = useState('');
+    const [surnames, setSurnames] = useState('');
+    const [email, setEmail] = useState('');
 
     const goToNextStep = async () => {
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
+                setCurrentStep(BookingSteps.StepPlan);
+                break;
+            case BookingSteps.StepPlan:
+                setCurrentStep(BookingSteps.StepChooseBooking);
+                break;
+            case BookingSteps.StepChooseBooking:
+                setCurrentStep(BookingSteps.StepPayment);
+                break;
+            case BookingSteps.StepPayment:
+                // Realizar la reserva
                 try {
                     // Llama a la API para realizar la reserva
                     // axios.post('/api/reserve', { /* Datos de reserva */ }).then((response) => {
@@ -43,17 +56,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     // Manejo de errores
                     console.error('Error al realizar la reserva:', error);
                 }
-                break;
-            case BookingSteps.StepPlan:
-                setCurrentStep(BookingSteps.StepChooseBooking);
-                break;
-            case BookingSteps.StepChooseBooking:
-                setCurrentStep(BookingSteps.StepPayment);
-                break;
-            case BookingSteps.StepPayment:
-                setCurrentStep(BookingSteps.StepConfirmation);
 
-                // Empty data on next screen
+
+                // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                setCurrentStep(BookingSteps.StepConfirmation);
                 onClose();
                 setCurrentStep(BookingSteps.StepPersonalData);
                 setValidated(false);
@@ -71,22 +77,21 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         event.preventDefault();
         event.stopPropagation();
 
-        const form = event.currentTarget;
+        let form = event.currentTarget;
         setValidated(form.checkValidity());
         if (form.checkValidity()) {
             goToNextStep();
         }
-        console.log(form)
     }
 
     const handleNameChange = (event: any) => {
-        console.log(event.target.value)
+        setName(event.target.value)
     }
     const handleSurnamesChange = (event: any) => {
-        console.log(event.target.value)
+        setSurnames(event.target.value)
     }
     const handleEmailChange = (event: any) => {
-        console.log(event.target.value)
+        setEmail(event.target.value)
     }
     return (
         <BaseModal title={'Book'} show={show} onClose={onClose}>
