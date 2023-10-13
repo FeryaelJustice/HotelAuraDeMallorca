@@ -40,7 +40,11 @@ export const Header = ({ colorScheme, onOpenBookingModal }: HeaderProps) => {
                 }}>Contact</NavLink>
                 <div id="nav-actions">
                     <Button variant="primary" onClick={onOpenBookingModal}>Book</Button>
-                    <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" />
+                    {colorScheme == 'dark' ? (
+                        <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" />
+                    ) : (
+                        <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" />
+                    )}
                 </div>
             </nav>
             <button className="menu-toggle" >

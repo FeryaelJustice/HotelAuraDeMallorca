@@ -5,7 +5,10 @@ import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import Form from 'react-bootstrap/Form';
+import Card from 'react-bootstrap/Card';
 import { Booking, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
 interface BookingModalProps {
     show: boolean,
@@ -20,15 +23,23 @@ enum BookingSteps {
     StepConfirmation,
 }
 
+// Booking step calendar
+type ValuePiece = Date | null;
+type Value = ValuePiece | [ValuePiece, ValuePiece];
+
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
 
-    // Step form 1
+    // Step Personal data Form
     const [validated, setValidated] = useState(false);
     const [apiError, setApiError] = useState('');
     const [name, setName] = useState('');
     const [surnames, setSurnames] = useState('');
     const [email, setEmail] = useState('');
+
+    // Select date
+    const [startDate, onChangeStartDate] = useState<Value>(new Date());
+    const [endDate, onChangeEndDate] = useState<Value>(new Date());
 
     const goToNextStep = async () => {
         // Lógica específica para cada paso
@@ -115,6 +126,14 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const handleEmailChange = (event: any) => {
         setEmail(event.target.value)
     }
+
+    // Step choose Plan
+    const [checkedPlan, setCheckedPlan] = useState<string | null>(null);
+
+    const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setCheckedPlan(event.target.value);
+    };
+
     return (
         <BaseModal title={'Book'} show={show} onClose={onClose}>
             {currentStep === BookingSteps.StepPersonalData && (
@@ -140,7 +159,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             </Form.Text>
                         </Form.Group>
                         <Button variant="primary" type="submit">
-                            Choose plan
+                            Next step: Choose plan
                         </Button>
                     </Form>
 
@@ -155,7 +174,41 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {currentStep === BookingSteps.StepPlan && (
                 <div>
                     <h2>Step 2: Choose your PLAN</h2>
-                    {/* Contenido del paso 2 */}
+                    <div className="cards-plan">
+                        <Card>
+                            <Card.Body>
+                                <Card.Title>Plan: Basic</Card.Title>
+                                <Card.Text>
+                                    In the basic plan, you are going to be able to choose your room and delight of the free meteorology service we have. Services will not be included (choose the ones you want).
+                                </Card.Text>
+                                <Form.Check
+                                    id="basic"
+                                    type="radio"
+                                    name="pricing-plan"
+                                    value="basic"
+                                    checked={checkedPlan === "basic"}
+                                    onChange={handleRadioChange}
+                                />
+                            </Card.Body>
+                        </Card>
+                        <Card>
+                            <Card.Body>
+                                <Card.Title>Plan: VIP</Card.Title>
+                                <Card.Text>
+                                    In the vip plan, you delight all the benefits of Basic plan + all extra services included + special attention.
+                                </Card.Text>
+                                <Form.Check
+                                    id="vip"
+                                    type="radio"
+                                    name="pricing-plan"
+                                    value="vip"
+                                    checked={checkedPlan === "vip"}
+                                    onChange={handleRadioChange}
+                                />
+                            </Card.Body>
+                        </Card>
+                    </div>
+
                     <Button onClick={goToNextStep}>Next</Button>
                 </div>
             )}
@@ -163,6 +216,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {currentStep === BookingSteps.StepChooseBooking && (
                 <div>
                     <h2>Step 3: Choose your booking & services</h2>
+
+                    <div className="startenddates">
+                        <div className="startdate">
+                            <h3>Start date</h3>
+                            <Calendar onChange={onChangeStartDate} value={startDate} />
+                        </div>
+                        <div className="enddate">
+                            <h3>End date</h3>
+                            <Calendar onChange={onChangeEndDate} value={endDate} />
+                        </div>
+                    </div>
+
                     <Button onClick={goToNextStep}>Next</Button>
                 </div>
             )}

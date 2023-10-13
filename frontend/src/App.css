@@ -181,6 +181,34 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Booking modal */
+
+.cards-plan {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+/* Choose Booking Dates inside choose room and dates step */
+.startenddates {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 12px;
+  text-align: center;
+}
+
+.startenddates .react-calendar {
+  margin-right: 8px;
+}
+
+.card-text {
+  word-break: break-word;
+}
+
 @media (prefers-color-scheme: light) {
   a:hover {
     color: #747bff;
@@ -232,5 +260,18 @@ button:focus-visible {
 
   #bookBtnNoInHeader {
     display: block;
+  }
+
+  .cards-plan {
+    flex-direction: column;
+  }
+
+  .startenddates {
+    flex-direction: column;
+  }
+
+  .startenddates .react-calendar {
+    margin-right: 0;
+    margin-bottom: 8px;
   }
 }
