@@ -1,7 +1,7 @@
 {
 	"_type": "Project",
 	"_id": "AAAAAAFF+h6SjaM2Hec=",
-	"name": "Untitled",
+	"name": "DiagramaDeClases",
 	"ownedElements": [
 		{
 			"_type": "UMLModel",
@@ -28,7 +28,7 @@
 			"_parent": {
 				"$ref": "AAAAAAFF+h6SjaM2Hec="
 			},
-			"name": "Data Model1",
+			"name": "Data Model",
 			"ownedElements": [
 				{
 					"_type": "ERDDiagram",
@@ -36,7 +36,7 @@
 					"_parent": {
 						"$ref": "AAAAAAGLGYjEYMAUUtw="
 					},
-					"name": "ERDDiagram1",
+					"name": "DiagramaDeClases",
 					"ownedViews": [
 						{
 							"_type": "ERDEntityView",
@@ -3430,5 +3430,10 @@
 				}
 			]
 		}
-	]
+	],
+	"documentation": "Fernando GS - DiagramaDeClases de Hotel Aura de Mallorca",
+	"author": "Fernando GS",
+	"company": "Fernando GS",
+	"copyright": "no",
+	"version": "1"
 }

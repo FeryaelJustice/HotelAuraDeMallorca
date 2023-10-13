@@ -1,12 +1,13 @@
 // ReserveModal.tsx
 import React, { useState } from 'react';
 import BaseModal from './BaseModal';
-import axios from 'axios';
+// import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
-import { Booking, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
+import { Booking, Plan, Room, User } from '../../models';
+// import { Booking, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 
@@ -66,8 +67,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     });
                     let plan = new Plan();
                     let room = new Room();
-                    let service = new Service(); // podrá ver 1 o más
-                    let payment = new Payment();
+                    //let service = new Service(); // podrá ver 1 o más
+                    //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
                         userID: user.id,
