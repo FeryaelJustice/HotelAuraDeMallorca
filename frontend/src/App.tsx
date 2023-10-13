@@ -1,12 +1,13 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
 import { Home, Services, Contact, NotFound } from './pages';
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
+import Button from 'react-bootstrap/Button';
 
 function App() {
   // const url = process.env.REACT_APP_API_URL;
@@ -44,6 +45,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
 
+
+          <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>Book</Button>
           <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
 
         </main>

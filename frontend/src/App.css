@@ -106,6 +106,16 @@ nav a {
   z-index: 1;
 }
 
+#bookBtnNoInHeader {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  margin: 30px;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
 .footer {
   width: 100%;
   background-color: #FFFFFF;
@@ -216,6 +226,10 @@ button:focus-visible {
   }
 
   .menu-toggle:hover #nav-menu {
+    display: block;
+  }
+
+  #bookBtnNoInHeader {
     display: block;
   }
 }

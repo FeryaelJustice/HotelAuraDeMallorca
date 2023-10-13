@@ -25,7 +25,6 @@ const BaseModal = ({ title, children, show, onClose }: BaseModalProps) => {
 
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>Close</Button>
-                <Button variant="primary">Save changes</Button>
             </Modal.Footer>
         </Modal>
     );
