@@ -6,7 +6,7 @@ import Image3 from './../assets/images/hotel-room-1920.webp'
 
 export const Home = () => {
     // Get env variables nativa de vite pero es SOLO para react
-    console.log(import.meta.env)
+    // console.log(import.meta.env)
     return (
         <div>
             <Parallax strength={300} bgImage={Image}>

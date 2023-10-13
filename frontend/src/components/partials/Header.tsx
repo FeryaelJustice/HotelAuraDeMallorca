@@ -2,8 +2,14 @@ import { NavLink } from "react-router-dom"
 import { useState } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
+import Button from 'react-bootstrap/Button'
 
-export const Header = () => {
+interface HeaderProps {
+    colorScheme: string,
+    onOpenBookingModal: () => void;
+}
+
+export const Header = ({ colorScheme, onOpenBookingModal }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const handleToggleMenu = () => {
@@ -16,7 +22,11 @@ export const Header = () => {
     return (
         <header id="header" className="header">
             <NavLink id="logo" className="logo" to="/">
-                <img src="/logo.svg" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+                {colorScheme == 'dark' ? (
+                    <img src="/logo.svg" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+                ) : (
+                    <img src="/logo-white.webp" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+                )}
             </NavLink>
             <nav id="nav" className="navigation">
                 <NavLink to="/" className={({ isActive }) => {
@@ -29,7 +39,7 @@ export const Header = () => {
                     return isActive ? 'is-active' : undefined
                 }}>Contact</NavLink>
                 <div id="nav-actions">
-                    <button>Book</button>
+                    <Button variant="primary" onClick={onOpenBookingModal}>Book</Button>
                     <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" />
                 </div>
             </nav>

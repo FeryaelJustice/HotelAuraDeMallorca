@@ -9,5 +9,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+    console.log(`Hotel Aura de Mallorca SERVER listening on port ${port}`)
 })

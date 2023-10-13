@@ -10,6 +10,10 @@ header {
   flex-direction: row;
   padding: 16px;
   background-color: #ffffff;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 2;
 }
 
 .logo {
@@ -99,6 +103,7 @@ nav a {
 .main {
   min-height: 100vh;
   color: #ffffff;
+  z-index: 1;
 }
 
 .footer {
@@ -111,6 +116,7 @@ nav a {
   align-items: center;
   font-size: 0.8em;
   padding: 25px 0;
+  z-index: 1;
 }
 
 .card {
