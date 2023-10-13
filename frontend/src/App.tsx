@@ -2,7 +2,7 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
-import { Header, Footer } from './partials';
+import { Header, Footer } from './components/partials';
 import { Home, Services, Contact, NotFound } from './pages';
 import ScrollToTop from './ScrollToTop';
 

@@ -1,4 +1,4 @@
-export function Services() {
+export const Services = () => {
     return (
         <div>
             Services

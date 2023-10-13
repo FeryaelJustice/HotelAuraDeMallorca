@@ -4,7 +4,7 @@ import Image from './../assets/images/pexels-maria-orlova-garden.webp'
 import Image2 from './../assets/images/castle-park-1920.webp'
 import Image3 from './../assets/images/hotel-room-1920.webp'
 
-export function Home() {
+export const Home = () => {
     // Get env variables nativa de vite pero es SOLO para react
     console.log(import.meta.env)
     return (

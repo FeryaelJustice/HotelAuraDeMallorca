@@ -1,4 +1,4 @@
-export function NotFound() {
+export const NotFound = () => {
     return (
         <div>
             Page Not Found
