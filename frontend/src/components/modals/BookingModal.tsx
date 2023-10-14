@@ -1,4 +1,3 @@
-// ReserveModal.tsx
 import React, { useState } from 'react';
 import BaseModal from './BaseModal';
 // import axios from 'axios';
