@@ -316,3 +316,15 @@ INSERT INTO
 VALUES
     (1, 1, 1, 50.00, '2023-10-23'),
     (2, 2, 2, 150.00, '2023-11-10');
+
+-- PROCEDIMIENTOS
+/*
+DELIMITER //
+CREATE PROCEDURE ResetAutoIncrement()
+BEGIN
+    DECLARE maxId INT;
+    SELECT MAX(id) INTO maxId FROM app_user;
+    SET maxId = IFNULL(maxId + 1, 1);
+    UPDATE app_user SET AUTO_INCREMENT = maxId;
+END; //
+*/

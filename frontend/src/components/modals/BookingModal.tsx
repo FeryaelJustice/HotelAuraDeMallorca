@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import BaseModal from './BaseModal';
-// import axios from 'axios';
+import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import Form from 'react-bootstrap/Form';
@@ -77,12 +77,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         endDate: new Date(),
                     });
                     // Llama a la API para realizar la reserva
-                    // axios.post('/api/reserve', { /* Datos de reserva */ }).then((response) => {
-                    //     setCurrentStep(BookingSteps.StepPlan);
-                    // }).catch((error) => {
-                    //     console.error(error);
-                    //     setApiError(error)
-                    // });
+                    const res = await axios.get('http://localhost:3000')
+                    console.log(res)
+                    /*
+                    axios.post('/api/reserve', { data }).then((response) => {
+                        setCurrentStep(BookingSteps.StepPlan);
+                    }).catch((error) => {
+                        console.error(error);
+                        setApiError(error)
+                    });
+                    */
                     console.log(booking)
                     setCurrentStep(BookingSteps.StepPlan);
                 } catch (error) {
