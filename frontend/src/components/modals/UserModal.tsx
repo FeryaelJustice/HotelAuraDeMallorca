@@ -2,6 +2,7 @@ import { useState } from 'react';
 import BaseModal from './BaseModal';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
+import axios from 'axios'
 
 interface UserModalProps {
     show: boolean,
@@ -37,6 +38,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         }
     }
 
+    const axiosHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': '',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    }
+
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
@@ -53,13 +61,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
         if (form.checkValidity()) {
-            // api call
+            axios.post('http://localhost:3000/api/login', userLogin, { headers: axiosHeaders }).then(res => {
+                console.log(res)
+            }).catch(err => {
+                console.error(err)
+            })
         }
     }
 
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
-    const [userRegister, setUserRegister] = useState({ email: "", password: "" });
+    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "" });
 
     const handleRegisterChange = (event: any) => {
         setUserRegister({ ...userRegister, [event.target.name]: event.target.value });
@@ -74,6 +86,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         setRegisterValidated(form.checkValidity());
         if (form.checkValidity()) {
             // api call
+            axios.post('http://localhost:3000/api/register', userRegister, { headers: axiosHeaders }).then(res => {
+                console.log(res)
+            }).catch(err => {
+                console.error(err)
+            })
         }
     }
 
@@ -98,20 +115,38 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             Login
                         </Button>
                     </Form>
-                    {/* <Button variant="primary" type="submit" onClick={goToScreen}>
-                        Go to next screen
-                    </Button> */}
                 </div>
             )}
 
             {currentScreen === UserModalScreens.ScreenRegister && (
                 <div>
-                    <h1>
-                        User register
-                    </h1>
-                    <Button variant="primary" type="submit" onClick={goToScreen}>
-                        Go to next screen
-                    </Button>
+                    <Form noValidate validated={registerValidated} onSubmit={handleRegisterSubmit}>
+                        <Form.Group className="mb-3" controlId="formEmail">
+                            <Form.Label>Email</Form.Label>
+                            <Form.Control type="text" name='email' placeholder="Enter your email" onChange={handleRegisterChange} />
+                            <Form.Text className="text-muted">
+                                We'll never share your email with anyone else and we will send confirmation mails to this one.
+                            </Form.Text>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3" controlId="formName">
+                            <Form.Label>Name</Form.Label>
+                            <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleRegisterChange} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3" controlId="formSurnames">
+                            <Form.Label>Surnames</Form.Label>
+                            <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleRegisterChange} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3" controlId="formPassword">
+                            <Form.Label>Password</Form.Label>
+                            <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleRegisterChange} />
+                        </Form.Group>
+                        <Button variant="primary" type="submit">
+                            Register
+                        </Button>
+                    </Form>
                 </div>
             )}
 
