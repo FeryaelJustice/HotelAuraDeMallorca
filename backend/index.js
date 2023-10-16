@@ -23,13 +23,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 // Middleware ensure CORS
 app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        res.status(200);
-    } else {
-        next();
-    }
+    res.header('Access-Control-Allow-Origin', process.env.API_URL);
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
 });
 // Routes
 app.use('/api/', expressRouter)
@@ -50,7 +47,12 @@ const jwt = require('jsonwebtoken')
 const jwtSecretKey = 'jwt-secret-key'
 // Verify user JWT
 const verifyUser = (req, res, next) => {
-    const token = req.cookies.token;
+    let token = '';
+    if (!req.cookies) {
+        token = req.body.token;
+    } else {
+        token = req.cookies.token;
+    }
     if (!token) {
         return res.status(401).json({ status: "error", msg: "You are not authenticated, forbidden." })
     } else {
@@ -59,6 +61,26 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
                 req.name = decoded.name;
+                next();
+            }
+        })
+    }
+}
+const getJWTUser = (req, res, next) => {
+    let token = '';
+    if (!req.cookies) {
+        token = req.body.token;
+    } else {
+        token = req.cookies.token;
+    }
+    if (!token) {
+        return res.status(401).json({ status: "error", msg: "No token." })
+    } else {
+        jwt.verify(token, jwtSecretKey, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
+            } else {
+                req.jwt = decoded;
                 next();
             }
         })
@@ -151,6 +173,27 @@ expressRouter.post('/editprofile/:id', (req, res) => {
         }
         res.status(200).send({ insertId: results.insertId });
     });
+})
+
+expressRouter.post('/currentUser', getJWTUser, (req, res) => {
+    return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.jwt.userID })
+})
+
+expressRouter.get('/loggedUser/:id', (req, res) => {
+    let userID = req.params.id;
+    let sql = 'SELECT * FROM app_user WHERE id = ?';
+    let values = [userID];
+    connection.query(sql, values, (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+        }
+        if (results.length > 0) {
+            res.status(200).send({ status: "success", msg: "User found", data: results[0] });
+        } else {
+            res.status(500).send({ status: "error", msg: "No user exists with that id" });
+        }
+    })
 })
 
 // Listen SERVER

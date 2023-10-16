@@ -4,8 +4,9 @@ import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
 import axios from 'axios'
 import { useCookies } from 'react-cookie';
-import ReCAPTCHA from "react-google-recaptcha";
 import Alert from 'react-bootstrap/Alert';
+import ReCAPTCHA from "react-google-recaptcha";
+import { User } from './../../models/index'
 
 interface UserModalProps {
     show: boolean,
@@ -20,14 +21,21 @@ enum UserModalScreens {
 }
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
+    const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
     const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [currentUser, setCurrentUser] = useState(new User());
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY
 
     useEffect(() => {
         if (cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
+            getAllLoggedUserData().then(res => {
+                const userData = res.data;
+                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password_hash, verified: userData.user_verified })
+                setCurrentUser(modelUserData)
+            }).catch(err => console.error(err))
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)
         }
@@ -51,6 +59,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     }
     axios.defaults.withCredentials = true;
 
+    // Get JWT user data
+    async function getAllLoggedUserData(): Promise<any> {
+        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
+        if (currentUser) {
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders });
+            if (getLoggedUserData) {
+                return getLoggedUserData.data;
+            }
+        }
+    }
+
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
@@ -67,7 +86,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
         if (loginValidated && captchaLoginValid) {
-            axios.post('http://localhost:3000/api/login', userLogin, { headers: axiosHeaders }).then(res => {
+            axios.post(API_URL + '/api/login', userLogin, { headers: axiosHeaders }).then(res => {
                 console.log("logged successfully")
             }).catch(err => {
                 console.error(err)
@@ -112,7 +131,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         setRegisterValidated(form.checkValidity());
         if (registerValidated && captchaRegisterValid) {
             // api call
-            axios.post('http://localhost:3000/api/register', userRegister, { headers: axiosHeaders }).then(res => {
+            axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
                 console.log('registered successfully')
             }).catch(err => {
                 console.error(err)
@@ -249,6 +268,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h1>
                         User edit profile
                     </h1>
+                    <p>{currentUser.name}</p>
                     <Button variant="primary" type="submit" onClick={logout}>
                         Logout
                     </Button>
