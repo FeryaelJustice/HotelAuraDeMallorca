@@ -95,6 +95,15 @@ CREATE TABLE booking_details (
     FOREIGN KEY (booking_id) REFERENCES booking(id)
 );
 
+-- Create the table booking_details
+CREATE TABLE booking_guests (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    booking_id INT,
+    guest_id INT,
+    FOREIGN KEY (booking_id) REFERENCES booking(id),
+    FOREIGN KEY (guest_id) REFERENCES guest(id)
+);
+
 -- Create the table weather
 CREATE TABLE weather (
     id INT PRIMARY KEY,
@@ -307,6 +316,15 @@ INSERT INTO
 VALUES
     (1, 2, 1),
     (2, 2, 2);
+
+-- Guests asociados a reservas, como los adultos y niños que hay
+INSERT INTO
+    booking_guests (booking_id, guest_id)
+VALUES
+    (1, 1),
+    (1, 2),
+    (1, 3),
+    (2, 3);
 
 -- Condiciones meteorológicas
 INSERT INTO
