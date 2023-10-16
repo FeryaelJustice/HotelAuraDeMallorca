@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
 import axios from 'axios'
+import { useCookies } from 'react-cookie';
 
 interface UserModalProps {
     show: boolean,
@@ -18,32 +19,33 @@ enum UserModalScreens {
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
+    const [cookies, setCookie, removeCookie] = useCookies(['token']);
 
-    const goToScreen = async () => {
-        switch (currentScreen) {
-            case UserModalScreens.ScreenLogin:
-                setCurrentScreen(UserModalScreens.ScreenRegister);
-                break;
-            case UserModalScreens.ScreenRegister:
-                setCurrentScreen(UserModalScreens.ScreenVerify2FA);
-                break;
-            case UserModalScreens.ScreenVerify2FA:
-                setCurrentScreen(UserModalScreens.ScreenEditProfile);
-                break;
-            case UserModalScreens.ScreenEditProfile:
-                onClose();
-                break;
-            default:
-                break;
+    useEffect(() => {
+        if (cookies.token) {
+            setCurrentScreen(UserModalScreens.ScreenEditProfile)
+        } else {
+            setCurrentScreen(UserModalScreens.ScreenLogin)
         }
+    }, [cookies])
+
+    const goToRegisterScreen = async () => {
+        setCurrentScreen(UserModalScreens.ScreenRegister)
     }
 
+    const logout = () => {
+        removeCookie('token')
+        window.location.reload();
+    }
+
+    // Axios request properties
     const axiosHeaders = {
         'Content-Type': 'application/json',
         'Authorization': '',
         'Accept': 'application/json',
         'Access-Control-Allow-Origin': '*'
     }
+    axios.defaults.withCredentials = true;
 
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
@@ -111,9 +113,15 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Label>Password</Form.Label>
                             <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleLoginChange} />
                         </Form.Group>
-                        <Button variant="primary" type="submit">
-                            Login
-                        </Button>
+                        <div className="userLoginModalActions">
+                            <Button variant="primary" type="submit">
+                                Login
+                            </Button>
+                            <div className="vertical-align">
+                                <span>Don't have an account?</span>
+                                <a id='goToRegisterA' onClick={goToRegisterScreen}>Register here</a>
+                            </div>
+                        </div>
                     </Form>
                 </div>
             )}
@@ -155,8 +163,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h1>
                         User verify 2fa
                     </h1>
-                    <Button variant="primary" type="submit" onClick={goToScreen}>
-                        Go to next screen
+                    <Button variant="primary" type="submit" onClick={onClose}>
+                        Verify
                     </Button>
                 </div>
             )}
@@ -166,8 +174,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h1>
                         User edit profile
                     </h1>
-                    <Button variant="primary" type="submit" onClick={goToScreen}>
-                        Go to next screen
+                    <Button variant="primary" type="submit" onClick={logout}>
+                        Logout
                     </Button>
                 </div>
             )}

@@ -1,14 +1,12 @@
 const express = require('express')
 const expressRouter = express.Router()
 const cors = require('cors')
-const jwt = require('jsonwebtoken')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const mysql = require('mysql')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 require('dotenv').config();
-const salt = 10; // password hashing
 
 // Init server
 const app = express();
@@ -19,6 +17,7 @@ app.use(bodyParser.json())
 const corsOptions = {
     origin: process.env.API_URL,
     credentials: true, //access-control-allow-credentials:true
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'],
     optionSuccessStatus: 200
 }
 app.use(cors(corsOptions));
@@ -27,7 +26,7 @@ app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        res.sendStatus(200);
+        res.status(200);
     } else {
         next();
     }
@@ -38,6 +37,7 @@ app.use('/api/', expressRouter)
 app.use(cookieParser());
 app.use(compression())
 
+// MySQL
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -45,27 +45,68 @@ const connection = mysql.createConnection({
     database: 'hotelaurademallorca'
 })
 
+// JWT
+const jwt = require('jsonwebtoken')
+const jwtSecretKey = 'jwt-secret-key'
+// Verify user JWT
+const verifyUser = (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ status: "error", msg: "You are not authenticated, forbidden." })
+    } else {
+        jwt.verify(token, jwtSecretKey, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
+            } else {
+                req.name = decoded.name;
+                next();
+            }
+        })
+    }
+}
+
+// Hashing
+const salt = 10; // password hashing
+
 // ROUTES
 // if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
 
-app.get('/', (req, res) => {
+app.get('/', verifyUser, (req, res) => {
     let test = process.env.NODE_ENV + ' ' + process.env.API_URL;
     res.send(test)
 })
 
+// Protected route adding verifyUser middleware
 expressRouter.post('/register', (req, res) => {
     let data = req.body;
-    let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password_hash, user_verified) VALUES (?, ?, ?, ?, ?)';
 
-    bcrypt.hash(data.password, salt, (err, hash) => {
-        let values = [data.name, data.surnames, data.email, hash, 0];
-        connection.query(sql, values, (error, results) => {
-            if (error) {
-                console.error(error);
-                return res.sendStatus(500).json({ status: "error", msg: "Inserting data error on server" });
-            }
-            res.status(200).json({ status: "success", msg: "", insertId: results.insertId });
-        });
+    let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+    let checkValues = [data.email]
+
+    connection.query(checkSQL, checkValues, (err, resultss) => {
+        console.log(resultss.length)
+        if (err) {
+            return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
+        }
+        if (resultss.length > 0) {
+            return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+        } else {
+            let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password_hash, user_verified) VALUES (?, ?, ?, ?, ?)';
+
+            bcrypt.hash(data.password, salt, (err, hash) => {
+                let values = [data.name, data.surnames, data.email, hash, 0];
+                connection.query(sql, values, (error, results) => {
+                    if (error) {
+                        console.error(error);
+                        return res.status(500).json({ status: "error", msg: "Inserting data error on server" });
+                    }
+                    let userID = results.insertId;
+                    let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                    res.cookie('token', jwtToken)
+                    res.status(200).json({ status: "success", msg: "", insertId: results.insertId });
+                });
+            })
+        }
     })
 })
 
@@ -84,6 +125,9 @@ expressRouter.post('/login', (req, res) => {
             bcrypt.compare(data.password, results[0].user_password_hash, (error, response) => {
                 if (error) return res.status(500).json({ status: "error", msg: "Passwords do not match" })
                 if (response) {
+                    let userID = results[0].id;
+                    let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                    res.cookie('token', jwtToken)
                     res.status(200).send({ status: "success", msg: "", result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                 }
             })
@@ -103,7 +147,7 @@ expressRouter.post('/editprofile/:id', (req, res) => {
     connection.query(sql, values, (error, results, fields) => {
         if (error) {
             console.error(error);
-            return res.sendStatus(500);
+            return res.status(500);
         }
         res.status(200).send({ insertId: results.insertId });
     });

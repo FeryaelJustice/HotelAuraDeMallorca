@@ -1,8 +1,9 @@
 import { NavLink } from "react-router-dom"
 import { useState } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Button from 'react-bootstrap/Button';
+import { useCookies } from 'react-cookie';
 
 interface HeaderProps {
     colorScheme: string,
@@ -12,6 +13,8 @@ interface HeaderProps {
 
 export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -41,11 +44,24 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                 }}>Contact</NavLink>
                 <div id="nav-actions">
                     <Button variant="primary" onClick={onOpenBookingModal}>Book</Button>
-                    {colorScheme == 'dark' ? (
-                        <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
-                    ) : (
-                        <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
-                    )}
+                    <div className="user-icon">
+                        {colorScheme == 'dark' ? (
+                            <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        ) : (
+                            <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        )}
+                        {cookies.token ? (
+                            <div className="logged-icon">
+                                <FontAwesomeIcon icon={faCheck} />
+                                <span>Logged</span>
+                            </div>
+                        ) : (
+
+                            <div className="logged-icon">
+                                <span></span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </nav>
             <button className="menu-toggle" >

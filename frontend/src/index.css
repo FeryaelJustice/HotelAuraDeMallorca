@@ -197,6 +197,11 @@ body {
   border: 2px solid #551b54;
 }
 
+.vertical-align {
+  display: flex;
+  flex-direction: column;
+}
+
 @keyframes movebtn {
   0% {
     transform: translateY(0px);

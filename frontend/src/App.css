@@ -22,6 +22,26 @@ header {
   cursor: pointer;
 }
 
+.user-icon {
+  display: flex;
+  flex-direction: row;
+}
+
+.logged-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.logged-icon span {
+  font-size: 0.6rem;
+}
+
+#goToRegisterA {
+  cursor: pointer;
+}
+
 nav {
   width: 100%;
   display: flex;

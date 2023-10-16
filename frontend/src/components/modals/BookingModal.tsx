@@ -77,10 +77,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         endDate: new Date(),
                     });
                     // Llama a la API para realizar la reserva
-                    const res = await axios.get('http://localhost:3000')
+                    const res = await axios.get('http://localhost:3000', { headers: axiosHeaders })
                     console.log(res)
                     /*
-                    axios.post('/api/reserve', { data }).then((response) => {
+                    axios.post('/api/reserve', data, { headers: axiosHeaders }).then((response) => {
                         setCurrentStep(BookingSteps.StepPlan);
                     }).catch((error) => {
                         console.error(error);
@@ -137,6 +137,15 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setCheckedPlan(event.target.value);
     };
+
+    // Axios request properties
+    const axiosHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': '',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    }
+    axios.defaults.withCredentials = true;
 
     return (
         <BaseModal title={'Book'} show={show} onClose={onClose}>
