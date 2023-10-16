@@ -18,7 +18,8 @@ CREATE TABLE guest (
     id INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
     guest_name VARCHAR(255),
     guest_surnames VARCHAR(255),
-    guest_email VARCHAR(255)
+    guest_email VARCHAR(255),
+    isAdult CHAR(1) NOT NULL
 );
 
 -- Create the table role
@@ -171,23 +172,27 @@ INSERT INTO
     guest (
         guest_name,
         guest_surnames,
-        guest_email
+        guest_email,
+        isAdult
     )
 VALUES
     (
         'John Doe',
         'Gonzalez Serr',
-        'john@example.com'
+        'john@example.com',
+        1
     ),
     (
         'Jane Smith',
         'Gonzalez Serr',
-        'jane@example.com'
+        'jane@example.com',
+        0
     ),
     (
         'Fer',
         'Gonzalez Serr',
-        'fer@example.com'
+        'fer@example.com',
+        1
     );
 
 INSERT INTO

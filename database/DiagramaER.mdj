@@ -2355,20 +2355,35 @@
 											"top": 345,
 											"width": 81.419921875,
 											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGLOP6OTxKPdqw=",
+											"_parent": {
+												"$ref": "AAAAAAGLKOoaKlZnUn8="
+											},
+											"model": {
+												"$ref": "AAAAAAGLOP6OSBKMoxI="
+											},
+											"font": "Arial;13;0",
+											"left": 1213,
+											"top": 360,
+											"width": 81.419921875,
+											"height": 13
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 1208,
 									"top": 295,
 									"width": 91.419921875,
-									"height": 68
+									"height": 83
 								}
 							],
 							"font": "Arial;13;0",
 							"left": 1208,
 							"top": 272,
 							"width": 91.419921875,
-							"height": 91,
+							"height": 106,
 							"nameLabel": {
 								"$ref": "AAAAAAGLKOoaKlZmHN0="
 							},
@@ -3884,6 +3899,15 @@
 								"$ref": "AAAAAAGLKOoaKVZjtws="
 							},
 							"name": "email",
+							"length": 0
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGLOP6OSBKMoxI=",
+							"_parent": {
+								"$ref": "AAAAAAGLKOoaKVZjtws="
+							},
+							"name": "isAdult",
 							"length": 0
 						}
 					]

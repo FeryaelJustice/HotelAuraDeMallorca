@@ -63,9 +63,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders });
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
+            } else {
+                removeCookie('token');
             }
         }
     }

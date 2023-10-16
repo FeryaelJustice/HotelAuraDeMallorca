@@ -56,9 +56,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders });
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
+            } else {
+                removeCookie('token');
             }
         }
     }
@@ -216,7 +218,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 }
             })
         );
-        console.log(filteredRooms)
     }, [startDate, endDate, adults, children]);
 
 
