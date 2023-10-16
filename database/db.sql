@@ -131,21 +131,21 @@ VALUES
         'John Doe',
         'Gonzalez Serr',
         'john@example.com',
-        '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+        '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true
     ),
     (
         'Jane Smith',
         'Gonzalez Serr',
         'jane@example.com',
-        '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+        '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         false
     ),
     (
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
-        '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+        '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         false
     );
 
@@ -319,12 +319,12 @@ VALUES
 
 -- PROCEDIMIENTOS
 /*
-DELIMITER //
-CREATE PROCEDURE ResetAutoIncrement()
-BEGIN
-    DECLARE maxId INT;
-    SELECT MAX(id) INTO maxId FROM app_user;
-    SET maxId = IFNULL(maxId + 1, 1);
-    UPDATE app_user SET AUTO_INCREMENT = maxId;
-END; //
-*/
+ DELIMITER //
+ CREATE PROCEDURE ResetAutoIncrement()
+ BEGIN
+ DECLARE maxId INT;
+ SELECT MAX(id) INTO maxId FROM app_user;
+ SET maxId = IFNULL(maxId + 1, 1);
+ UPDATE app_user SET AUTO_INCREMENT = maxId;
+ END; //
+ */

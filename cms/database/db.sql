@@ -76,7 +76,7 @@ VALUES
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
-        '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+        '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         false
     );
 

@@ -84,7 +84,6 @@ expressRouter.post('/register', (req, res) => {
     let checkValues = [data.email]
 
     connection.query(checkSQL, checkValues, (err, resultss) => {
-        console.log(resultss.length)
         if (err) {
             return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
         }
@@ -118,17 +117,18 @@ expressRouter.post('/login', (req, res) => {
     connection.query(sql, values, (error, results) => {
         if (error) {
             console.error(error);
-            return res.status(500).json({ status: "error", msg: "Error on server" });
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
         }
         if (results.length > 0) {
-            console.log(data.password)
             bcrypt.compare(data.password, results[0].user_password_hash, (error, response) => {
-                if (error) return res.status(500).json({ status: "error", msg: "Passwords do not match" })
+                if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
                 if (response) {
                     let userID = results[0].id;
                     let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                     res.cookie('token', jwtToken)
                     res.status(200).send({ status: "success", msg: "", result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                } else {
+                    res.status(500).send({ status: "error", msg: "Passwords do not match" });
                 }
             })
         } else {

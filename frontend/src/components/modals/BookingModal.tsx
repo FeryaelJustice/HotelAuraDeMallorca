@@ -87,7 +87,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         setApiError(error)
                     });
                     */
-                    console.log(booking)
                     setCurrentStep(BookingSteps.StepPlan);
                 } catch (error) {
                     // Manejo de errores
