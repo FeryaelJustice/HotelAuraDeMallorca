@@ -211,20 +211,6 @@ button:focus-visible {
   padding-bottom: 12px;
 }
 
-/* Choose Booking Dates inside choose room and dates step */
-.startenddates {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding-bottom: 12px;
-  text-align: center;
-}
-
-.startenddates .react-calendar {
-  margin-right: 8px;
-}
-
 .card-text {
   word-break: break-word;
 }
@@ -284,14 +270,5 @@ button:focus-visible {
 
   .cards-plan {
     flex-direction: column;
-  }
-
-  .startenddates {
-    flex-direction: column;
-  }
-
-  .startenddates .react-calendar {
-    margin-right: 0;
-    margin-bottom: 8px;
   }
 }

@@ -4,6 +4,9 @@ import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
 import { Booking, Plan, Room, User } from '../../models';
 // import { Booking, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
 import Calendar from 'react-calendar';
@@ -175,6 +178,47 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Select date
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
     const [endDate, onChangeEndDate] = useState<Value>(new Date());
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const [rooms, setRooms] = useState<Room[]>([
+        new Room({
+            id: 1,
+            name: 'Room 1',
+            description: 'Description 1',
+            price: 100,
+            availabilityStart: new Date(),
+            availabilityEnd: tomorrow,
+        }),
+        new Room({
+            id: 2,
+            name: 'Room 2',
+            description: 'Description 2',
+            price: 120,
+            availabilityStart: new Date(),
+            availabilityEnd: tomorrow,
+        }),
+    ]);
+    const [adults, setAdults] = useState(1);
+    const [children, setChildren] = useState(0);
+
+    const [filteredRooms, setFilteredRooms] = useState<Room[]>([])
+
+    useEffect(() => {
+        setFilteredRooms(
+            rooms.filter((room) => {
+                if (startDate && endDate && room && room.availabilityStart && room.availabilityEnd) {
+                    return room.availabilityStart <= startDate && room.availabilityEnd >= endDate;
+                } else {
+                    const now = new Date();
+                    if (room && room.availabilityStart && room.availabilityEnd) {
+                        return room.availabilityStart <= now && room.availabilityEnd >= now;
+                    }
+                }
+            })
+        );
+        console.log(filteredRooms)
+    }, [startDate, endDate, adults, children]);
+
 
     // Step choose payment method
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
@@ -264,21 +308,67 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
             {
                 currentStep === BookingSteps.StepChooseBooking && (
-                    <div>
+                    <div style={{ overflow: 'auto', maxHeight: '400px' }}>
                         <h2>Choose your booking & services</h2>
 
-                        <div className="startenddates">
-                            <div className="startdate">
-                                <h3>Start date</h3>
-                                <Calendar onChange={onChangeStartDate} value={startDate} />
-                            </div>
-                            <div className="enddate">
-                                <h3>End date</h3>
-                                <Calendar onChange={onChangeEndDate} value={endDate} />
-                            </div>
-                        </div>
+                        <Container>
+                            <Row className="mt-12">
+                                <Col>
+                                    <h2>Search Hotels</h2>
+                                </Col>
+                            </Row>
+                            {/* Inputs de fechas */}
+                            <Row className="mt-12">
+                                <Col md={6}>
+                                    <h3>Start date</h3>
+                                    <Calendar onChange={onChangeStartDate} value={startDate} />
+                                </Col>
+                                <Col md={6}>
+                                    <h3>End date</h3>
+                                    <Calendar onChange={onChangeEndDate} value={endDate} />
+                                </Col>
+                            </Row>
 
-                        <Button onClick={goToNextStep}>Next</Button>
+                            {/* Inputs de adultos y niños */}
+                            <Row className="mt-12">
+                                <Col md={6}>
+                                    <Form.Label>Adults</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={adults}
+                                        onChange={(e) => setAdults(e.target.value as unknown as number)}
+                                    />
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Label>Children</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={children}
+                                        onChange={(e) => setChildren(e.target.value as unknown as number)}
+                                    />
+                                </Col>
+                            </Row>
+
+                            {/* Lista de hoteles */}
+                            <Row className="mt-12">
+                                <h3>Rooms found:</h3>
+                                {filteredRooms.map((room) => (
+                                    <Row key={room.id} md={12} className="mb-12">
+                                        <Card>
+                                            <Card.Body>
+                                                <Card.Title>{room.name}</Card.Title>
+                                                <Card.Text>
+                                                    {`Inicio: ${room.availabilityStart?.toISOString().split('T')[0]}, Fin: ${room.availabilityEnd?.toISOString().split('T')[0]}`}
+                                                </Card.Text>
+                                                <Button variant="primary">Book</Button>
+                                            </Card.Body>
+                                        </Card>
+                                    </Row>
+                                ))}
+                            </Row>
+
+                            <Button onClick={goToNextStep}>Next</Button>
+                        </Container>
                     </div>
                 )
             }

@@ -1,7 +1,7 @@
 export class Room {
   id: number | null = null;
-  name: number | null = null;
-  description: number | null = null;
+  name: string | null = null;
+  description: string | null = null;
   price: number | null = null;
   availabilityStart: Date | null = null;
   availabilityEnd: Date | null = null;
