@@ -86,6 +86,15 @@ CREATE TABLE booking_service (
     FOREIGN KEY (service_id) REFERENCES service(id)
 );
 
+-- Create the table booking_details
+CREATE TABLE booking_details (
+    booking_id INT,
+    adults INT,
+    children INT,
+    PRIMARY KEY (booking_id),
+    FOREIGN KEY (booking_id) REFERENCES booking(id)
+);
+
 -- Create the table weather
 CREATE TABLE weather (
     id INT PRIMARY KEY,
@@ -291,6 +300,13 @@ VALUES
     (1, 1),
     (1, 2),
     (2, 3);
+
+-- Detalles asociados a reservas, como los adultos y niños que hay
+INSERT INTO
+    booking_details (booking_id, adults, children)
+VALUES
+    (1, 2, 1),
+    (2, 2, 2);
 
 -- Condiciones meteorológicas
 INSERT INTO

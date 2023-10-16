@@ -1,7 +1,7 @@
 {
 	"_type": "Project",
 	"_id": "AAAAAAFF+h6SjaM2Hec=",
-	"name": "DiagramaDeClases",
+	"name": "DiagramaER",
 	"ownedElements": [
 		{
 			"_type": "UMLModel",
@@ -36,7 +36,7 @@
 					"_parent": {
 						"$ref": "AAAAAAGLGYjEYMAUUtw="
 					},
-					"name": "DiagramaDeClases",
+					"name": "DiagramaER",
 					"ownedViews": [
 						{
 							"_type": "ERDEntityView",
@@ -365,7 +365,7 @@
 									},
 									"font": "Arial;13;1",
 									"left": 960,
-									"top": 413,
+									"top": 365,
 									"width": 100.0654296875,
 									"height": 13,
 									"text": "Plan"
@@ -391,7 +391,7 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 436,
+											"top": 388,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -406,7 +406,7 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 451,
+											"top": 403,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -421,7 +421,7 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 466,
+											"top": 418,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -436,21 +436,21 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 481,
+											"top": 433,
 											"width": 90.0654296875,
 											"height": 13
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 960,
-									"top": 431,
+									"top": 383,
 									"width": 100.0654296875,
 									"height": 68
 								}
 							],
 							"font": "Arial;13;0",
 							"left": 960,
-							"top": 408,
+							"top": 360,
 							"width": 100.0654296875,
 							"height": 106,
 							"nameLabel": {
@@ -477,8 +477,8 @@
 										"$ref": "AAAAAAGLGYmAtsBSRBE="
 									},
 									"font": "Arial;13;1",
-									"left": 792,
-									"top": 613,
+									"left": 768,
+									"top": 653,
 									"width": 100.0654296875,
 									"height": 13,
 									"text": "Service"
@@ -503,8 +503,8 @@
 												"$ref": "AAAAAAGLGZENuMEM+eY="
 											},
 											"font": "Arial;13;0",
-											"left": 797,
-											"top": 636,
+											"left": 773,
+											"top": 676,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -518,8 +518,8 @@
 												"$ref": "AAAAAAGLGZESwMETqaE="
 											},
 											"font": "Arial;13;0",
-											"left": 797,
-											"top": 651,
+											"left": 773,
+											"top": 691,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -533,8 +533,8 @@
 												"$ref": "AAAAAAGLGZEXbMEatqA="
 											},
 											"font": "Arial;13;0",
-											"left": 797,
-											"top": 666,
+											"left": 773,
+											"top": 706,
 											"width": 90.0654296875,
 											"height": 13
 										},
@@ -548,22 +548,22 @@
 												"$ref": "AAAAAAGLGZEgZsEh0to="
 											},
 											"font": "Arial;13;0",
-											"left": 797,
-											"top": 681,
+											"left": 773,
+											"top": 721,
 											"width": 90.0654296875,
 											"height": 13
 										}
 									],
 									"font": "Arial;13;0",
-									"left": 792,
-									"top": 631,
+									"left": 768,
+									"top": 671,
 									"width": 100.0654296875,
 									"height": 68
 								}
 							],
 							"font": "Arial;13;0",
-							"left": 792,
-							"top": 608,
+							"left": 768,
+							"top": 648,
 							"width": 100.0654296875,
 							"height": 106,
 							"nameLabel": {
@@ -1102,7 +1102,7 @@
 									},
 									"font": "Arial;13;1",
 									"left": 960,
-									"top": 573,
+									"top": 661,
 									"width": 115.4853515625,
 									"height": 13,
 									"text": "Booking_Service"
@@ -1128,7 +1128,7 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 596,
+											"top": 684,
 											"width": 105.4853515625,
 											"height": 13
 										},
@@ -1143,21 +1143,21 @@
 											},
 											"font": "Arial;13;0",
 											"left": 965,
-											"top": 611,
+											"top": 699,
 											"width": 105.4853515625,
 											"height": 13
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 960,
-									"top": 591,
+									"top": 679,
 									"width": 115.4853515625,
 									"height": 38
 								}
 							],
 							"font": "Arial;13;0",
 							"left": 960,
-							"top": 568,
+							"top": 656,
 							"width": 115.4853515625,
 							"height": 61,
 							"nameLabel": {
@@ -1688,8 +1688,8 @@
 										"$ref": "AAAAAAGLGaLs4cNAkYo="
 									},
 									"font": "Arial;13;0",
-									"left": 833,
-									"top": 529,
+									"left": 810,
+									"top": 549,
 									"width": 24.55908203125,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -1707,7 +1707,7 @@
 										"$ref": "AAAAAAGLGaLs4cNAkYo="
 									},
 									"font": "Arial;13;0",
-									"left": 846,
+									"left": 823,
 									"top": 484,
 									"height": 13,
 									"alpha": 0.5235987755982988,
@@ -1724,8 +1724,8 @@
 										"$ref": "AAAAAAGLGaLs4cNAkYo="
 									},
 									"font": "Arial;13;0",
-									"left": 846,
-									"top": 576,
+									"left": 823,
+									"top": 616,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 30,
@@ -1742,7 +1742,7 @@
 								"$ref": "AAAAAAGLGYqJcsBvWXM="
 							},
 							"lineStyle": 2,
-							"points": "831:465;831:608",
+							"points": "808:465;808:648",
 							"nameLabel": {
 								"$ref": "AAAAAAGLGaLs4cNBrI8="
 							},
@@ -1771,8 +1771,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 977,
-									"top": 673,
+									"left": 913,
+									"top": 663,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -1788,8 +1788,8 @@
 										"$ref": "AAAAAAGLGaROMcNX96E="
 									},
 									"font": "Arial;13;0",
-									"left": 916,
-									"top": 659,
+									"left": 892,
+									"top": 663,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -1805,8 +1805,8 @@
 										"$ref": "AAAAAAGLGaROMcNX96E="
 									},
 									"font": "Arial;13;0",
-									"left": 942,
-									"top": 654,
+									"left": 915,
+									"top": 640,
 									"width": 24.55908203125,
 									"height": 13,
 									"alpha": -0.8424790076266317,
@@ -1825,7 +1825,7 @@
 								"$ref": "AAAAAAGLGYmAtsBSRBE="
 							},
 							"lineStyle": 2,
-							"points": "891:680;992:680;992:628",
+							"points": "867:684;960:684",
 							"nameLabel": {
 								"$ref": "AAAAAAGLGaROMcNYDfo="
 							},
@@ -1873,7 +1873,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 855,
-									"top": 732,
+									"top": 772,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -1907,7 +1907,7 @@
 								"$ref": "AAAAAAGLGYmAtsBSRBE="
 							},
 							"lineStyle": 2,
-							"points": "840:713;840:816;944:816",
+							"points": "840:753;840:816;944:816",
 							"nameLabel": {
 								"$ref": "AAAAAAGLGaUFLcNyK5I="
 							},
@@ -2212,8 +2212,8 @@
 								"$ref": "AAAAAAGLGYjEYcAVZDk="
 							},
 							"font": "Arial;13;0",
-							"left": 1104,
-							"top": 424,
+							"left": 1096,
+							"top": 392,
 							"width": 100,
 							"height": 51,
 							"text": "name puede ser VIP o BASIC"
@@ -2232,7 +2232,7 @@
 								"$ref": "AAAAAAGLGYlUvsBDCD0="
 							},
 							"lineStyle": 1,
-							"points": "1060:456;1103:453"
+							"points": "1060:414;1095:415"
 						},
 						{
 							"_type": "UMLNoteView",
@@ -2241,8 +2241,8 @@
 								"$ref": "AAAAAAGLGYjEYcAVZDk="
 							},
 							"font": "Arial;13;0",
-							"left": 1120,
-							"top": 536,
+							"left": 1136,
+							"top": 664,
 							"width": 100,
 							"height": 116,
 							"text": "1 booking puede tener 1 o más servicios, dependiendo del plan o la elección del usuario"
@@ -2261,7 +2261,7 @@
 								"$ref": "AAAAAAGLGZbEScGR11w="
 							},
 							"lineStyle": 1,
-							"points": "1075:596;1119:595"
+							"points": "1075:698;1135:711"
 						},
 						{
 							"_type": "ERDEntityView",
@@ -2457,6 +2457,215 @@
 							"headNameLabel": {
 								"$ref": "AAAAAAGLKOsrd1aWsrE="
 							}
+						},
+						{
+							"_type": "ERDEntityView",
+							"_id": "AAAAAAGLOMTAkOHetXg=",
+							"_parent": {
+								"$ref": "AAAAAAGLGYjEYcAVZDk="
+							},
+							"model": {
+								"$ref": "AAAAAAGLOMTAkOHcqNU="
+							},
+							"subViews": [
+								{
+									"_type": "LabelView",
+									"_id": "AAAAAAGLOMTAkOHf1W0=",
+									"_parent": {
+										"$ref": "AAAAAAGLOMTAkOHetXg="
+									},
+									"font": "Arial;13;1",
+									"left": 952,
+									"top": 509,
+									"width": 111.8544921875,
+									"height": 13,
+									"text": "Booking_Details"
+								},
+								{
+									"_type": "ERDColumnCompartmentView",
+									"_id": "AAAAAAGLOMTAkOHgX9s=",
+									"_parent": {
+										"$ref": "AAAAAAGLOMTAkOHetXg="
+									},
+									"model": {
+										"$ref": "AAAAAAGLOMTAkOHcqNU="
+									},
+									"subViews": [
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGLOMTyA+HsQZE=",
+											"_parent": {
+												"$ref": "AAAAAAGLOMTAkOHgX9s="
+											},
+											"model": {
+												"$ref": "AAAAAAGLOMTx/OHpvpA="
+											},
+											"font": "Arial;13;0",
+											"left": 957,
+											"top": 532,
+											"width": 101.8544921875,
+											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGLOMUEUeHzeIM=",
+											"_parent": {
+												"$ref": "AAAAAAGLOMTAkOHgX9s="
+											},
+											"model": {
+												"$ref": "AAAAAAGLOMUES+HwqD4="
+											},
+											"font": "Arial;13;0",
+											"left": 957,
+											"top": 547,
+											"width": 101.8544921875,
+											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGLOMUMPOH6hNc=",
+											"_parent": {
+												"$ref": "AAAAAAGLOMTAkOHgX9s="
+											},
+											"model": {
+												"$ref": "AAAAAAGLOMUMNuH3vLo="
+											},
+											"font": "Arial;13;0",
+											"left": 957,
+											"top": 562,
+											"width": 101.8544921875,
+											"height": 13
+										}
+									],
+									"font": "Arial;13;0",
+									"left": 952,
+									"top": 527,
+									"width": 111.8544921875,
+									"height": 53
+								}
+							],
+							"font": "Arial;13;0",
+							"left": 952,
+							"top": 504,
+							"width": 111.8544921875,
+							"height": 91,
+							"nameLabel": {
+								"$ref": "AAAAAAGLOMTAkOHf1W0="
+							},
+							"columnCompartment": {
+								"$ref": "AAAAAAGLOMTAkOHgX9s="
+							}
+						},
+						{
+							"_type": "ERDRelationshipView",
+							"_id": "AAAAAAGLOMU3QuIDj8k=",
+							"_parent": {
+								"$ref": "AAAAAAGLGYjEYcAVZDk="
+							},
+							"model": {
+								"$ref": "AAAAAAGLOMU3QuH/Ayw="
+							},
+							"subViews": [
+								{
+									"_type": "EdgeLabelView",
+									"_id": "AAAAAAGLOMU3QuIEWtI=",
+									"_parent": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									},
+									"font": "Arial;13;0",
+									"left": 855,
+									"top": 499,
+									"width": 26,
+									"height": 13,
+									"alpha": 0.39479102108045544,
+									"distance": 39,
+									"hostEdge": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									},
+									"edgePosition": 1,
+									"text": "1:1"
+								},
+								{
+									"_type": "EdgeLabelView",
+									"_id": "AAAAAAGLOMU3QuIFBLw=",
+									"_parent": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									},
+									"font": "Arial;13;0",
+									"left": 847,
+									"top": 484,
+									"height": 13,
+									"alpha": 0.5235987755982988,
+									"distance": 30,
+									"hostEdge": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									},
+									"edgePosition": 2
+								},
+								{
+									"_type": "EdgeLabelView",
+									"_id": "AAAAAAGLOMU3QuIG5X8=",
+									"_parent": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									},
+									"font": "Arial;13;0",
+									"left": 926,
+									"top": 499,
+									"height": 13,
+									"alpha": -0.5235987755982988,
+									"distance": 30,
+									"hostEdge": {
+										"$ref": "AAAAAAGLOMU3QuIDj8k="
+									}
+								}
+							],
+							"font": "Arial;13;0",
+							"head": {
+								"$ref": "AAAAAAGLOMTAkOHetXg="
+							},
+							"tail": {
+								"$ref": "AAAAAAGLGYqJcsBvWXM="
+							},
+							"lineStyle": 2,
+							"points": "832:465;832:520;952:520",
+							"nameLabel": {
+								"$ref": "AAAAAAGLOMU3QuIEWtI="
+							},
+							"tailNameLabel": {
+								"$ref": "AAAAAAGLOMU3QuIFBLw="
+							},
+							"headNameLabel": {
+								"$ref": "AAAAAAGLOMU3QuIG5X8="
+							}
+						},
+						{
+							"_type": "UMLNoteView",
+							"_id": "AAAAAAGLOMW9MuIkSQI=",
+							"_parent": {
+								"$ref": "AAAAAAGLGYjEYcAVZDk="
+							},
+							"font": "Arial;13;0",
+							"left": 1104,
+							"top": 520,
+							"width": 100,
+							"height": 64,
+							"text": "1 booking tiene x adultos y x niños"
+						},
+						{
+							"_type": "UMLNoteLinkView",
+							"_id": "AAAAAAGLOMW9OOInvlY=",
+							"_parent": {
+								"$ref": "AAAAAAGLGYjEYcAVZDk="
+							},
+							"font": "Arial;13;0",
+							"head": {
+								"$ref": "AAAAAAGLOMW9MuIkSQI="
+							},
+							"tail": {
+								"$ref": "AAAAAAGLOMTAkOHetXg="
+							},
+							"lineStyle": 1,
+							"points": "1064:550;1103:550"
 						}
 					]
 				},
@@ -3172,6 +3381,34 @@
 								},
 								"cardinality": "0..*"
 							}
+						},
+						{
+							"_type": "ERDRelationship",
+							"_id": "AAAAAAGLOMU3QuH/Ayw=",
+							"_parent": {
+								"$ref": "AAAAAAGLGYqJcsBtSzQ="
+							},
+							"name": "1:1",
+							"end1": {
+								"_type": "ERDRelationshipEnd",
+								"_id": "AAAAAAGLOMU3QuIA0pQ=",
+								"_parent": {
+									"$ref": "AAAAAAGLOMU3QuH/Ayw="
+								},
+								"reference": {
+									"$ref": "AAAAAAGLGYqJcsBtSzQ="
+								}
+							},
+							"end2": {
+								"_type": "ERDRelationshipEnd",
+								"_id": "AAAAAAGLOMU3QuIBHSY=",
+								"_parent": {
+									"$ref": "AAAAAAGLOMU3QuH/Ayw="
+								},
+								"reference": {
+									"$ref": "AAAAAAGLOMTAkOHcqNU="
+								}
+							}
 						}
 					],
 					"columns": [
@@ -3427,11 +3664,48 @@
 							"length": 0
 						}
 					]
+				},
+				{
+					"_type": "ERDEntity",
+					"_id": "AAAAAAGLOMTAkOHcqNU=",
+					"_parent": {
+						"$ref": "AAAAAAGLGYjEYMAUUtw="
+					},
+					"name": "Booking_Details",
+					"columns": [
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGLOMTx/OHpvpA=",
+							"_parent": {
+								"$ref": "AAAAAAGLOMTAkOHcqNU="
+							},
+							"name": "booking_id",
+							"length": 0
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGLOMUES+HwqD4=",
+							"_parent": {
+								"$ref": "AAAAAAGLOMTAkOHcqNU="
+							},
+							"name": "adults",
+							"length": 0
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGLOMUMNuH3vLo=",
+							"_parent": {
+								"$ref": "AAAAAAGLOMTAkOHcqNU="
+							},
+							"name": "children",
+							"length": 0
+						}
+					]
 				}
 			]
 		}
 	],
-	"documentation": "Fernando GS - DiagramaDeClases de Hotel Aura de Mallorca",
+	"documentation": "Fernando GS - DiagramaER de Hotel Aura de Mallorca",
 	"author": "Fernando GS",
 	"company": "Fernando GS",
 	"copyright": "no",
