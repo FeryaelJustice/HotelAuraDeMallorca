@@ -4,6 +4,8 @@ import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
 import axios from 'axios'
 import { useCookies } from 'react-cookie';
+import ReCAPTCHA from "react-google-recaptcha";
+import Alert from 'react-bootstrap/Alert';
 
 interface UserModalProps {
     show: boolean,
@@ -20,6 +22,8 @@ enum UserModalScreens {
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
     const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const captchaKey = process.env.reCAPTCHA_SITE_KEY
+    const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY
 
     useEffect(() => {
         if (cookies.token) {
@@ -50,6 +54,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
+    const [captchaLoginValid, setCaptchaLoginValid] = useState(false)
 
     const handleLoginChange = (event: any) => {
         setUserLogin({ ...userLogin, [event.target.name]: event.target.value });
@@ -61,8 +66,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
-        console.log(loginValidated)
-        if (loginValidated) {
+        if (loginValidated && captchaLoginValid) {
             axios.post('http://localhost:3000/api/login', userLogin, { headers: axiosHeaders }).then(res => {
                 console.log("logged successfully")
             }).catch(err => {
@@ -71,9 +75,30 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         }
     }
 
+    const onLoginCaptchaChange = async (value: ReCAPTCHA) => {
+        console.log("Captcha human value:", value);
+        const body = {
+            secret: captchaServerKey,
+            response: value
+        }
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        // Verify captcha to backend
+        const isHuman = await axios.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        if (isHuman) {
+            console.log('captcha verified successfully')
+            setCaptchaLoginValid(true)
+        } else {
+            console.log('captcha failed')
+            setCaptchaLoginValid(true)
+        }
+    }
+
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
     const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "" });
+    const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
 
     const handleRegisterChange = (event: any) => {
         setUserRegister({ ...userRegister, [event.target.name]: event.target.value });
@@ -85,13 +110,32 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         setRegisterValidated(form.checkValidity());
-        if (registerValidated) {
+        if (registerValidated && captchaRegisterValid) {
             // api call
             axios.post('http://localhost:3000/api/register', userRegister, { headers: axiosHeaders }).then(res => {
                 console.log('registered successfully')
             }).catch(err => {
                 console.error(err)
             })
+        }
+    }
+
+    const onRegisterCaptchaChange = async (value: ReCAPTCHA) => {
+        const body = {
+            secret: captchaServerKey,
+            response: value
+        }
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        // Verify captcha to backend
+        const isHuman = await axios.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        if (isHuman) {
+            console.log('captcha verified successfully')
+            setCaptchaRegisterValid(true)
+        } else {
+            console.log('captcha failed')
+            setCaptchaRegisterValid(false)
         }
     }
 
@@ -114,6 +158,19 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleLoginChange} required />
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
+
+                        <div className='captcha'>
+                            <ReCAPTCHA
+                                sitekey={captchaKey}
+                                onChange={onLoginCaptchaChange}
+                            />
+                            {captchaLoginValid == false ? (
+                                <Alert key='danger' variant='danger'>
+                                    Completa el captcha
+                                </Alert>
+                            ) : null}
+                        </div>
+
                         <div className="userLoginModalActions">
                             <Button variant="primary" type="submit">
                                 Login
@@ -156,6 +213,19 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleRegisterChange} required />
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
+
+                        <div className='captcha'>
+                            <ReCAPTCHA
+                                sitekey={captchaKey}
+                                onChange={onRegisterCaptchaChange}
+                            />
+                            {captchaRegisterValid == false ? (
+                                <Alert key='danger' variant='danger'>
+                                    Completa el captcha
+                                </Alert>
+                            ) : null}
+                        </div>
+
                         <Button variant="primary" type="submit">
                             Register
                         </Button>
