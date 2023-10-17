@@ -229,6 +229,38 @@ expressRouter.get('/plans', (req, res) => {
     })
 })
 
+// SERVICES
+expressRouter.get('/services', (req, res) => {
+    let sql = 'SELECT * FROM service'
+    connection.query(sql, [], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+        }
+        if (results.length > 0) {
+            res.status(200).send({ status: "success", msg: "Services found", data: results });
+        } else {
+            res.status(500).send({ status: "error", msg: "No services found" });
+        }
+    })
+})
+
+// PAYMENT METHODS
+expressRouter.get('/paymentmethods', (req, res) => {
+    let sql = 'SELECT * FROM payment_method'
+    connection.query(sql, [], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+        }
+        if (results.length > 0) {
+            res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
+        } else {
+            res.status(500).send({ status: "error", msg: "No payment methods found" });
+        }
+    })
+})
+
 // Listen SERVER
 const port = process.env.PORT || 3000
 app.listen(port, () => {

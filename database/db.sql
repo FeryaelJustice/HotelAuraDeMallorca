@@ -114,6 +114,12 @@ CREATE TABLE weather (
     FOREIGN KEY (affected_service_id) REFERENCES service(id)
 );
 
+-- Create the table payment method
+CREATE TABLE payment_method (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    payment_method_name VARCHAR(255)
+);
+
 -- Create the table payment (transaction)
 CREATE TABLE payment (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -121,8 +127,10 @@ CREATE TABLE payment (
     booking_id INT,
     payment_amount DECIMAL(10, 2),
     payment_date DATE,
+    payment_method_id INT,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (booking_id) REFERENCES booking(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id),
+    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
 );
 
 -- RESTRICTIONS
@@ -343,6 +351,12 @@ VALUES
     (1, '2023-10-22', 'Sunny', 1),
     (2, '2023-11-05', 'Rainy', 3);
 
+-- Payment methods
+INSERT INTO
+    payment_method (id, payment_method_name)
+VALUES
+    (1, 'Stripe');
+
 -- Payment (transacciones)
 INSERT INTO
     payment (
@@ -350,11 +364,12 @@ INSERT INTO
         user_id,
         booking_id,
         payment_amount,
-        payment_date
+        payment_date,
+        payment_method_id
     )
 VALUES
-    (1, 1, 1, 50.00, '2023-10-23'),
-    (2, 2, 2, 150.00, '2023-11-10');
+    (1, 1, 1, 50.00, '2023-10-23', 1),
+    (2, 2, 2, 150.00, '2023-11-10', 1);
 
 -- PROCEDIMIENTOS
 /*

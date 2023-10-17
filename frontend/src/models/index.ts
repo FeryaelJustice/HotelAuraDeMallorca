@@ -1,4 +1,5 @@
 export { Booking } from "./Booking";
+export { PaymentMethod } from "./PaymentMethod";
 export { Payment } from "./Payment";
 export { Plan } from "./Plan";
 export { Role } from "./Role";
