@@ -7,11 +7,10 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, PaymentMethod, Payment, Plan, Role, Room, Service, User, Guest, Weather } from '../../models';
+import { Booking, PaymentMethod, Plan, Room, Service, User, Guest } from '../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
-import ReCAPTCHA from "react-google-recaptcha";
 import { isEmptyOrSpaces, validateEmail } from '../../utils';
 import './BookingModal.css'
 
@@ -36,7 +35,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies, , removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
 
     useEffect(() => {
@@ -59,7 +58,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => {
+                removeCookie('token')
+                console.error(err)
+            });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
             } else {

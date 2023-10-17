@@ -23,7 +23,7 @@ enum UserModalScreens {
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies, , removeCookie] = useCookies(['token']);
     const [currentUser, setCurrentUser] = useState(new User());
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
@@ -63,7 +63,10 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => {
+                removeCookie('token')
+                console.error(err)
+            });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
             } else {
@@ -89,14 +92,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         setLoginValidated(form.checkValidity());
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
             axios.post(API_URL + '/api/login', userLogin, { headers: axiosHeaders }).then(res => {
-                console.log("logged successfully")
+                console.log("logged successfully" + res)
             }).catch(err => {
                 console.error(err)
             })
         }
     }
 
-    const onLoginCaptchaChange = async (value: ReCAPTCHA) => {
+    const onLoginCaptchaChange = async (value: string | null) => {
         const body = {
             secret: captchaServerKey,
             response: value
@@ -133,17 +136,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
             // api call
             axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
-                console.log('registered successfully')
+                console.log('registered successfully' + res)
             }).catch(err => {
                 console.error(err)
             })
         }
     }
 
-    const onRegisterCaptchaChange = async (value: ReCAPTCHA) => {
+    const onRegisterCaptchaChange = async (token: string | null) => {
         const body = {
             secret: captchaServerKey,
-            response: value
+            response: token
         }
         const headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -193,8 +196,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
                         {import.meta.env.MODE != 'development' && (<div className='captcha'>
                             <ReCAPTCHA
-                                sitekey={captchaKey}
-                                onChange={onLoginCaptchaChange}
+                                sitekey={captchaKey as string}
+                                onChange={(token) => onLoginCaptchaChange(token ?? '')}
                             />
                             {captchaLoginValid == false ? (
                                 <Alert key='danger' variant='danger'>
@@ -248,8 +251,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
                         {import.meta.env.MODE != 'development' && (<div className='captcha'>
                             <ReCAPTCHA
-                                sitekey={captchaKey}
-                                onChange={onRegisterCaptchaChange}
+                                sitekey={captchaKey as string}
+                                onChange={(token) => onRegisterCaptchaChange(token ?? '')}
                             />
                             {captchaRegisterValid == false ? (
                                 <Alert key='danger' variant='danger'>

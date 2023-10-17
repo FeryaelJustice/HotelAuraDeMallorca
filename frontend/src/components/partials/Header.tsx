@@ -13,7 +13,7 @@ interface HeaderProps {
 
 export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies] = useCookies(['token']);
 
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {

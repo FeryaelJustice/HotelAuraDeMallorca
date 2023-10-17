@@ -125,7 +125,7 @@ expressRouter.post('/register', (req, res) => {
                     let userID = results.insertId;
                     let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                     res.cookie('token', jwtToken)
-                    res.status(200).json({ status: "success", msg: "", insertId: results.insertId });
+                    res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
                 });
             })
         }
@@ -149,7 +149,7 @@ expressRouter.post('/login', (req, res) => {
                     let userID = results[0].id;
                     let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                     res.cookie('token', jwtToken)
-                    res.status(200).send({ status: "success", msg: "", result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                    res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken , result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                 } else {
                     res.status(500).send({ status: "error", msg: "Passwords do not match" });
                 }
