@@ -417,6 +417,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     <h2>Choose your room</h2>
                                 </Col>
                             </Row>
+                            <br />
                             {/* Inputs de fechas */}
                             <Row className="mt-12">
                                 <Col md={6}>
@@ -428,13 +429,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     <Calendar onChange={onChangeEndDate} value={endDate} />
                                 </Col>
                             </Row>
-
+                            <br />
                             {/* Inputs de adultos y niños */}
                             <Row className="mt-12">
                                 <Col md={6}>
                                     <Form.Label>Adults</Form.Label>
                                     <Form.Control
                                         type="number"
+                                        min={1}
+                                        max={10}
+                                        defaultValue={1}
                                         value={adults}
                                         onChange={(e) => setAdults(e.target.value as unknown as number)}
                                     />
@@ -443,12 +447,20 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     <Form.Label>Children</Form.Label>
                                     <Form.Control
                                         type="number"
+                                        min={0}
+                                        max={10}
+                                        defaultValue={0}
                                         value={children}
                                         onChange={(e) => setChildren(e.target.value as unknown as number)}
                                     />
                                 </Col>
                             </Row>
-
+                            <br />
+                            <Row className='mt-12'>
+                                <span><em>Maximum 10 adults or 10 children and minimum 1 adult.</em></span>
+                                <hr />
+                            </Row>
+                            <br />
                             {/* Room list */}
                             <Row className="mt-12">
                                 <h4>Rooms found:</h4>
