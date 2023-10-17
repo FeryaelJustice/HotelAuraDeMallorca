@@ -124,7 +124,7 @@ nav a {
   min-height: 100vh;
   color: #ffffff;
   z-index: 1;
-  margin-top: 3.8%;
+  margin-top: 3.7%;
 }
 
 #bookBtnNoInHeader {
@@ -242,6 +242,66 @@ button:focus-visible {
   }
 }
 
+@media screen and (max-width: 3840px) {
+  .main {
+    margin-top: 3%;
+  }
+}
+
+@media screen and (max-width: 1920px) {
+  .main {
+    margin-top: 3.7%;
+  }
+}
+
+@media screen and (max-width: 1780px) {
+  .main {
+    margin-top: 4.1%;
+  }
+}
+
+@media screen and (max-width: 1680px) {
+  .main {
+    margin-top: 4.4%;
+  }
+}
+
+@media screen and (max-width: 1520px) {
+  .main {
+    margin-top: 4.8%;
+  }
+}
+
+@media screen and (max-width: 1380px) {
+  .main {
+    margin-top: 5.2%;
+  }
+}
+
+@media screen and (max-width: 1240px) {
+  .main {
+    margin-top: 5.6%;
+  }
+}
+
+@media screen and (max-width: 1100px) {
+  .main {
+    margin-top: 6.6%;
+  }
+}
+
+@media screen and (max-width: 960px) {
+  .main {
+    margin-top: 7.4%;
+  }
+}
+
+@media screen and (max-width: 820px) {
+  .main {
+    margin-top: 8.6%;
+  }
+}
+
 @media screen and (max-width: 768px) {
   header {
     justify-content: space-between;
@@ -268,7 +328,47 @@ button:focus-visible {
     display: block;
   }
 
+  .main {
+    margin-top: 10%;
+  }
+
   .cards-plan {
     flex-direction: column;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  .main {
+    margin-top: 12%;
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .main {
+    margin-top: 14%;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .main {
+    margin-top: 15%;
+  }
+}
+
+@media screen and (max-width: 440px) {
+  .main {
+    margin-top: 18%;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .main {
+    margin-top: 21%;
+  }
+}
+
+@media screen and (max-width: 300px) {
+  .main {
+    margin-top: 26%;
   }
 }
