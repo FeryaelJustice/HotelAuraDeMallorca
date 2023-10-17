@@ -98,6 +98,7 @@ app.get('/', verifyUser, (req, res) => {
     res.send(test)
 })
 
+// USER
 // Protected route adding verifyUser middleware
 expressRouter.post('/register', (req, res) => {
     let data = req.body;
@@ -192,6 +193,22 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
             res.status(200).send({ status: "success", msg: "User found", data: results[0] });
         } else {
             res.status(500).send({ status: "error", msg: "No user exists with that id" });
+        }
+    })
+})
+
+// ROOMS
+expressRouter.get('/rooms', (req, res) => {
+    let sql = 'SELECT * FROM room'
+    connection.query(sql, [], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+        }
+        if (results.length > 0) {
+            res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+        } else {
+            res.status(500).send({ status: "error", msg: "No rooms found" });
         }
     })
 })

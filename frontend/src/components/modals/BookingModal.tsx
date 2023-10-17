@@ -205,31 +205,47 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Select date
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
     const [endDate, onChangeEndDate] = useState<Value>(new Date());
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const [rooms, setRooms] = useState<Room[]>([
-        new Room({
-            id: 1,
-            name: 'Room 1',
-            description: 'Description 1',
-            price: 100,
-            availabilityStart: new Date(),
-            availabilityEnd: tomorrow,
-        }),
-        new Room({
-            id: 2,
-            name: 'Room 2',
-            description: 'Description 2',
-            price: 120,
-            availabilityStart: new Date(),
-            availabilityEnd: tomorrow,
-        }),
-    ]);
+    // const tomorrow = new Date();
+    // tomorrow.setDate(tomorrow.getDate() + 1);
+    // const [rooms, setRooms] = useState<Room[]>([
+    //     new Room({
+    //         id: 1,
+    //         name: 'Room 1',
+    //         description: 'Description 1',
+    //         price: 100,
+    //         availabilityStart: new Date(),
+    //         availabilityEnd: tomorrow,
+    //     }),
+    //     new Room({
+    //         id: 2,
+    //         name: 'Room 2',
+    //         description: 'Description 2',
+    //         price: 120,
+    //         availabilityStart: new Date(),
+    //         availabilityEnd: tomorrow,
+    //     }),
+    // ]);
+    const [rooms, setRooms] = useState<Room[]>([]);
+
+    useEffect(() => {
+        axios.get(API_URL + '/api/rooms').then(res => {
+            let rooms = res.data.data;
+            let retrievedRooms: Room[] = [];
+            rooms.forEach((room: any) => {
+                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end) }))
+            })
+            setRooms(retrievedRooms)
+        }).catch
+            (err => console.error(err))
+    }, []) // only once
+
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([])
 
     useEffect(() => {
+        console.log(rooms)
+        console.log(new Date())
         setFilteredRooms(
             rooms.filter((room) => {
                 if (startDate && endDate && room && room.availabilityStart && room.availabilityEnd) {
@@ -242,7 +258,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 }
             })
         );
-    }, [startDate, endDate, adults, children]);
+    }, [rooms, startDate, endDate, adults, children]);
 
     // Step choose payment method
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
@@ -405,7 +421,14 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             <Card.Body>
                                                 <Card.Title>{room.name}</Card.Title>
                                                 <Card.Text>
-                                                    {`Inicio: ${room.availabilityStart?.toISOString().split('T')[0]}, Fin: ${room.availabilityEnd?.toISOString().split('T')[0]}`}
+                                                    <div>
+                                                        <p>{room.description}</p>
+                                                        <br />
+                                                        <p>{`Price: ${room.price} euros.`}</p>
+                                                        <br />
+                                                        <p>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</p>
+                                                    </div>
+
                                                 </Card.Text>
                                                 <Button variant="primary">Book</Button>
                                             </Card.Body>
