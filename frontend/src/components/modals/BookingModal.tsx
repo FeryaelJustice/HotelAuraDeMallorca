@@ -82,6 +82,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepChooseServices);
                 break;
             case BookingSteps.StepChooseServices:
+                console.log(selectedServicesIDs)
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
@@ -119,16 +120,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             console.error(err)
                         })
                     }
-                    let selectedPlanID = 0;
-                    if (checkedPlan == 'vip') {
-                        selectedPlanID = 1;
-                    }
-                    let serviceIDSelected = selectedServiceID;
+                    let servicesIDsSelected = selectedServicesIDs;
                     //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
                         userID: user.id,
-                        planID: selectedPlanID,
+                        planID: checkedPlan,
                         roomID: selectedRoomID,
                         startDate: startDate as Date,
                         endDate: endDate as Date,
@@ -202,7 +199,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Step choose Plan
     const [plans, setPlans] = useState<Plan[]>([])
-    const [checkedPlan, setCheckedPlan] = useState<string | null>('basic');
+    const [checkedPlan, setCheckedPlan] = useState<number | null>(1);
 
     useEffect(() => {
         axios.get(API_URL + '/api/plans').then(res => {
@@ -216,8 +213,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             (err => console.error(err))
     }, [])
 
-    const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setCheckedPlan(event.target.value);
+    const selectPlan = (planID: any) => {
+        setCheckedPlan(planID);
     };
 
     // Step booking
@@ -266,7 +263,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Step choose services
     const [services, setServices] = useState<Service[]>([])
-    const [selectedServiceID, setSelectedServiceID] = useState(null);
+    const [selectedServicesIDs, setSelectedServicesIDs] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
         axios.get(API_URL + '/api/services').then(res => {
@@ -276,13 +273,24 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end) }))
             })
             setServices(retrievedServices)
+            // Create an array of key-value pairs for selectedServicesIDs
+            const keyValuePairArray = retrievedServices.map(service => ({
+                [service.id ? service.id : (Math.random() * (retrievedServices.length - 0))]: false
+            }));
+            // Merge the array of key-value pairs into a single object
+            const selectedServicesObject = Object.assign({}, ...keyValuePairArray);
+            // Update the state with the object
+            setSelectedServicesIDs(selectedServicesObject);
         }).catch
             (err => console.error(err))
     }, []);
 
     const serviceSelected = (serviceID: any) => {
-        setSelectedServiceID(serviceID)
-        goToNextStep();
+        if (selectedServicesIDs[serviceID]) {
+            setSelectedServicesIDs(prevState => ({ ...prevState, [serviceID]: false }));
+        } else {
+            setSelectedServicesIDs(prevState => ({ ...prevState, [serviceID]: true }));
+        }
     }
 
     // Step fill guests
@@ -315,7 +323,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             setCurrentStep(BookingSteps.StepPersonalData)
             setUserPersonalData({ name: '', surnames: '', email: '' });
             setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
-            setCheckedPlan('basic')
+            setCheckedPlan(1)
             onChangeStartDate(new Date())
             onChangeEndDate(new Date())
             setAdults(1)
@@ -385,12 +393,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             </div>
                                         </Card.Text>
                                         <Form.Check
-                                            id={plan.name?.toLowerCase()}
                                             type="radio"
                                             name="pricing-plan"
                                             value={plan.name?.toLowerCase()}
-                                            checked={checkedPlan === plan.name?.toLowerCase()}
-                                            onChange={handleRadioChange}
+                                            checked={checkedPlan === plan.id}
+                                            onChange={() => selectPlan(plan.id)}
                                         />
                                     </Card.Body>
                                 </Card>
@@ -482,7 +489,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </Col>
                             </Row>
 
-                            {/* Room list */}
+                            {/* Services list */}
                             <Row className="mt-12">
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
@@ -498,11 +505,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                         <p>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</p>
                                                     </div>
                                                 </Card.Text>
-                                                <Button variant="primary" onClick={() => serviceSelected(service.id)}>Choose</Button>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    name="service"
+                                                    value={service.id ? service.id : -1}
+                                                    checked={selectedServicesIDs[service.id ? service.id : 1]}
+                                                    label="Choose"
+                                                    onChange={() => serviceSelected(service.id)} />
                                             </Card.Body>
                                         </Card>
                                     </Row>
                                 ))}
+                                <Button variant='primary' onClick={goToNextStep}>Continue</Button>
                             </Row>
                         </Container>
                     </div>
