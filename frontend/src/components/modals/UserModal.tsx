@@ -164,7 +164,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // When close, reset
     useEffect(() => {
-        if (!show) {
+        if (!show && !cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
             setCurrentUser(new User())
             setUserLogin({ email: "", password: "" })
