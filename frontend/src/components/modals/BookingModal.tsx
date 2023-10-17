@@ -7,7 +7,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, PaymentMethod, Payment, Plan, Role, Room, Service, User, Weather } from '../../models';
+import { Booking, PaymentMethod, Payment, Plan, Role, Room, Service, User, Guest, Weather } from '../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
@@ -120,6 +120,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         })
                     }
                     let servicesIDsSelected = selectedServicesIDs;
+                    let guestsBooking = guests;
                     //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
@@ -140,14 +141,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     console.error('Error al realizar la reserva:', error);
                 }
 
-
                 // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
                 setCurrentStep(BookingSteps.StepConfirmation);
-                onClose();
-                setCurrentStep(BookingSteps.StepPersonalData);
                 break;
             case BookingSteps.StepConfirmation:
-                // onClose();
+                onClose();
                 break;
             default:
                 break;
@@ -293,7 +291,85 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     // Step fill guests
+    const [guests, setGuests] = useState<Guest[]>([
+        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false })
+    ]);
+    const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
 
+    const addGuest = () => {
+        if (guests.length < 20) {
+            // Maximum we allow 20 guests, 10 adults and 10 childs
+            setGuests([...guests, { id: null, name: '', surnames: '', email: '', isAdult: false }]);
+            setGuestsDataErrors([...guestsDataErrors, { nameError: '', surnamesError: '', emailError: '' }])
+        } else {
+            alert('The maximum is 20 guests')
+        }
+    };
+
+    const substractGuest = () => {
+        if (guests.length > 1) {
+            const updatedGuests = guests.slice(0, -1);
+            setGuests(updatedGuests);
+            const updatedErrors = guestsDataErrors.slice(0, -1);
+            setGuestsDataErrors(updatedErrors);
+        }
+    }
+
+    const handleGuestsInputChange = (index: any, event: any) => {
+        const { name, value, type, checked } = event.target;
+        const updatedGuests = [...guests];
+        updatedGuests[index] = {
+            ...updatedGuests[index],
+            [name]: type === 'checkbox' ? checked : value
+        };
+        setGuests(updatedGuests);
+    };
+
+    const validateGuestsDataForm = () => {
+        let errors = [{ nameError: '', surnamesError: '', emailError: '' }];
+        guests.forEach((guest, index) => {
+            if (index === 0) {
+                errors = [];
+            }
+            const { name, surnames, email } = guest;
+            const newErrors = { nameError: '', surnamesError: '', emailError: '' };
+
+            if (isEmptyOrSpaces(name)) {
+                newErrors.nameError = 'Please enter a valid name'
+            }
+            if (isEmptyOrSpaces(surnames)) {
+                newErrors.surnamesError = 'Please enter valid surnames'
+            }
+            if (!validateEmail(email)) {
+                newErrors.emailError = 'Please enter a valid email'
+            }
+            errors.push(newErrors)
+        })
+
+        return errors;
+    }
+
+    const handleGuestsSubmit = (event: any) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        //let form = event.currentTarget;
+        const formErrors = validateGuestsDataForm();
+        let isAnError = false;
+
+        formErrors.forEach((formError) => {
+            if (formError.nameError !== '' || formError.surnamesError !== '' || formError.emailError !== '') {
+                isAnError = true;
+                return;
+            }
+        })
+
+        if (!isAnError) {
+            goToNextStep();
+        } else {
+            setGuestsDataErrors(formErrors)
+        }
+    };
 
     // Step choose payment method
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -322,6 +398,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             setCurrentStep(BookingSteps.StepPersonalData)
             setUserPersonalData({ name: '', surnames: '', email: '' });
             setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
+            setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
             setCheckedPlan(1)
             onChangeStartDate(new Date())
             onChangeEndDate(new Date())
@@ -386,9 +463,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         <Card.Title>Plan: {plan.name}</Card.Title>
                                         <Card.Text>
                                             <div>
-                                                <p>{plan.description}</p>
+                                                <span>{plan.description}</span>
                                                 <br />
-                                                <p>Price: {plan.price} euros</p>
+                                                <span>Price: {plan.price} euros</span>
                                             </div>
                                         </Card.Text>
                                         <Form.Check
@@ -471,11 +548,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                 <Card.Title>{room.name}</Card.Title>
                                                 <Card.Text>
                                                     <div>
-                                                        <p>{room.description}</p>
+                                                        <span>{room.description}</span>
                                                         <br />
-                                                        <p>{`Price: ${room.price} euros.`}</p>
+                                                        <span>{`Price: ${room.price} euros.`}</span>
                                                         <br />
-                                                        <p>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</p>
+                                                        <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
                                                     </div>
 
                                                 </Card.Text>
@@ -497,9 +574,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 <Col>
                                     <h2>Choose your services</h2>
+                                    <em>(Optional)</em>
                                 </Col>
                             </Row>
-
+                            <br />
                             {/* Services list */}
                             <Row className="mt-12">
                                 {services.map((service) => (
@@ -509,11 +587,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>
                                                     <div>
-                                                        <p>{service.description}</p>
+                                                        <span>{service.description}</span>
                                                         <br />
-                                                        <p>{`Price: ${service.price} euros.`}</p>
+                                                        <span>{`Price: ${service.price} euros.`}</span>
                                                         <br />
-                                                        <p>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</p>
+                                                        <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
                                                     </div>
                                                 </Card.Text>
                                                 <Form.Check
@@ -537,8 +615,83 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {
                 currentStep === BookingSteps.StepFillGuests && (
                     <div>
-                        <h2>Fill your guests</h2>
-                        <button onClick={goToNextStep}>Next</button>
+                        <Container>
+                            <Form noValidate onSubmit={handleGuestsSubmit}>
+                                {guests.map((guest, index) => (
+                                    <Row key={index}>
+                                        <Row><strong>Guest {index}</strong></Row>
+                                        <Row>
+                                            <Col>
+                                                <Form.Group controlId={`name-${index}`}>
+                                                    <Form.Label>Name</Form.Label>
+                                                    <Form.Control
+                                                        type="text"
+                                                        name="name"
+                                                        value={guest.name ? guest.name : ''}
+                                                        isInvalid={!!guestsDataErrors[index].nameError}
+                                                        onChange={(e) => handleGuestsInputChange(index, e)}
+                                                    />    <Form.Control.Feedback type='invalid'>
+                                                        {guestsDataErrors[index].nameError}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col>
+                                                <Form.Group controlId={`surname-${index}`}>
+                                                    <Form.Label>Surname</Form.Label>
+                                                    <Form.Control
+                                                        type="text"
+                                                        name="surnames"
+                                                        value={guest.surnames ? guest.surnames : ''}
+                                                        isInvalid={!!guestsDataErrors[index].surnamesError}
+                                                        onChange={(e) => handleGuestsInputChange(index, e)}
+                                                    />    <Form.Control.Feedback type='invalid'>
+                                                        {guestsDataErrors[index].surnamesError}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col>
+                                                <Form.Group controlId={`email-${index}`}>
+                                                    <Form.Label>Email</Form.Label>
+                                                    <Form.Control
+                                                        type="email"
+                                                        name="email"
+                                                        value={guest.email ? guest.email : ''}
+                                                        isInvalid={!!guestsDataErrors[index].emailError}
+                                                        onChange={(e) => handleGuestsInputChange(index, e)}
+                                                    />    <Form.Control.Feedback type='invalid'>
+                                                        {guestsDataErrors[index].emailError}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col>
+                                                <div className='isAdultFillGuest'>
+                                                    <Form.Group controlId={`isAdult-${index}`}>
+                                                        <Form.Check
+                                                            type="checkbox"
+                                                            label="Adult"
+                                                            name="isAdult"
+                                                            checked={guest.isAdult ? guest.isAdult : false}
+                                                            onChange={(e) => handleGuestsInputChange(index, e)}
+                                                        />
+                                                    </Form.Group>
+                                                </div>
+                                            </Col></Row>
+                                    </Row>
+                                ))}
+                                <br />
+                                <Button variant="success" onClick={addGuest}>
+                                    Add Guest
+                                </Button>
+                                <Button variant="success" onClick={substractGuest}>
+                                    Remove last Guest
+                                </Button>
+                                <br />
+                                <br />
+                                <Button variant="primary" type="submit">
+                                    Submit
+                                </Button>
+                            </Form>
+                        </Container>
                     </div>
                 )
             }
@@ -563,7 +716,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </Card>
                             ))}
                         </div>
-                        <Button onClick={goToNextStep}>Next</Button>
                     </div>
                 )
             }
@@ -572,6 +724,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currentStep === BookingSteps.StepConfirmation && (
                     <div>
                         <h2>Step 5: Booking completed</h2>
+                        <Button variant='primary' onClick={goToNextStep}>Close window!</Button>
                     </div>
                 )
             }

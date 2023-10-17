@@ -97,7 +97,6 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     }
 
     const onLoginCaptchaChange = async (value: ReCAPTCHA) => {
-        console.log("Captcha human value:", value);
         const body = {
             secret: captchaServerKey,
             response: value
@@ -282,7 +281,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h1>
                         User edit profile
                     </h1>
-                    <p>{currentUser.name}</p>
+                    <span>{currentUser.name}</span>
                     <Button variant="primary" type="submit" onClick={logout}>
                         Logout
                     </Button>

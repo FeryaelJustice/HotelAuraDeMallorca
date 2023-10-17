@@ -1,7 +1,9 @@
 export const Services = () => {
     return (
         <div>
-            Services
+            <span>
+                Services
+            </span>
         </div>
     );
 }

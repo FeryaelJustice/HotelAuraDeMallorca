@@ -125,3 +125,11 @@
     overflow: auto;
     max-height: 400px;
 }
+
+.isAdultFillGuest {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: start;
+    align-items: end;
+}
