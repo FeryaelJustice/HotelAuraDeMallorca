@@ -25,6 +25,8 @@ enum BookingSteps {
     StepPersonalData,
     StepPlan,
     StepChooseBooking,
+    StepChooseServices,
+    StepFillGuests,
     StepPayment,
     StepConfirmation,
 }
@@ -78,11 +80,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepChooseBooking);
                 break;
             case BookingSteps.StepChooseBooking:
+                setCurrentStep(BookingSteps.StepChooseServices);
+                break;
+            case BookingSteps.StepChooseServices:
+                setCurrentStep(BookingSteps.StepFillGuests);
+                break;
+            case BookingSteps.StepFillGuests:
                 setCurrentStep(BookingSteps.StepPayment);
                 break;
             case BookingSteps.StepPayment:
                 // Realizar la reserva
                 try {
+                    // Crear usuario si no esta logeado, sino cogemos ese usuario
                     let user = new User({
                         id: null,
                         name: userPersonalData.name,
@@ -111,28 +120,28 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             console.error(err)
                         })
                     }
-                    let plan = new Plan();
-                    let room = new Room();
+                    // No es necesario: let plan = new Plan();
+                    let selectedPlanID = 0;
+                    if (checkedPlan == 'vip') {
+                        selectedPlanID = 1;
+                    }
+                    // No es necesario: let room = new Room();
                     //let service = new Service(); // podrá ver 1 o más
                     //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
                         userID: user.id,
-                        planID: plan.id,
-                        roomID: room.id,
-                        startDate: new Date(),
-                        endDate: new Date(),
+                        planID: selectedPlanID,
+                        roomID: selectedRoomID,
+                        startDate: startDate as Date,
+                        endDate: endDate as Date,
                     });
                     // Llama a la API para realizar la reserva
-                    // const res = await axios.get(API_URL, { headers: axiosHeaders })
-                    /*
-                    axios.post(API_URL+'/api/reserve', data, { headers: axiosHeaders }).then((response) => {
-                        setCurrentStep(BookingSteps.StepPlan);
-                    }).catch((error) => {
-                        console.error(error);
-                    });
-                    */
-                    setCurrentStep(BookingSteps.StepPlan);
+                    // axios.post(API_URL + '/api/booking', booking, { headers: axiosHeaders }).then((response) => {
+                    //     setCurrentStep(BookingSteps.StepConfirmation);
+                    // }).catch((error) => {
+                    //     console.error(error);
+                    // });
                 } catch (error) {
                     // Manejo de errores
                     console.error('Error al realizar la reserva:', error);
@@ -195,38 +204,32 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     // Step choose Plan
+    const [plans, setPlans] = useState<Plan[]>([])
     const [checkedPlan, setCheckedPlan] = useState<string | null>('basic');
+
+    useEffect(() => {
+        axios.get(API_URL + '/api/plans').then(res => {
+            let plans = res.data.data;
+            let retrievedPlans: Plan[] = [];
+            plans.forEach((plan: any) => {
+                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price }))
+            })
+            setPlans(retrievedPlans)
+        }).catch
+            (err => console.error(err))
+    }, [])
 
     const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setCheckedPlan(event.target.value);
     };
 
     // Step booking
-    // Select date
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
     const [endDate, onChangeEndDate] = useState<Value>(new Date());
-    // const tomorrow = new Date();
-    // tomorrow.setDate(tomorrow.getDate() + 1);
-    // const [rooms, setRooms] = useState<Room[]>([
-    //     new Room({
-    //         id: 1,
-    //         name: 'Room 1',
-    //         description: 'Description 1',
-    //         price: 100,
-    //         availabilityStart: new Date(),
-    //         availabilityEnd: tomorrow,
-    //     }),
-    //     new Room({
-    //         id: 2,
-    //         name: 'Room 2',
-    //         description: 'Description 2',
-    //         price: 120,
-    //         availabilityStart: new Date(),
-    //         availabilityEnd: tomorrow,
-    //     }),
-    // ]);
     const [rooms, setRooms] = useState<Room[]>([]);
+    const [selectedRoomID, setSelectedRoomID] = useState(null);
 
+    // Get rooms
     useEffect(() => {
         axios.get(API_URL + '/api/rooms').then(res => {
             let rooms = res.data.data;
@@ -243,9 +246,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [children, setChildren] = useState(0);
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([])
 
+    // Filter rooms
     useEffect(() => {
-        console.log(rooms)
-        console.log(new Date())
         setFilteredRooms(
             rooms.filter((room) => {
                 if (startDate && endDate && room && room.availabilityStart && room.availabilityEnd) {
@@ -259,6 +261,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             })
         );
     }, [rooms, startDate, endDate, adults, children]);
+
+    const roomSelected = (roomID: any) => {
+        setSelectedRoomID(roomID)
+        goToNextStep();
+    }
 
     // Step choose payment method
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
@@ -331,38 +338,28 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     <div>
                         <h2>Choose your PLAN</h2>
                         <div className="cards-plan">
-                            <Card>
-                                <Card.Body>
-                                    <Card.Title>Plan: Basic</Card.Title>
-                                    <Card.Text>
-                                        In the basic plan, you are going to be able to choose your room and delight of the free meteorology service we have. Services will not be included (choose the ones you want).
-                                    </Card.Text>
-                                    <Form.Check
-                                        id="basic"
-                                        type="radio"
-                                        name="pricing-plan"
-                                        value="basic"
-                                        checked={checkedPlan === "basic"}
-                                        onChange={handleRadioChange}
-                                    />
-                                </Card.Body>
-                            </Card>
-                            <Card>
-                                <Card.Body>
-                                    <Card.Title>Plan: VIP</Card.Title>
-                                    <Card.Text>
-                                        In the vip plan, you delight all the benefits of Basic plan + all extra services included + special attention.
-                                    </Card.Text>
-                                    <Form.Check
-                                        id="vip"
-                                        type="radio"
-                                        name="pricing-plan"
-                                        value="vip"
-                                        checked={checkedPlan === "vip"}
-                                        onChange={handleRadioChange}
-                                    />
-                                </Card.Body>
-                            </Card>
+                            {plans.map((plan) => (
+                                <Card>
+                                    <Card.Body>
+                                        <Card.Title>Plan: {plan.name}</Card.Title>
+                                        <Card.Text>
+                                            <div>
+                                                <p>{plan.description}</p>
+                                                <br />
+                                                <p>Price: {plan.price} euros</p>
+                                            </div>
+                                        </Card.Text>
+                                        <Form.Check
+                                            id={plan.name?.toLowerCase()}
+                                            type="radio"
+                                            name="pricing-plan"
+                                            value={plan.name?.toLowerCase()}
+                                            checked={checkedPlan === plan.name?.toLowerCase()}
+                                            onChange={handleRadioChange}
+                                        />
+                                    </Card.Body>
+                                </Card>
+                            ))}
                         </div>
 
                         <Button onClick={goToNextStep}>Next</Button>
@@ -412,7 +409,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </Col>
                             </Row>
 
-                            {/* Lista de hoteles */}
+                            {/* Room list */}
                             <Row className="mt-12">
                                 <h4>Rooms found:</h4>
                                 {filteredRooms.map((room) => (
@@ -430,15 +427,31 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     </div>
 
                                                 </Card.Text>
-                                                <Button variant="primary">Book</Button>
+                                                <Button variant="primary" onClick={() => roomSelected(room.id)}>Book</Button>
                                             </Card.Body>
                                         </Card>
                                     </Row>
                                 ))}
                             </Row>
-
-                            <Button onClick={goToNextStep}>Next</Button>
                         </Container>
+                    </div>
+                )
+            }
+
+            {
+                currentStep === BookingSteps.StepChooseServices && (
+                    <div>
+                        <h2>Choose services</h2>
+                        <button onClick={goToNextStep}>Next</button>
+                    </div>
+                )
+            }
+
+            {
+                currentStep === BookingSteps.StepFillGuests && (
+                    <div>
+                        <h2>Fill your guests</h2>
+                        <button onClick={goToNextStep}>Next</button>
                     </div>
                 )
             }

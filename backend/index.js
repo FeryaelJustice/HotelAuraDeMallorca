@@ -213,6 +213,22 @@ expressRouter.get('/rooms', (req, res) => {
     })
 })
 
+// PLANS
+expressRouter.get('/plans', (req, res) => {
+    let sql = 'SELECT * FROM plan'
+    connection.query(sql, [], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+        }
+        if (results.length > 0) {
+            res.status(200).send({ status: "success", msg: "Plans found", data: results });
+        } else {
+            res.status(500).send({ status: "error", msg: "No plans found" });
+        }
+    })
+})
+
 // Listen SERVER
 const port = process.env.PORT || 3000
 app.listen(port, () => {
