@@ -45,6 +45,15 @@ header {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  color: #000000;
+}
+
+.logged-icon-light {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #FFFFFF;
 }
 
 .logged-icon span {
@@ -108,7 +117,13 @@ nav a {
 
 #nav .is-active,
 #nav-menu .is-active {
-  color: #535bf2;
+  color: #2A33EF;
+  font-weight: bold;
+}
+
+#nav .is-active-light,
+#nav-menu .is-active-light {
+  color: #8F94F5;
   font-weight: bold;
 }
 
