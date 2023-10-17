@@ -91,7 +91,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 // Realizar la reserva
                 try {
                     // Crear usuario si no esta logeado, sino cogemos ese usuario
-                    let user = new User({
+                    let ourUser = new User({
                         id: null,
                         name: userPersonalData.name,
                         surnames: userPersonalData.surnames,
@@ -99,43 +99,72 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         password: null,
                         verified: true,
                     });
+
+                    console.log('Userr Data:', {
+                        ourUser,
+                    })
                     if (cookies.token) {
                         // Si esta logeado
-                        getAllLoggedUserData().then(res => {
-                            user.id = res.id;
-                            user.name = res.user_name;
-                            user.surnames = res.user_surnames;
-                            user.email = res.user_email;
-                            user.password = res.user_password_hash;
-                            user.verified = res.user_verified;
-                        }).catch(err => console.error(err))
+                        try {
+                            const res = await getAllLoggedUserData();
+                            ourUser.id = res.id;
+                            ourUser.name = res.user_name;
+                            ourUser.surnames = res.user_surnames;
+                            ourUser.email = res.user_email;
+                            ourUser.password = res.user_password_hash;
+                            ourUser.verified = res.user_verified;
+                        } catch (err) {
+                            console.error(err);
+                        }
                     }
-                    if (!user.id && !cookies.token) {
-                        const userToCreate = { email: user.email, name: user.name, surnames: user.surnames, password: "1234" };
-                        // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                        axios.post('http://localhost:3000/api/register', userToCreate, { headers: axiosHeaders }).then(res => {
-                            console.log('registered successfully')
-                        }).catch(err => {
-                            console.error(err)
-                        })
+                    if (!ourUser.id && !cookies.token) {
+                        const userToCreate = { email: ourUser.email, name: ourUser.name, surnames: ourUser.surnames, password: "1234" };
+                        try {
+                            // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
+                            const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
+                            ourUser.id = res.data.insertId
+                            console.log('Registered successfully', res);
+                        } catch (err) {
+                            console.error(err);
+                        }
                     }
+                    console.log('User Data:', {
+                        ourUser,
+                    })
                     let servicesIDsSelected = selectedServicesIDs;
                     let guestsBooking = guests;
                     //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
-                        userID: user.id,
+                        userID: ourUser.id,
                         planID: checkedPlan,
                         roomID: selectedRoomID,
                         startDate: startDate as Date,
                         endDate: endDate as Date,
                     });
-                    // Llama a la API para realizar la reserva
-                    // axios.post(API_URL + '/api/booking', booking, { headers: axiosHeaders }).then((response) => {
-                    //     setCurrentStep(BookingSteps.StepConfirmation);
-                    // }).catch((error) => {
-                    //     console.error(error);
-                    // });
+
+                    // Check and log the values in bookingData
+                    console.log('Booking Data:', {
+                        ourUser,
+                        servicesIDsSelected,
+                        guestsBooking,
+                        booking,
+                    });
+
+                    let bookingData = {
+                        booking,
+                        servicesIDsSelected,
+                        guestsBooking
+                    }
+
+                    // Make the API call for booking
+                    try {
+                        const response = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
+                        console.log('Booking successful', response.data);
+                        setCurrentStep(BookingSteps.StepConfirmation);
+                    } catch (error) {
+                        console.error('Error in API call:', error);
+                    }
                 } catch (error) {
                     // Manejo de errores
                     console.error('Error al realizar la reserva:', error);
@@ -520,7 +549,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         type="number"
                                         min={1}
                                         max={10}
-                                        defaultValue={1}
                                         value={adults}
                                         onChange={(e) => setAdults(e.target.value as unknown as number)}
                                     />
@@ -531,7 +559,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         type="number"
                                         min={0}
                                         max={10}
-                                        defaultValue={0}
                                         value={children}
                                         onChange={(e) => setChildren(e.target.value as unknown as number)}
                                     />
