@@ -1,6 +1,6 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
@@ -16,6 +16,10 @@ function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+  useEffect(() => {
+    document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', colorScheme)
+  }, [])
 
   // Color theme listener
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {

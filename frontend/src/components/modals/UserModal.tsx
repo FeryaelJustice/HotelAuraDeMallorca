@@ -26,7 +26,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentUser, setCurrentUser] = useState(new User());
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
-    const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY
+    const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
 
     useEffect(() => {
         if (cookies.token) {
@@ -159,6 +159,18 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             setCaptchaRegisterValid(false)
         }
     }
+
+    // Edit profile
+
+    // When close, reset
+    useEffect(() => {
+        if (!show) {
+            setCurrentScreen(UserModalScreens.ScreenLogin)
+            setCurrentUser(new User())
+            setUserLogin({ email: "", password: "" })
+            setUserRegister({ email: "", name: "", surnames: "", password: "" })
+        }
+    }, [show])
 
     return (
         <BaseModal title={'User'} show={show} onClose={onClose}>

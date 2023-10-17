@@ -13,6 +13,8 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
 import ReCAPTCHA from "react-google-recaptcha";
+import { isEmptyOrSpaces, validateEmail } from '../../utils';
+import './BookingModal.css'
 
 interface BookingModalProps {
     show: boolean,
@@ -27,13 +29,13 @@ enum BookingSteps {
     StepConfirmation,
 }
 
-// Booking step calendar
+// Booking step: calendar properties
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies, removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
 
     useEffect(() => {
@@ -43,7 +45,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }, [cookies])
 
-    // Axios request properties
+    // Axios request properties para cors
     const axiosHeaders = {
         'Content-Type': 'application/json',
         'Authorization': '',
@@ -52,23 +54,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
     axios.defaults.withCredentials = true;
 
-    // Get JWT user data
-    async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
-        if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
-            if (getLoggedUserData) {
-                return getLoggedUserData.data;
-            } else {
-                removeCookie('token');
-            }
-        }
-    }
-
-    // Step Personal data Form
-    const [personalDataFormValidated, setPersonalDataFormValidated] = useState(false);
-    const [userPersonalData, setUserPersonalData] = useState({ name: '', surnames: '', email: '' });
-
+    // Logica de navegacion por el modal
     const goToNextStep = async () => {
         // Lógica específica para cada paso
         switch (currentStep) {
@@ -144,7 +130,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepConfirmation);
                 onClose();
                 setCurrentStep(BookingSteps.StepPersonalData);
-                setPersonalDataFormValidated(false);
                 break;
             case BookingSteps.StepConfirmation:
                 // onClose();
@@ -154,19 +139,59 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     };
 
-    const handleSubmit = (event: React.ChangeEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        let form = event.currentTarget;
-        setPersonalDataFormValidated(form.checkValidity());
-        if (form.checkValidity()) {
-            goToNextStep();
+    // Get JWT user data
+    async function getAllLoggedUserData(): Promise<any> {
+        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
+        if (currentUser) {
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token', ''));
+            if (getLoggedUserData) {
+                return getLoggedUserData.data;
+            } else {
+                removeCookie('token', '');
+            }
         }
     }
 
-    const handleChange = (event: any) => {
+    // Step Personal data Form
+    const [userPersonalData, setUserPersonalData] = useState({ name: '', surnames: '', email: '' });
+    const [userPersonalDataErrors, setUserPersonalDataErrors] = useState({ nameError: '', surnamesError: '', emailError: '' });
+
+    const validatePersonalDataForm = () => {
+        const { name, surnames, email } = userPersonalData;
+        const newErrors = { nameError: '', surnamesError: '', emailError: '' }
+
+        if (isEmptyOrSpaces(name)) {
+            newErrors.nameError = 'Please enter a valid name'
+        }
+        if (isEmptyOrSpaces(surnames)) {
+            newErrors.surnamesError = 'Please enter valid surnames'
+        }
+        if (!validateEmail(email)) {
+            newErrors.emailError = 'Please enter a valid email'
+        }
+
+        return newErrors;
+    }
+
+    const handlePersonalDataSubmit = (event: React.ChangeEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        //let form = event.currentTarget;
+        const formErrors = validatePersonalDataForm();
+
+        if (formErrors.nameError == '' && formErrors.surnamesError == '' && formErrors.emailError == '') {
+            goToNextStep();
+        } else {
+            setUserPersonalDataErrors(formErrors)
+        }
+    }
+
+    const handlePersonalDataChange = (event: any) => {
         setUserPersonalData({ ...userPersonalData, [event.target.name]: event.target.value });
+        if (!!userPersonalDataErrors[event.target.name as keyof Object]) {
+            setUserPersonalDataErrors({ ...userPersonalDataErrors, [event.target.name]: null })
+        }
     }
 
     // Step choose Plan
@@ -202,7 +227,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     ]);
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
-
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([])
 
     useEffect(() => {
@@ -220,7 +244,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         );
     }, [startDate, endDate, adults, children]);
 
-
     // Step choose payment method
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
 
@@ -228,29 +251,53 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         setCheckedPaymentMethod(event.target.value);
     };
 
+    // When close, reset
+    useEffect(() => {
+        if (!show) {
+            setCurrentStep(BookingSteps.StepPersonalData)
+            setUserPersonalData({ name: '', surnames: '', email: '' });
+            setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
+            setCheckedPlan('basic')
+            onChangeStartDate(new Date())
+            onChangeEndDate(new Date())
+            setAdults(1)
+            setChildren(0)
+            setFilteredRooms([])
+        }
+    }, [show])
+
     return (
         <BaseModal title={'Book'} show={show} onClose={onClose}>
             {currentStep === BookingSteps.StepPersonalData && (
                 <div>
                     <h2>Your personal data</h2>
 
-                    <Form validated={personalDataFormValidated} onSubmit={handleSubmit}>
+                    <Form noValidate onSubmit={handlePersonalDataSubmit}>
                         <Form.Group className="mb-3" controlId="formName">
                             <Form.Label>Name</Form.Label>
-                            <Form.Control type="text" name="name" placeholder="Enter your name" onChange={handleChange} required />
+                            <Form.Control type="text" name="name" placeholder="Enter your name" value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
+                            <Form.Control.Feedback type='invalid'>
+                                {userPersonalDataErrors.nameError}
+                            </Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formSurnames">
                             <Form.Label>Surnames</Form.Label>
-                            <Form.Control type="text" name="surnames" placeholder="Enter your surnames" onChange={handleChange} required />
+                            <Form.Control type="text" name="surnames" placeholder="Enter your surnames" value={userPersonalData.surnames} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.surnamesError} required />
+                            <Form.Control.Feedback type='invalid'>
+                                {userPersonalDataErrors.surnamesError}
+                            </Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formEmail">
                             <Form.Label>Email</Form.Label>
-                            <Form.Control type="email" name="email" placeholder="Enter your email" onChange={handleChange} required />
+                            <Form.Control type="email" name="email" placeholder="Enter your email" value={userPersonalData.email} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.emailError} required />
                             <Form.Text className="text-muted">
                                 We'll never share your email with anyone else and we will send confirmation mails to this one.
                             </Form.Text>
+                            <Form.Control.Feedback type='invalid'>
+                                {userPersonalDataErrors.emailError}
+                            </Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Label><em>*If you do a booking without signin in, your default password will be: 1234.</em><br /><strong>Please change it inmediatly when you finish by logging in and going to edit profile.</strong></Form.Label>
@@ -309,13 +356,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
             {
                 currentStep === BookingSteps.StepChooseBooking && (
-                    <div style={{ overflow: 'auto', maxHeight: '400px' }}>
-                        <h2>Choose your booking & services</h2>
+                    <div className='bookingContainer'>
 
                         <Container>
                             <Row className="mt-12">
                                 <Col>
-                                    <h2>Search Hotels</h2>
+                                    <h2>Choose your booking & services</h2>
                                 </Col>
                             </Row>
                             {/* Inputs de fechas */}
@@ -352,7 +398,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                             {/* Lista de hoteles */}
                             <Row className="mt-12">
-                                <h3>Rooms found:</h3>
+                                <h4>Rooms found:</h4>
                                 {filteredRooms.map((room) => (
                                     <Row key={room.id} md={12} className="mb-12">
                                         <Card>
