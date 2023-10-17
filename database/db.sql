@@ -28,8 +28,8 @@ CREATE TABLE role (
     name ENUM('CLIENT', 'ADMIN', 'EMPLOYEE') NOT NULL
 );
 
--- Create the table user_roles
-CREATE TABLE user_roles (
+-- Create the table user_role
+CREATE TABLE user_role (
     user_id INT,
     role_id INT,
     PRIMARY KEY (user_id, role_id),
@@ -211,7 +211,7 @@ VALUES
     (3, 'EMPLOYEE');
 
 INSERT INTO
-    user_roles (user_id, role_id)
+    user_role (user_id, role_id)
 VALUES
     (1, 2),
     (1, 3),
