@@ -253,7 +253,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // When close, reset
     useEffect(() => {
-        if (!show) {
+        if (!show && !cookies.token) {
             setCurrentStep(BookingSteps.StepPersonalData)
             setUserPersonalData({ name: '', surnames: '', email: '' });
             setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
