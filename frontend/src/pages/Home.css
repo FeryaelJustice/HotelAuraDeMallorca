@@ -11,7 +11,5 @@
     color: #ffffff;
     font-size: 3em;
     font-weight: bolder;
-    -webkit-text-stroke-width: 2px;
-    -webkit-text-stroke-color: black;
-    text-shadow: 2px 2px #000000;
+    text-shadow: 2px 2px 2px #000000;
 }

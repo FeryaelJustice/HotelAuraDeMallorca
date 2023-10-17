@@ -43,7 +43,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     return isActive ? 'is-active' : undefined
                 }}>Contact</NavLink>
                 <div id="nav-actions">
-                    <Button variant="primary" onClick={onOpenBookingModal}>Book</Button>
+                    <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>Book</Button>
                     <div className="user-icon">
                         {colorScheme == 'dark' ? (
                             <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
@@ -78,6 +78,24 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     <NavLink to="/contact" className={({ isActive }) => {
                         return isActive ? 'is-active' : undefined
                     }} onClick={closeMenu}>Contact</NavLink>
+                    <a className="user-icon-phone">
+                        {colorScheme == 'dark' ? (
+                            <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        ) : (
+                            <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        )}
+                        {cookies.token ? (
+                            <div className="logged-icon">
+                                <FontAwesomeIcon icon={faCheck} />
+                                <span>Logged</span>
+                            </div>
+                        ) : (
+
+                            <div className="logged-icon">
+                                <span></span>
+                            </div>
+                        )}
+                    </a>
                 </div>)}
         </header>
     )

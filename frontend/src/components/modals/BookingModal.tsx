@@ -82,7 +82,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepChooseServices);
                 break;
             case BookingSteps.StepChooseServices:
-                console.log(selectedServicesIDs)
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:

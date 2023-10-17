@@ -27,6 +27,19 @@ header {
   flex-direction: row;
 }
 
+.user-icon-phone {
+  display: flex !important;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.user-icon-phone:hover {
+  color: #FFFFFF !important;
+  background-color: #B5B5B5 !important;
+}
+
 .logged-icon {
   display: flex;
   flex-direction: column;
@@ -120,11 +133,21 @@ nav a {
   display: none;
 }
 
+.menu-toggle:hover {
+  border-radius: 12px;
+  transition: 0.4s;
+}
+
 .main {
   min-height: 100vh;
   color: #ffffff;
   z-index: 1;
   margin-top: 3.7%;
+}
+
+#bookBtn:hover {
+  background-color: #005757;
+  transition: 0.5s;
 }
 
 #bookBtnNoInHeader {
@@ -135,6 +158,11 @@ nav a {
   margin: 30px;
   font-weight: bold;
   font-size: 1.2em;
+}
+
+#bookBtnNoInHeader:hover {
+  background-color: #005757;
+  transition: 0.5s;
 }
 
 .footer {
