@@ -145,6 +145,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepConfirmation);
                 break;
             case BookingSteps.StepConfirmation:
+                resetBookingModal();
                 onClose();
                 break;
             default:
@@ -392,19 +393,23 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         goToNextStep();
     };
 
+    const resetBookingModal = () => {
+        setCurrentStep(BookingSteps.StepPersonalData)
+        setUserPersonalData({ name: '', surnames: '', email: '' });
+        setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
+        setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
+        setCheckedPlan(1)
+        onChangeStartDate(new Date())
+        onChangeEndDate(new Date())
+        setAdults(1)
+        setChildren(0)
+        setFilteredRooms([])
+    }
+
     // When close, reset
     useEffect(() => {
         if (!show && !cookies.token) {
-            setCurrentStep(BookingSteps.StepPersonalData)
-            setUserPersonalData({ name: '', surnames: '', email: '' });
-            setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
-            setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
-            setCheckedPlan(1)
-            onChangeStartDate(new Date())
-            onChangeEndDate(new Date())
-            setAdults(1)
-            setChildren(0)
-            setFilteredRooms([])
+            resetBookingModal();
         }
     }, [show])
 
