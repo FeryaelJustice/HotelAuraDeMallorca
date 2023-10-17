@@ -87,7 +87,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
-        if (loginValidated && captchaLoginValid) {
+        if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
             axios.post(API_URL + '/api/login', userLogin, { headers: axiosHeaders }).then(res => {
                 console.log("logged successfully")
             }).catch(err => {
@@ -131,7 +131,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         setRegisterValidated(form.checkValidity());
-        if (registerValidated && captchaRegisterValid) {
+        if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
             // api call
             axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
                 console.log('registered successfully')
@@ -192,7 +192,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 
-                        <div className='captcha'>
+                        {import.meta.env.MODE != 'development' && (<div className='captcha'>
                             <ReCAPTCHA
                                 sitekey={captchaKey}
                                 onChange={onLoginCaptchaChange}
@@ -202,7 +202,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                                     Completa el captcha
                                 </Alert>
                             ) : null}
-                        </div>
+                        </div>)}
 
                         <div className="userLoginModalActions">
                             <Button variant="primary" type="submit">
@@ -247,7 +247,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 
-                        <div className='captcha'>
+                        {import.meta.env.MODE != 'development' && (<div className='captcha'>
                             <ReCAPTCHA
                                 sitekey={captchaKey}
                                 onChange={onRegisterCaptchaChange}
@@ -257,7 +257,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                                     Completa el captcha
                                 </Alert>
                             ) : null}
-                        </div>
+                        </div>)}
 
                         <Button variant="primary" type="submit">
                             Register
