@@ -35,7 +35,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
-    const [cookies, removeCookie] = useCookies(['token']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
 
     useEffect(() => {
@@ -53,6 +53,19 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         'Access-Control-Allow-Origin': '*',
     }
     axios.defaults.withCredentials = true;
+
+    // Get JWT user data
+    async function getAllLoggedUserData(): Promise<any> {
+        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
+        if (currentUser) {
+            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token'));
+            if (getLoggedUserData) {
+                return getLoggedUserData.data;
+            } else {
+                removeCookie('token');
+            }
+        }
+    }
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
@@ -138,19 +151,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 break;
         }
     };
-
-    // Get JWT user data
-    async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
-        if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => removeCookie('token', ''));
-            if (getLoggedUserData) {
-                return getLoggedUserData.data;
-            } else {
-                removeCookie('token', '');
-            }
-        }
-    }
 
     // Step Personal data Form
     const [userPersonalData, setUserPersonalData] = useState({ name: '', surnames: '', email: '' });
