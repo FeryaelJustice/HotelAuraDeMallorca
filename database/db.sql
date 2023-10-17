@@ -87,8 +87,8 @@ CREATE TABLE booking_service (
     FOREIGN KEY (service_id) REFERENCES service(id)
 );
 
--- Create the table booking_details
-CREATE TABLE booking_details (
+-- Create the table booking_detail
+CREATE TABLE booking_detail (
     booking_id INT,
     adults INT,
     children INT,
@@ -96,8 +96,8 @@ CREATE TABLE booking_details (
     FOREIGN KEY (booking_id) REFERENCES booking(id)
 );
 
--- Create the table booking_details
-CREATE TABLE booking_guests (
+-- Create the table booking_guests
+CREATE TABLE booking_guest (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     guest_id INT,
@@ -325,14 +325,14 @@ VALUES
 
 -- Detalles asociados a reservas, como los adultos y niños que hay
 INSERT INTO
-    booking_details (booking_id, adults, children)
+    booking_detail (booking_id, adults, children)
 VALUES
     (1, 2, 1),
     (2, 2, 2);
 
 -- Guests asociados a reservas, como los adultos y niños que hay
 INSERT INTO
-    booking_guests (booking_id, guest_id)
+    booking_guest (booking_id, guest_id)
 VALUES
     (1, 1),
     (1, 2),
