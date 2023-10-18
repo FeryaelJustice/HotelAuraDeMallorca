@@ -473,6 +473,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     const resetBookingModal = () => {
         setCurrentStep(BookingSteps.StepPersonalData)
+        if (cookies.token) {
+            // Si ya esta logeado, no pedir los datos personales
+            setCurrentStep(BookingSteps.StepPlan)
+        }
         setUserPersonalData({ name: '', surnames: '', email: '' });
         setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
         setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])

@@ -264,82 +264,78 @@ expressRouter.get('/paymentmethods', (req, res) => {
 // GUESTS
 expressRouter.post('/guests', (req, res) => {
     const guestsBooking = req.body;
-    function getAllGuests() {
-        let sql = 'SELECT * FROM guest';
 
-        connection.query(sql, [], (error, results) => {
-            if (!error && results && results.length > 0) {
-                return results
-            } else {
-                return []
-            }
-        });
-    }
+    // LOGIC FOR INSERTING NON EXISTENT GUESTS
+    // Get existing guests
+    const existingGuestsIDs = guestsBooking
+        .filter(guest => guest.id !== null)
+        .map(guest => guest.id);
 
-    // Insert first guests
-    let guestsIDsIfTheyExist = []
-    guestsBooking.forEach(guest => {
-        let sqlG = 'SELECT * FROM guest WHERE id = ?';
-        let valuesG = [guest.id];
+    if (existingGuestsIDs.length > 0) {
+        const existingGuestsQuery = 'SELECT id FROM guest WHERE id IN (?)';
 
-        console.log('HEYUYYYYYYYYYYYYYYYYYYYYYYY' + guest.id)
-        connection.query(sqlG, valuesG, (error, results) => {
-            console.log('error')
-            if (!error && results && results.length > 0) {
-                guestsIDsIfTheyExist.push(results[0])
-            }
-        });
-    })
-    console.log(guestsIDsIfTheyExist)
-
-    guestsBooking.forEach(guest => {
-        guestsIDsIfTheyExist.forEach(guestIfExists => {
-            if (guest.id != guestIfExists.id) {
-                let guestsSQL = 'INSERT INTO guest (guest_name, guest_surnames, guest_email, isAdult) VALUES (?, ?, ?, ?)';
-                let guestsSQLValues = [guest.name, guest.surnames, guest.email, guest.isAdult];
-
-                connection.query(guestsSQL, guestsSQLValues, (error) => {
-                    if (error) {
-                        console.error(error);
-                        return res.status(500).send({ error: "error creating guests" });
-                    }
-                })
-            }
-        })
-    })
-
-    // Booking Guests
-    let allGuests = getAllGuests();
-    allGuests.forEach(guest => {
-        let bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?, ?)';
-        let bookingGuestsSQLValues = [booking.id, guest.id];
-
-        connection.query(bookingGuestsSQL, bookingGuestsSQLValues, (error) => {
+        connection.query(existingGuestsQuery, [existingGuestsIDs], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).send({ error: "error creating booking guests" });
+                return res.status(500).send({ status: "error", msg: "error retrieving existing guests" });
             }
-        })
-    });
 
+            const existingGuestsIDsSet = new Set(results.map(result => result.id));
 
-    res.status(200).send({ status: "success", msg: "No payment methods found" });
+            // Insert guests with null id
+            const guestsToInsert = guestsBooking.filter(guest => guest.id === null || !existingGuestsIDsSet.has(guest.id));
+
+            if (guestsToInsert.length > 0) {
+                const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+                const guestsSQLValues = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
+
+                connection.query(guestsSQL, [guestsSQLValues], (error) => {
+                    if (error) {
+                        console.error(error);
+                        return res.status(500).send({ status: "error", msg: "error creating guests" });
+                    }
+
+                    // Successfully inserted guests
+                    res.status(200).send({ status: "success", msg: "Guests created successfully" });
+                });
+            } else {
+                // No guests to insert
+                res.status(200).send({ status: "success", msg: "No guests to insert" });
+            }
+        });
+    } else {
+        // All guests have null id, insert all
+        const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+        const guestsSQLValues = guestsBooking.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
+
+        connection.query(guestsSQL, [guestsSQLValues], (error) => {
+            if (error) {
+                console.error(error);
+                res.status(500).send({ status: "error", msg: "Error creating guests" });
+            }
+
+            // Successfully inserted guests
+            res.status(200).send({ status: "success", msg: "Guests created successfully" });
+        });
+    }
 })
 
 // BOOKING !!!
 expressRouter.post('/booking', (req, res) => {
 
-
     let data = req.body;
     const booking = data.booking;
-    // const servicesIDs = Object.keys(data.servicesIDsSelected).map(Number)
-    // console.log(booking)
+    // const servicesIDs = Object.keys(data.selectedServicesIDs).map(Number)
+    const guests = data.guests;
+    console.log(booking)
     // console.log(servicesIDs)
+    console.log(guests)
+
+    let bookingInsertedID = null;
 
     // Booking
     let bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
-    let values = [booking.id, booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format(dateFormat), moment(booking.endDate).format(dateFormat)];
-    let bookingInsertedID = null;
+    let values = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format(dateFormat), moment(booking.endDate).format(dateFormat)];
 
     connection.query(bookingSQL, values, (error, results) => {
         if (error) {
@@ -347,9 +343,41 @@ expressRouter.post('/booking', (req, res) => {
             return res.status(500).send({ error: "error creating booking" });
         }
         bookingInsertedID = results.insertId;
-    });
 
-    res.status(200).send({ insertId: bookingInsertedID });
+        // LOGIC for Booking Guests inserts
+        const bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES ?';
+
+        // Iterate over each guest
+        guests.forEach(guest => {
+            const bookingGuestsSQLValues = []; // reset each iteration
+            // Select guest ID based on email match
+            const getGuestIDSQL = 'SELECT id FROM guest WHERE guest_email = ?';
+
+            connection.query(getGuestIDSQL, [guest.email], (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).send({ error: "error retrieving guest ID" });
+                }
+                console.log(results)
+
+                // If there's a result, add it to the bookingGuestsSQLValues array
+                if (results && results.length > 0) {
+                    const guestID = results[0].id;
+                    bookingGuestsSQLValues.push([bookingInsertedID, guestID]);
+                }
+
+                // Insert
+                connection.query(bookingGuestsSQL, [bookingGuestsSQLValues], (error) => {
+                    if (error) {
+                        console.error(error);
+                        return res.status(500).send({ error: "error creating booking guests" });
+                    }
+
+                });
+            });
+        });
+        res.status(200).send({ insertId: bookingInsertedID });
+    });
 })
 
 // Listen SERVER
