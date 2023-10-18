@@ -1,5 +1,6 @@
 const express = require('express')
 const expressRouter = express.Router()
+const morgan = require('morgan')
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
@@ -35,6 +36,7 @@ app.use('/api/', expressRouter)
 // Cookies and compression
 app.use(cookieParser());
 app.use(compression())
+app.use(morgan('combined'))
 
 // MySQL
 const pool = mysql.createPool({
@@ -42,8 +44,21 @@ const pool = mysql.createPool({
     host: process.env.DB_URL,
     user: 'root',
     password: '',
-    database: 'hotelaurademallorca'
+    database: 'hotelaurademallorca',
+    before: async (connection) => {
+        connection.query = async function (sql, values) {
+            const formedSQL = connection.format(sql, values);
+
+            logFormedSQL(formedSQL);
+
+            return await connection._query(formedSQL);
+        };
+    }
 })
+
+function logFormedSQL(sql) {
+    console.log('Formed SQL statement:', sql);
+}
 
 // JWT
 const jwt = require('jsonwebtoken')
@@ -380,68 +395,101 @@ expressRouter.post('/guests', (req, res) => {
 
 // BOOKING !!!
 expressRouter.post('/booking', (req, res) => {
-    pool.getConnection(async (err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
-        }
-        let data = req.body;
-        const booking = data.booking;
-        const servicesIDs = Object.keys(data.selectedServicesIDs).map(Number)
-        const guests = data.guests;
+    let data = req.body;
+    const booking = data.booking;
+    const servicesIDs = Object.keys(data.selectedServicesIDs).map(Number)
+    const guests = data.guests;
 
-        let bookingInsertedID = null;
+    const bookingCreation = new Promise((resolve, reject) => {
+        pool.getConnection(async (err, connection) => {
+            if (err) {
+                console.error('Error acquiring connection from pool:', err);
+                return res.status(500).send({ error: 'Internal server error' });
+            }
 
-        // Start a transaction
-        await connection.beginTransaction();
+            try {
+                // Insert the booking
+                const bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
+                const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format('YYYY-MM-DD'), moment(booking.endDate).format('YYYY-MM-DD')];
 
-        try {
-            // Insert the booking
-            const bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
-            const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format('YYYY-MM-DD'), moment(booking.endDate).format('YYYY-MM-DD')];
-            const bookingResult = await connection.query(bookingSQL, bookingValues);
-            bookingInsertedID = bookingResult.insertId;
-
-            // Insert the booking guests
-            const bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?)';
-            const bookingGuestsValues = [];
-
-            guests.forEach(async guest => {
-                // Select guest ID based on email match
-                const getGuestSQL = 'SELECT * FROM guest WHERE guest_email = ?';
-                const guestResult = await connection.query(getGuestSQL, [guest.email]);
-                if (guestResult.length > 0) {
-                    bookingGuestsValues.push([bookingInsertedID, guestResult[0].id]);
-                }
-            });
-
-            await connection.query(bookingGuestsSQL, bookingGuestsValues);
-
-            // Insert the booking services
-            const bookingServicesSQL = 'INSERT INTO booking_service (booking_id, service_id) VALUES (?)';
-            const bookingServicesValues = [];
-
-            servicesIDs.forEach(serviceID => {
-                bookingServicesValues.push([bookingInsertedID, serviceID]);
-            });
-
-            await connection.query(bookingServicesSQL, bookingServicesValues);
-
-            // Commit the transaction
-            await connection.commit();
-
-            res.status(200).send({ insertId: bookingInsertedID });
-        } catch (err) {
-            // Roll back the transaction if there is an error
-            await connection.rollback();
-
-            console.error(error);
-            res.status(500).send({ error: "error creating booking" });
-        } finally {
-            // Release the connection
-            await connection.release();
-        }
+                connection.query(bookingSQL, bookingValues, (err, result) => {
+                    if (result) {
+                        connection.commit();
+                        resolve({ insertId: result.insertId });
+                    }
+                })
+            } catch (error) {
+                connection.rollback();
+                reject({ error: "Error creating booking" });
+            } finally {
+                connection.release();
+            }
+        })
     });
+
+    bookingCreation.then(result => {
+        const bkInsertID = result.insertId;
+        pool.getConnection(async (err, connection) => {
+            if (err) {
+                console.error('Error acquiring connection from pool:', err);
+                return res.status(500).send({ error: 'Internal server error' });
+            }
+
+            // Start a transaction
+            await connection.beginTransaction();
+            try {
+                // Insert the booking services
+                const bookingServicesSQL = 'INSERT INTO booking_service (booking_id, service_id) VALUES (?)';
+                const bookingServicesValues = servicesIDs.map(serviceID => [bkInsertID, serviceID]);
+
+                await connection.query(bookingServicesSQL, bookingServicesValues);
+                // Commit the transaction
+                await connection.commit();
+            } catch (err) {
+                // Roll back the transaction if there is an error
+                await connection.rollback();
+                console.error(err);
+                res.status(500).send({ error: "error creating booking services" });
+            }
+
+            // Start a transaction
+            await connection.beginTransaction();
+            try {
+                // Insert the booking guests
+                const bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?)';
+                const bookingGuestsValues = [];
+
+                const getGuestsSQL = "SELECT * FROM guest WHERE guest_email IN (?)"
+                let guestsEmailsSet = new Set(guests.map(guest => guest.email));
+                let guestsEmails = [...guestsEmailsSet].map(email => `${email}`);
+                connection.query(getGuestsSQL, guestsEmails, (err, result) => {
+                    if (result > 0) {
+                        bookingGuestsValues.push([bkInsertID, guestResult[0].id]);
+                    }
+                })
+
+                // Check if there are any booking guests to insert
+                if (bookingGuestsValues.length > 0) {
+                    connection.query(bookingGuestsSQL, bookingGuestsValues, (_, __) => {});
+                }
+
+                // Commit the transaction
+                await connection.commit();
+            } catch (err) {
+                // Roll back the transaction if there is an error
+                await connection.rollback();
+                console.error(err);
+                res.status(500).send({ error: "error creating booking guests" });
+            } finally {
+                // Release the connection
+                await connection.release();
+            }
+            // Send the response outside the finally block
+            res.status(200).send({ insertId: bkInsertID });
+        });
+    }).catch(error => {
+        console.error(error);
+    })
 });
 
 // PAYMENT
