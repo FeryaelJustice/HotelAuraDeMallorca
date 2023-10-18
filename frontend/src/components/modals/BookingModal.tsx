@@ -37,13 +37,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [cookies, , removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
-
-    useEffect(() => {
-        if (cookies.token) {
-            // Si ya esta logeado, no pedir los datos personales
-            setCurrentStep(BookingSteps.StepFillGuests)
-        }
-    }, [cookies])
+    const [userAllData, setUserAllData] = useState<User>();
 
     // Axios request properties para cors
     const axiosHeaders = {
@@ -70,6 +64,32 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }
 
+    useEffect(() => {
+        if (cookies.token) {
+            // Si ya esta logeado, no pedir los datos personales
+            setCurrentStep(BookingSteps.StepPlan)
+
+            // Si esta logeado, tener los datos completos del usuario
+            try {
+                getAllLoggedUserData().then(resp => {
+                    let res = resp.data;
+                    setUserAllData(new User({
+                        id: res.id,
+                        name: res.user_name,
+                        surnames: res.user_surnames,
+                        email: res.user_email,
+                        password: res.user_password_hash,
+                        verified: res.user_verified,
+                    }))
+                }).catch(err => console.error(err));
+            } catch (err) {
+                console.error(err);
+            }
+        } else {
+            setUserAllData(new User())
+        }
+    }, [cookies])
+
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
         // Lógica específica para cada paso
@@ -90,56 +110,34 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepPaymentMethod);
                 break;
             case BookingSteps.StepPaymentMethod:
-                console.log(guests)
                 // Realizar la reserva
                 try {
-                    // Crear usuario si no esta logeado, sino cogemos ese usuario
-                    let ourUser = new User({
-                        id: null,
-                        name: userPersonalData.name,
-                        surnames: userPersonalData.surnames,
-                        email: userPersonalData.email,
-                        password: null,
-                        verified: true,
-                    });
+                    if (!cookies.token) {
+                        if (userAllData) {
+                            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
+                            try {
+                                // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
+                                const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
+                                console.log('Registered successfully', res);
+                                const newUserAllData: User = {
+                                    id: res.data.insertId,
+                                    ...userToCreate,
+                                    verified: false
+                                };
 
-                    console.log('Userr Data:', {
-                        ourUser,
-                    })
-                    if (cookies.token) {
-                        // Si esta logeado
-                        try {
-                            const res = await getAllLoggedUserData();
-                            ourUser.id = res.id;
-                            ourUser.name = res.user_name;
-                            ourUser.surnames = res.user_surnames;
-                            ourUser.email = res.user_email;
-                            ourUser.password = res.user_password_hash;
-                            ourUser.verified = res.user_verified;
-                        } catch (err) {
-                            console.error(err);
+                                // Update the state with the new userAllData
+                                setUserAllData(newUserAllData);
+                            } catch (err) {
+                                console.error(err);
+                            }
                         }
                     }
-                    if (!ourUser.id && !cookies.token) {
-                        const userToCreate = { email: ourUser.email, name: ourUser.name, surnames: ourUser.surnames, password: "1234" };
-                        try {
-                            // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                            const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
-                            ourUser.id = res.data.insertId
-                            console.log('Registered successfully', res);
-                        } catch (err) {
-                            console.error(err);
-                        }
-                    }
-                    console.log('User Data:', {
-                        ourUser,
-                    })
                     let servicesIDsSelected = selectedServicesIDs;
                     let guestsBooking = guests;
                     //let payment = new Payment();
                     let booking = new Booking({
                         id: null,
-                        userID: ourUser.id,
+                        userID: userAllData?.id ?? null,
                         planID: checkedPlan,
                         roomID: selectedRoomID,
                         startDate: startDate as Date,
@@ -148,10 +146,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                     // Check and log the values in bookingData
                     console.log('Booking Data:', {
-                        ourUser,
+                        booking,
                         servicesIDsSelected,
                         guestsBooking,
-                        booking,
                     });
 
                     let bookingData = {
