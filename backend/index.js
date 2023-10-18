@@ -6,7 +6,9 @@ const bcrypt = require('bcrypt')
 const mysql = require('mysql')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
+const moment = require('moment'); // for dates, library
 require('dotenv').config();
+const dateFormat = 'YYYY-MM-DD'
 
 // Init server
 const app = express();
@@ -149,7 +151,7 @@ expressRouter.post('/login', (req, res) => {
                     let userID = results[0].id;
                     let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                     res.cookie('token', jwtToken)
-                    res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken , result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                    res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                 } else {
                     res.status(500).send({ status: "error", msg: "Passwords do not match" });
                 }
@@ -162,8 +164,6 @@ expressRouter.post('/login', (req, res) => {
 
 expressRouter.post('/editprofile/:id', (req, res) => {
     let data = req.body;
-    // let userId = req.body.id;
-    // let sql = 'SELECT * FROM app_user WHERE id = ' + connection.escape(userId);
     let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password_hash, user_verified) VALUES (?, ?, ?, ?, ?)';
     let values = [data.username, data.surnames, data.email, data.password, 0];
 
@@ -259,6 +259,97 @@ expressRouter.get('/paymentmethods', (req, res) => {
             res.status(500).send({ status: "error", msg: "No payment methods found" });
         }
     })
+})
+
+// GUESTS
+expressRouter.post('/guests', (req, res) => {
+    const guestsBooking = req.body;
+    function getAllGuests() {
+        let sql = 'SELECT * FROM guest';
+
+        connection.query(sql, [], (error, results) => {
+            if (!error && results && results.length > 0) {
+                return results
+            } else {
+                return []
+            }
+        });
+    }
+
+    // Insert first guests
+    let guestsIDsIfTheyExist = []
+    guestsBooking.forEach(guest => {
+        let sqlG = 'SELECT * FROM guest WHERE id = ?';
+        let valuesG = [guest.id];
+
+        console.log('HEYUYYYYYYYYYYYYYYYYYYYYYYY' + guest.id)
+        connection.query(sqlG, valuesG, (error, results) => {
+            console.log('error')
+            if (!error && results && results.length > 0) {
+                guestsIDsIfTheyExist.push(results[0])
+            }
+        });
+    })
+    console.log(guestsIDsIfTheyExist)
+
+    guestsBooking.forEach(guest => {
+        guestsIDsIfTheyExist.forEach(guestIfExists => {
+            if (guest.id != guestIfExists.id) {
+                let guestsSQL = 'INSERT INTO guest (guest_name, guest_surnames, guest_email, isAdult) VALUES (?, ?, ?, ?)';
+                let guestsSQLValues = [guest.name, guest.surnames, guest.email, guest.isAdult];
+
+                connection.query(guestsSQL, guestsSQLValues, (error) => {
+                    if (error) {
+                        console.error(error);
+                        return res.status(500).send({ error: "error creating guests" });
+                    }
+                })
+            }
+        })
+    })
+
+    // Booking Guests
+    let allGuests = getAllGuests();
+    allGuests.forEach(guest => {
+        let bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?, ?)';
+        let bookingGuestsSQLValues = [booking.id, guest.id];
+
+        connection.query(bookingGuestsSQL, bookingGuestsSQLValues, (error) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).send({ error: "error creating booking guests" });
+            }
+        })
+    });
+
+
+    res.status(200).send({ status: "success", msg: "No payment methods found" });
+})
+
+// BOOKING !!!
+expressRouter.post('/booking', (req, res) => {
+
+
+    let data = req.body;
+    const booking = data.booking;
+    // const servicesIDs = Object.keys(data.servicesIDsSelected).map(Number)
+    // console.log(booking)
+    // console.log(servicesIDs)
+
+    // Booking
+    let bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
+    let values = [booking.id, booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format(dateFormat), moment(booking.endDate).format(dateFormat)];
+    let bookingInsertedID = null;
+
+    connection.query(bookingSQL, values, (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).send({ error: "error creating booking" });
+        }
+        bookingInsertedID = results.insertId;
+    });
+
+    res.status(200).send({ insertId: bookingInsertedID });
 })
 
 // Listen SERVER

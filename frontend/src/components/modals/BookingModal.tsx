@@ -7,7 +7,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, PaymentMethod, Plan, Room, Service, User, Guest } from '../../models';
+import { Booking, PaymentMethod, Plan, Room, Service, User, Guest, Payment } from '../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
@@ -112,29 +112,26 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             case BookingSteps.StepPaymentMethod:
                 // Realizar la reserva
                 try {
+                    // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
                     if (!cookies.token) {
-                        if (userAllData) {
-                            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
-                            try {
-                                // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                                const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
-                                console.log('Registered successfully', res);
-                                const newUserAllData: User = {
-                                    id: res.data.insertId,
-                                    ...userToCreate,
-                                    verified: false
-                                };
+                        const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
+                        try {
+                            // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
+                            const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
+                            console.log('Registered successfully', res);
+                            const newUserAllData: User = {
+                                id: res.data.insertId,
+                                ...userToCreate,
+                                verified: false
+                            };
 
-                                // Update the state with the new userAllData
-                                setUserAllData(newUserAllData);
-                            } catch (err) {
-                                console.error(err);
-                            }
+                            // Update the state with the new userAllData
+                            setUserAllData(newUserAllData);
+                        } catch (err) {
+                            console.error(err);
                         }
                     }
-                    let servicesIDsSelected = selectedServicesIDs;
-                    let guestsBooking = guests;
-                    //let payment = new Payment();
+
                     let booking = new Booking({
                         id: null,
                         userID: userAllData?.id ?? null,
@@ -144,24 +141,34 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         endDate: endDate as Date,
                     });
 
-                    // Check and log the values in bookingData
-                    console.log('Booking Data:', {
-                        booking,
-                        servicesIDsSelected,
-                        guestsBooking,
-                    });
-
                     let bookingData = {
                         booking,
-                        servicesIDsSelected,
-                        guestsBooking
+                        selectedServicesIDs,
+                        guests
                     }
 
-                    // Make the API call for booking
+                    let payment = new Payment({
+                        id: null,
+                        userID: userAllData?.id ?? null,
+                        bookingID: booking.id,
+                        amount: 0,
+                        date: new Date()
+                    });
+
                     try {
-                        const response = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
-                        console.log('Booking successful', response.data);
-                        setCurrentStep(BookingSteps.StepConfirmation);
+                        // First API call for insert guests
+                        const guestsResponse = await axios.post(API_URL + '/api/guests', guests, { headers: axiosHeaders });
+                        if (guestsResponse.data.status == "success") {
+                            // Make the API call for booking, and there we will also insert the booking services and booking guests
+                            const bookingResponse = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
+                            if (bookingResponse.data.status == "success") {
+                                // Make the API call for payment
+                                const paymentResponse = await axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders })
+                                if (paymentResponse.data.status == "success") {
+                                    setCurrentStep(BookingSteps.StepConfirmation);
+                                }
+                            }
+                        }
                     } catch (error) {
                         console.error('Error in API call:', error);
                     }
