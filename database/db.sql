@@ -30,9 +30,9 @@ CREATE TABLE role (
 
 -- Create the table user_role
 CREATE TABLE user_role (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
     role_id INT,
-    PRIMARY KEY (user_id, role_id),
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (role_id) REFERENCES role(id)
 );
@@ -80,19 +80,19 @@ CREATE TABLE booking (
 
 -- Create the table booking_service
 CREATE TABLE booking_service (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     service_id INT,
-    PRIMARY KEY (booking_id, service_id),
     FOREIGN KEY (booking_id) REFERENCES booking(id),
     FOREIGN KEY (service_id) REFERENCES service(id)
 );
 
 -- Create the table booking_detail
 CREATE TABLE booking_detail (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     adults INT,
     children INT,
-    PRIMARY KEY (booking_id),
     FOREIGN KEY (booking_id) REFERENCES booking(id)
 );
 

@@ -479,6 +479,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
         setUserPersonalData({ name: '', surnames: '', email: '' });
         setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
+        setGuests([
+            new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false })
+        ]);
         setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
         setCheckedPlan(1)
         onChangeStartDate(new Date())
