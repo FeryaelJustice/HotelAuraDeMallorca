@@ -41,7 +41,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     useEffect(() => {
         if (cookies.token) {
             // Si ya esta logeado, no pedir los datos personales
-            setCurrentStep(BookingSteps.StepPlan)
+            setCurrentStep(BookingSteps.StepFillGuests)
         }
     }, [cookies])
 
@@ -90,6 +90,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepPaymentMethod);
                 break;
             case BookingSteps.StepPaymentMethod:
+                console.log(guests)
                 // Realizar la reserva
                 try {
                     // Crear usuario si no esta logeado, sino cogemos ese usuario
@@ -327,6 +328,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false })
     ]);
     const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
+    const [loggedUserWantsToBecomeGuest, setLoggedUserWantsToBecomeGuest] = useState(false);
+    const [isLoggedUserGuestAdult, setIsLoggedUserGuestAdult] = useState(false);
 
     const addGuest = () => {
         if (guests.length < 20) {
@@ -397,11 +400,51 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         })
 
         if (!isAnError) {
+            // Filter out guests with specific values for id, name, surnames, and isAdult (EXTRA FORM VALIDATION SECURITY)
+            const filteredGuests = guests.filter(guest => {
+                return (
+                    guest.id !== null ||
+                    guest.name !== '' ||
+                    guest.email !== '' ||
+                    guest.surnames !== '' ||
+                    guest.isAdult !== false
+                );
+            });
+            setGuests(filteredGuests)
+
             goToNextStep();
         } else {
             setGuestsDataErrors(formErrors)
         }
     };
+
+    useEffect(() => {
+        if (loggedUserWantsToBecomeGuest) {
+
+            getAllLoggedUserData().then((data: any) => {
+                let user: any = data.data;
+                const newUserAsGuest = new Guest({ id: user.id, name: user.user_name, surnames: user.user_surnames, email: user.user_email, isAdult: isLoggedUserGuestAdult })
+                setGuests([newUserAsGuest, ...guests]);
+                setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
+            }).catch(err => console.error(err));
+        } else {
+            if (guests.length > 1) {
+                setGuests(prevGuests => prevGuests.slice(1));
+                setGuestsDataErrors(prevErrors => prevErrors.slice(1));
+            }
+        }
+    }, [loggedUserWantsToBecomeGuest]);
+
+    useEffect(() => {
+        setGuests(prevGuests => {
+            return prevGuests.map((guest, index) => {
+                if (index === 0) {
+                    return { ...guest, isAdult: isLoggedUserGuestAdult };
+                }
+                return guest;
+            })
+        });
+    }, [isLoggedUserGuestAdult]);
 
     // Step choose payment method
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -661,6 +704,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     <Form.Control
                                                         type="text"
                                                         name="name"
+                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
                                                         value={guest.name ? guest.name : ''}
                                                         isInvalid={!!guestsDataErrors[index].nameError}
                                                         onChange={(e) => handleGuestsInputChange(index, e)}
@@ -675,6 +719,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     <Form.Control
                                                         type="text"
                                                         name="surnames"
+                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
                                                         value={guest.surnames ? guest.surnames : ''}
                                                         isInvalid={!!guestsDataErrors[index].surnamesError}
                                                         onChange={(e) => handleGuestsInputChange(index, e)}
@@ -689,6 +734,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     <Form.Control
                                                         type="email"
                                                         name="email"
+                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
                                                         value={guest.email ? guest.email : ''}
                                                         isInvalid={!!guestsDataErrors[index].emailError}
                                                         onChange={(e) => handleGuestsInputChange(index, e)}
@@ -704,6 +750,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                             type="checkbox"
                                                             label="Adult"
                                                             name="isAdult"
+                                                            disabled={loggedUserWantsToBecomeGuest && index === 0}
                                                             checked={guest.isAdult ? guest.isAdult : false}
                                                             onChange={(e) => handleGuestsInputChange(index, e)}
                                                         />
@@ -721,6 +768,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </Button>
                                 <br />
                                 <br />
+                                {cookies.token && (
+                                    <div className='loggedUserWantsToBecomeGuest'>
+                                        <Form.Check type='checkbox' name="loggedUserWantsToBecomeGuest" label="Do you want the logged user to be 1 guest?" checked={loggedUserWantsToBecomeGuest} onChange={() => setLoggedUserWantsToBecomeGuest(!loggedUserWantsToBecomeGuest)} />
+                                        {loggedUserWantsToBecomeGuest && (
+                                            <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label="And are you an adult?" checked={isLoggedUserGuestAdult} onChange={() => setIsLoggedUserGuestAdult(!isLoggedUserGuestAdult)} />
+                                        )}
+                                        <br />
+                                        <br />
+                                    </div>
+                                )}
                                 <Button variant="primary" type="submit">
                                     Submit
                                 </Button>

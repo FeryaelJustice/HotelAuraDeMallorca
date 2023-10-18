@@ -133,3 +133,9 @@
     justify-content: start;
     align-items: end;
 }
+
+.loggedUserWantsToBecomeGuest{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
