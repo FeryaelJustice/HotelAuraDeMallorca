@@ -328,168 +328,224 @@ expressRouter.get('/paymentmethods', (req, res) => {
     });
 })
 
-// GUESTS
-expressRouter.post('/guests', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
-        }
-        const guestsBooking = req.body;
-
-        // LOGIC FOR INSERTING NON EXISTENT GUESTS
-        // Get existing guests
-        const existingGuestsIDs = guestsBooking
-            .filter(guest => guest.id !== null)
-            .map(guest => guest.id);
-
-        if (existingGuestsIDs.length > 0) {
-            const existingGuestsQuery = 'SELECT id FROM guest WHERE id IN (?)';
-
-            connection.query(existingGuestsQuery, [existingGuestsIDs], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).send({ status: "error", msg: "error retrieving existing guests" });
-                }
-
-                const existingGuestsIDsSet = new Set(results.map(result => result.id));
-
-                // Insert guests with null id
-                const guestsToInsert = guestsBooking.filter(guest => guest.id === null || !existingGuestsIDsSet.has(guest.id));
-
-                if (guestsToInsert.length > 0) {
-                    const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
-                    const guestsSQLValues = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
-
-                    connection.query(guestsSQL, [guestsSQLValues], (error) => {
-                        if (error) {
-                            console.error(error);
-                            return res.status(500).send({ status: "error", msg: "error creating guests" });
-                        }
-
-                        // Successfully inserted guests
-                        res.status(200).send({ status: "success", msg: "Guests created successfully" });
-                    });
-                } else {
-                    // No guests to insert
-                    res.status(200).send({ status: "success", msg: "No guests to insert" });
-                }
-            });
-        } else {
-            // All guests have null id, insert all
-            const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
-            const guestsSQLValues = guestsBooking.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
-
-            connection.query(guestsSQL, [guestsSQLValues], (error) => {
-                if (error) {
-                    console.error(error);
-                    res.status(500).send({ status: "error", msg: "Error creating guests" });
-                }
-
-                // Successfully inserted guests
-                res.status(200).send({ status: "success", msg: "Guests created successfully" });
-            });
-        }
-    });
-})
-
 // BOOKING !!!
 expressRouter.post('/booking', (req, res) => {
-    let data = req.body;
+    const data = req.body;
     const booking = data.booking;
     const servicesIDs = Object.keys(data.selectedServicesIDs).map(Number)
     const guests = data.guests;
 
-    const bookingCreation = new Promise((resolve, reject) => {
-        pool.getConnection(async (err, connection) => {
+    // Creacion guests
+    const guestsCreation = new Promise((resolve, reject) => {
+        pool.getConnection((err, connection) => {
             if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ error: 'Internal server error' });
-            }
-
-            try {
-                // Insert the booking
-                const bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
-                const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format('YYYY-MM-DD'), moment(booking.endDate).format('YYYY-MM-DD')];
-
-                connection.query(bookingSQL, bookingValues, (err, result) => {
-                    if (result) {
-                        connection.commit();
-                        resolve({ insertId: result.insertId });
-                    }
-                })
-            } catch (error) {
+                console.error('Error acquiring connection from pool, guests:', err);
                 connection.rollback();
-                reject({ error: "Error creating booking" });
-            } finally {
-                connection.release();
+                reject({ error: "Error connecting guests pool" });
             }
-        })
+
+            // LOGIC FOR INSERTING NON EXISTENT GUESTS
+            // Get existing guests
+            const existingGuestsIDs = guests
+                .filter(guest => guest.id !== null)
+                .map(guest => guest.id);
+
+            if (existingGuestsIDs.length > 0) {
+                const existingGuestsQuery = 'SELECT id FROM guest WHERE id IN (?)';
+
+                try {
+                    connection.query(existingGuestsQuery, [existingGuestsIDs], (error, results) => {
+                        if (error) {
+                            console.error(error);
+                            connection.rollback();
+                            reject({ error: "Error creating guests" });
+                        }
+
+                        const existingGuestsIDsSet = new Set(results.map(result => result.id));
+
+                        // Insert guests with null id
+                        const guestsToInsert = guests.filter(guest => guest.id === null || !existingGuestsIDsSet.has(guest.id));
+
+                        if (guestsToInsert.length > 0) {
+                            try {
+                                const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+                                const guestsSQLValues = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
+
+                                connection.query(guestsSQL, [guestsSQLValues], (error) => {
+                                    if (error) {
+                                        console.error(error);
+                                        connection.rollback();
+                                        reject({ error: "Error creating guests" });
+                                    } else {
+                                        connection.commit();
+                                        resolve({ success: 'success creating guests' })
+                                    }
+                                });
+                            } catch (error) {
+                                connection.rollback();
+                                reject({ error: "Error creating guests" });
+                            }
+                        }
+                    });
+                } catch (error) {
+                    connection.rollback();
+                    reject({ error: "Error selecting guests" });
+                } finally {
+                    connection.release();
+                }
+            } else {
+                try {
+                    // All guests have null id, insert all
+                    const guestsSQL = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+                    const guestsSQLValues = guests.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
+
+                    connection.query(guestsSQL, [guestsSQLValues], (error) => {
+                        if (error) {
+                            console.error(error);
+                            connection.rollback();
+                            reject({ error: "Error creating guests" });
+                        } else {
+                            connection.commit();
+                            resolve({ success: 'success creating guests' })
+                        }
+                    });
+                } catch (error) {
+                    connection.rollback();
+                    reject({ error: "Error creating guests" });
+                } finally {
+                    connection.release();
+                }
+            }
+        });
     });
 
-    bookingCreation.then(result => {
-        const bkInsertID = result.insertId;
-        pool.getConnection(async (err, connection) => {
-            if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ error: 'Internal server error' });
-            }
-
-            // Start a transaction
-            await connection.beginTransaction();
-            try {
-                // Insert the booking services
-                const bookingServicesSQL = 'INSERT INTO booking_service (booking_id, service_id) VALUES (?)';
-                const bookingServicesValues = servicesIDs.map(serviceID => [bkInsertID, serviceID]);
-
-                await connection.query(bookingServicesSQL, bookingServicesValues);
-                // Commit the transaction
-                await connection.commit();
-            } catch (err) {
-                // Roll back the transaction if there is an error
-                await connection.rollback();
-                console.error(err);
-                res.status(500).send({ error: "error creating booking services" });
-            }
-
-            // Start a transaction
-            await connection.beginTransaction();
-            try {
-                // Insert the booking guests
-                const bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?)';
-                const bookingGuestsValues = [];
-
-                const getGuestsSQL = "SELECT * FROM guest WHERE guest_email IN (?)"
-                let guestsEmailsSet = new Set(guests.map(guest => guest.email));
-                let guestsEmails = [...guestsEmailsSet].map(email => `${email}`);
-                connection.query(getGuestsSQL, guestsEmails, (err, result) => {
-                    if (result > 0) {
-                        bookingGuestsValues.push([bkInsertID, guestResult[0].id]);
-                    }
-                })
-
-                // Check if there are any booking guests to insert
-                if (bookingGuestsValues.length > 0) {
-                    connection.query(bookingGuestsSQL, bookingGuestsValues, (_, __) => {});
+    // Una vez nos aseguramos que los guests se han insertado, crear el booking
+    guestsCreation.then(resp => {
+        console.log(resp)
+        // BOOKING
+        const bookingCreation = new Promise((resolve, reject) => {
+            pool.getConnection(async (err, connection) => {
+                if (err) {
+                    console.error('Error acquiring connection from pool:', err);
+                    connection.rollback();
+                    return res.status(500).send({ error: 'Internal server error' });
                 }
 
-                // Commit the transaction
-                await connection.commit();
-            } catch (err) {
-                // Roll back the transaction if there is an error
-                await connection.rollback();
-                console.error(err);
-                res.status(500).send({ error: "error creating booking guests" });
-            } finally {
-                // Release the connection
-                await connection.release();
-            }
-            // Send the response outside the finally block
-            res.status(200).send({ insertId: bkInsertID });
+                try {
+                    // Insert the booking
+                    const bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
+                    const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format('YYYY-MM-DD'), moment(booking.endDate).format('YYYY-MM-DD')];
+
+                    connection.query(bookingSQL, bookingValues, (err, result) => {
+                        if (result) {
+                            connection.commit();
+                            resolve({ insertId: result.insertId });
+                        }
+                    })
+                } catch (error) {
+                    connection.rollback();
+                    reject({ error: "Error creating booking" });
+                } finally {
+                    connection.release();
+                }
+            })
         });
-    }).catch(error => {
-        console.error(error);
-    })
+
+        bookingCreation.then(result => {
+            const bkInsertID = result.insertId;
+            pool.getConnection(async (err, connection) => {
+                if (err) {
+                    console.error('Error acquiring connection from pool:', err);
+                    return res.status(500).send({ error: 'Internal server error' });
+                }
+
+                // Start a transaction
+                await connection.beginTransaction();
+                try {
+                    // Insert the booking services
+                    const bookingServicesSQL = 'INSERT INTO booking_service (booking_id, service_id) VALUES (?, ?)';
+                    const bookingServicesValues = servicesIDs.map(serviceID => [bkInsertID, serviceID]);
+
+                    for (const bookingServiceValue of bookingServicesValues) {
+                        await connection.query(bookingServicesSQL, bookingServiceValue);
+                    }
+                    // Commit the transaction
+                    await connection.commit();
+                } catch (err) {
+                    // Roll back the transaction if there is an error
+                    await connection.rollback();
+                    // Release the connection
+                    await connection.release();
+                    console.error(err);
+                    res.status(500).send({ error: "error creating booking services" });
+                }
+
+                // Start a transaction
+                await connection.beginTransaction();
+                try {
+                    // Insert the booking guests
+                    const bookingGuestsSQL = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES (?, ?)';
+                    const bookingGuestsValues = [];
+
+                    const getGuestsSQL = "SELECT * FROM guest WHERE guest_email LIKE ?"
+                    const guestsEmailsSet = new Set(guests.map(guest => guest.email));
+                    const guestsEmails = [...guestsEmailsSet].map(email => `${email}`);
+
+                    // Create a function to perform the guest query asynchronously
+                    const getGuestId = async (email) => {
+                        return new Promise((resolve, reject) => {
+                            connection.query(getGuestsSQL, email, (error, results) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    resolve(results[0]?.id || null);
+                                }
+                            });
+                        });
+                    };
+
+                    // Use Promise.all to wait for all asynchronous queries to complete
+                    const guestIds = await Promise.all(guestsEmails.map(async (email) => {
+                        console.log('Formed SQL:', getGuestsSQL);
+                        console.log('Query Values:', email);
+                        return await getGuestId(email);
+                    }));
+
+                    // Build bookingGuestsValues based on guestIds
+                    guestIds.forEach(guestId => {
+                        if (guestId) {
+                            bookingGuestsValues.push([bkInsertID, guestId]);
+                        }
+                    });
+
+                    console.log(bookingGuestsValues)
+
+                    // Check if there are any booking guests to insert
+                    if (bookingGuestsValues.length > 0) {
+                        for (const bookingGuestsValue of bookingGuestsValues) {
+                            await connection.query(bookingGuestsSQL, bookingGuestsValue);
+                        }
+                    }
+
+                    // Commit the transaction
+                    await connection.commit();
+
+                } catch (err) {
+                    // Roll back the transaction if there is an error
+                    await connection.rollback();
+                    console.error(err);
+                    res.status(500).send({ error: "error creating booking guests" });
+                } finally {
+                    // Release the connection
+                    await connection.release();
+                }
+                // Send the response outside the finally block
+                res.status(200).send({ insertId: bkInsertID });
+            });
+        }).catch(error => {
+            console.error(error);
+        })
+    }).catch(err => console.error(err))
 });
 
 // PAYMENT

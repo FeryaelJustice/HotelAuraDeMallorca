@@ -156,17 +156,13 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     });
 
                     try {
-                        // First API call for insert guests
-                        const guestsResponse = await axios.post(API_URL + '/api/guests', guests, { headers: axiosHeaders });
-                        if (guestsResponse.data.status == "success") {
-                            // Make the API call for booking, and there we will also insert the booking services and booking guests
-                            const bookingResponse = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
-                            if (bookingResponse.data.status == "success") {
-                                // Make the API call for payment
-                                const paymentResponse = await axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders })
-                                if (paymentResponse.data.status == "success") {
-                                    setCurrentStep(BookingSteps.StepConfirmation);
-                                }
+                        // Make the API call for booking, and there we will also insert the booking services and booking guests
+                        const bookingResponse = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
+                        if (bookingResponse.data.status == "success") {
+                            // Make the API call for payment
+                            const paymentResponse = await axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders })
+                            if (paymentResponse.data.status == "success") {
+                                setCurrentStep(BookingSteps.StepConfirmation);
                             }
                         }
                     } catch (error) {
