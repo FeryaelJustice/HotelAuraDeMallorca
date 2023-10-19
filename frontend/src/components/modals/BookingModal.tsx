@@ -598,7 +598,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     };
 
     useEffect(() => {
-        if (loggedUserWantsToBecomeGuest) {
+        if (loggedUserWantsToBecomeGuest && cookies) {
 
             getAllLoggedUserData().then((data: any) => {
                 let user: any = data.data;

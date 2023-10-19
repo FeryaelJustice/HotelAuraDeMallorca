@@ -49,7 +49,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
-    const [cookies, , removeCookie] = useCookies(['token']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentUser, setCurrentUser] = useState(new User());
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
@@ -121,6 +121,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         setLoginValidated(form.checkValidity());
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
             axios.post(API_URL + '/api/login', userLogin, { headers: axiosHeaders }).then(res => {
+                setCookie('token', res.data.cookieJWT)
                 console.log("logged successfully" + res)
             }).catch(err => {
                 console.error(err)
@@ -165,10 +166,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
             // api call
             axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
+                setCookie('token', res.data.cookieJWT)
                 console.log('registered successfully' + res)
 
                 // After successful registration, send a request to generate and send a confirmation email
-                axios.post(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                axios.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
                     .then(response => {
                         console.log('Confirmation email sent successfully', response);
                     })

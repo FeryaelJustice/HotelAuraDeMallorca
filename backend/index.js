@@ -161,7 +161,7 @@ expressRouter.post('/register', (req, res) => {
                         }
                         let userID = results.insertId;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                        res.cookie('token', jwtToken)
+                        // res.cookie('token', jwtToken)
                         res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
                     });
                 })
@@ -190,7 +190,7 @@ expressRouter.post('/login', (req, res) => {
                     if (response) {
                         let userID = results[0].id;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                        res.cookie('token', jwtToken)
+                        // res.cookie('token', jwtToken)
                         res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                     } else {
                         res.status(500).send({ status: "error", msg: "Passwords do not match" });
@@ -270,50 +270,151 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
 })
 
 expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
-    try {
-        let formData = req.body;
-        const info = await transporter.sendMail({
-            from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'", // sender address
-            to: formData.email, // list of receivers
-            subject: formData.subject, // Subject line
-            text: formData.message, // plain text body
-            html: "<pre>" + formData.message + "</pre>", // html body
-        });
-        console.log("Message sent: %s", info.messageId);
-        res.status(200).send({ status: "success", msg: "Email confirmation sent!" });
-    } catch (error) {
-        console.error(error)
-        res.status(500).send({ status: "error", msg: "Email couldn't be sent!" });
-    }
+    pool.getConnection(async (err, connection) => {
+        try {
+            const userId = req.params.id;
+
+            // Generate a random confirmation token
+            const confirmationToken = generateRandomToken();
+
+            // Set the expiry date to 1 hour from now
+            const verificationTokenExpiry = new Date();
+            verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 1);
+
+            // Update the user record with the confirmation token and expiry
+            await updateUserVerificationData(connection, userId, confirmationToken, verificationTokenExpiry);
+
+            // Form the verification URL
+            const verificationUrl = `${process.env.FRONT_URL}/user/verifyEmail/${confirmationToken}`;
+
+            getUserById(connection, userId).then(async userRes => {
+                // Send the email
+                const info = await transporter.sendMail({
+                    from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'",
+                    to: userRes.email, // Replace with the actual user's email
+                    subject: 'Email Confirmation', // Subject line
+                    html: `Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a>`, // HTML body
+                });
+
+                console.log("Message sent: %s", info.messageId);
+
+                res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
+            }).catch(err => {
+                console.error(error);
+                res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+            })
+        } catch (error) {
+            console.error(error);
+            res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+        }
+    });
 })
 
+// Function to generate a random token
+function generateRandomToken() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// Function to update user verification data
+const updateUserVerificationData = (connection, userId, verificationToken, verificationTokenExpiry) => {
+    return new Promise((resolve, reject) => {
+        const query = 'UPDATE app_user SET verification_token = ?, verification_token_expiry = ? WHERE id = ?';
+        connection.query(query, [verificationToken, verificationTokenExpiry, userId], (error) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
 expressRouter.post('/user/verifyEmail/:token', function (req, res) {
     pool.getConnection(async (err, connection) => {
         const { token } = req.params;
-        console.log(token)
-        res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
-        // try {
-        //     // Find the user by verification token
-        //     const user = await db.getUserByVerificationToken(token);
+        try {
+            // Find the user by verification token
+            const user = await getUserByVerificationToken(connection, token);
 
-        //     // Check if the user exists and the token hasn't expired
-        //     if (!user || user.verification_token_expiry < new Date()) {
-        //         return res.status(400).json({ status: 'error', message: 'Invalid or expired token.' });
-        //     }
+            // Check if the user exists and the token hasn't expired
+            if (!user || user.verification_token_expiry < new Date()) {
+                return res.status(400).json({ status: 'error', message: 'Invalid or expired token.' });
+            }
 
-        //     // Update user verification status
-        //     await db.updateUserVerificationStatus(user.id, true);
+            // Update user verification status
+            await updateUserVerificationStatus(connection, user.id, true);
 
-        //     // Clear verification token and expiry
-        //     await db.clearVerificationToken(user.id);
+            // Clear verification token and expiry
+            await clearVerificationToken(connection, user.id);
 
-        //     res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
-        // } catch (error) {
-        //     console.error('Error verifying email:', error);
-        //     res.status(500).json({ status: 'error', message: 'Internal Server Error' });
-        // }
+            res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
+        } catch (error) {
+            console.error('Error verifying email:', error);
+            res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+        }
     });
 })
+
+// Utilities for verifying user
+// Function to get a user by verification token
+const getUserByVerificationToken = (connection, token) => {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM app_user WHERE verification_token = ?';
+        connection.query(query, [token], (error, results) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(results.length > 0 ? results[0] : null);
+            }
+        });
+    });
+};
+
+// Function to update user verification status
+const updateUserVerificationStatus = (connection, userId, status) => {
+    return new Promise((resolve, reject) => {
+        const query = 'UPDATE app_user SET user_verified = ? WHERE id = ?';
+        connection.query(query, [status, userId], (error) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+// Function to clear verification token and expiry
+const clearVerificationToken = (connection, userId) => {
+    return new Promise((resolve, reject) => {
+        const query = 'UPDATE app_user SET verification_token = NULL, verification_token_expiry = NULL WHERE id = ?';
+        connection.query(query, [userId], (error) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+// Function to get user data by ID
+const getUserById = (connection, userId) => {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM app_user WHERE id = ?';
+        connection.query(query, [userId], (error, results) => {
+            if (error) {
+                reject(error);
+            } else {
+                // Check if a user was found
+                if (results && results.length > 0) {
+                    resolve(results[0]); // Assuming there is only one user with the given ID
+                } else {
+                    resolve(null); // No user found with the given ID
+                }
+            }
+        });
+    });
+};
 
 // Send contact form
 expressRouter.post('/user/sendContactForm', async (req, res) => {
