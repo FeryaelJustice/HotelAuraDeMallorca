@@ -219,12 +219,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     if (value) {
                         // Si es true, es que esta seleccionado
                         const res = await axios.get(API_URL + '/api/service/' + key)
-                        if(res){
-                            totalServicesPrice+=res.data.data[0].serv_price;
+                        if (res) {
+                            totalServicesPrice += res.data.data[0].serv_price;
                         }
                     }
                 }
-                
+
                 setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
@@ -284,9 +284,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         if (bookingResponse.data.status == "success") {
                             // Make the API call for payment
                             const paymentResponse = await axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders })
-                            if (paymentResponse.data.status == "success") {
-                                setCurrentStep(BookingSteps.StepConfirmation);
-                            }
+                            //if (paymentResponse.data.status == "success") {
+                            setPaymentStripeMessage(paymentResponse.data)
+                            setCurrentStep(BookingSteps.StepConfirmation);
+                            //}
                         }
                     } catch (error) {
                         console.error('Error in API call:', error);
@@ -411,7 +412,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     const roomSelected = (roomID: any) => {
         setSelectedRoomID(roomID)
-        goToNextStep();
     }
 
     // Step choose services
@@ -569,9 +569,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         });
     }, [isLoggedUserGuestAdult]);
 
-    // Step choose payment method
+    // Step choose payment method and pay
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
+    const [paymentStripeMessage, setPaymentStripeMessage] = useState<string | null>('');
 
     useEffect(() => {
         axios.get(API_URL + '/api/paymentmethods').then(res => {
@@ -609,6 +610,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         setChildren(0)
         setFilteredRooms([])
     }
+
+    // Step confirmation
 
     // When close, reset
     useEffect(() => {
@@ -763,12 +766,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     </div>
 
                                                 </Card.Text>
-                                                <Button variant="primary" onClick={() => roomSelected(room.id)}>Book</Button>
+                                                <Form.Check type="radio"
+                                                    name="pricing-plan"
+                                                    value={selectedRoomID?.toString()}
+                                                    checked={selectedRoomID === room.id}
+                                                    onChange={() => roomSelected(room.id)} 
+                                                    onClick={() => roomSelected(room.id)} label="Book" />
                                             </Card.Body>
                                         </Card>
                                     </Row>
                                 ))}
                             </Row>
+                        <Button onClick={goToNextStep}>Next</Button>
                         </Container>
                     </div>
                 )
@@ -954,6 +963,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currentStep === BookingSteps.StepConfirmation && (
                     <div>
                         <h2>Step 5: Booking completed</h2>
+                        <em>Message of payment with stripe:</em>
+                        <p>{paymentStripeMessage}</p>
                         <Button variant='primary' onClick={goToNextStep}>Close window!</Button>
                     </div>
                 )
