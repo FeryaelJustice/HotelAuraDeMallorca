@@ -1,7 +1,7 @@
 {
 	"_type": "Project",
 	"_id": "AAAAAAFF+h6SjaM2Hec=",
-	"name": "Diagrama de Clases",
+	"name": "Diagrama ER",
 	"ownedElements": [
 		{
 			"_type": "UMLModel",
@@ -36,7 +36,7 @@
 					"_parent": {
 						"$ref": "AAAAAAGLGRoxsoYJFtk="
 					},
-					"name": "Diagrama de Clases",
+					"name": "Diagrama ER",
 					"ownedViews": [
 						{
 							"_type": "ERDEntityView",
@@ -1788,7 +1788,7 @@
 			]
 		}
 	],
-	"documentation": "Diagrama de Clases of Translation Manager of Homerti and Web Aura de Mallorca by Fernando",
+	"documentation": "Diagrama ER of Translation Manager of Homerti and Web Aura de Mallorca by Fernando",
 	"author": "Fernando GS",
 	"company": "Homerti",
 	"copyright": "2023",
