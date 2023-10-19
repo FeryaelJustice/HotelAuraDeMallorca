@@ -262,6 +262,17 @@ button:focus-visible {
   word-break: break-word;
 }
 
+/* Pages */
+
+.servicesPage{
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  padding-top: 5%;
+}
+
 @media (prefers-color-scheme: light) {
   a:hover {
     color: #747bff;
