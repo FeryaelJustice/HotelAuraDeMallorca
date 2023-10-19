@@ -45,69 +45,6 @@ enum BookingSteps {
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
-// STRIPE FORM
-const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
-    const stripe = useStripe();
-    const elements = useElements();
-
-    const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-    const handleSubmit = async (event: any) => {
-        event.preventDefault();
-        if (elements == null) {
-            return;
-        }
-        // Trigger form validation and wallet collection
-        const { error: submitError } = await elements.submit();
-        if (submitError) {
-            // Show error to your customer
-            setErrorMessage(submitError.message);
-            return;
-        }
-        // Create the PaymentIntent and obtain clientSecret from your server endpoint
-        let data = {
-            amount: totalPriceToPay,
-            currency: stripeOptions.currency,
-            payment_method: 'card',
-            plan: plan
-        }
-        const res = await axios.post(API_URL + '/api/create-payment-intent', data)
-        const { client_secret: clientSecret } = await res.data;
-        if (stripe) {
-            const { error } = await stripe.confirmPayment({
-                //`Elements` instance that was used to create the Payment Element
-                elements,
-                clientSecret,
-                confirmParams: {
-                    return_url: API_URL + '/success',
-                },
-            });
-
-            if (error) {
-                // This point will only be reached if there is an immediate error when
-                // confirming the payment. Show error to your customer (for example, payment
-                // details incomplete)
-                setErrorMessage(error.message);
-            } else {
-                // Your customer will be redirected to your `return_url`. For some payment
-                // methods like iDEAL, your customer will be redirected to an intermediate
-                // site first to authorize the payment, then redirected to the `return_url`.
-            }
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit}>
-            <PaymentElement />
-            <button type="submit" disabled={!stripe || !elements}>
-                Pay
-            </button>
-            {/* Show error message to your customers */}
-            {errorMessage && <div>{errorMessage}</div>}
-        </form>
-    );
-};
-
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Stripe
@@ -121,6 +58,67 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             /*...*/
         },
     });
+    // STRIPE FORM
+    const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
+        const stripe = useStripe();
+        const elements = useElements();
+
+        const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+        const handleSubmit = async (event: any) => {
+            event.preventDefault();
+            if (elements == null) {
+                return;
+            }
+            // Trigger form validation and wallet collection
+            const { error: submitError } = await elements.submit();
+            if (submitError) {
+                // Show error to your customer
+                setErrorMessage(submitError.message);
+                return;
+            }
+            // Create the PaymentIntent and obtain clientSecret from your server endpoint
+            let data = {
+                amount: totalPriceToPay,
+                currency: stripeOptions.currency,
+                plan: plan
+            }
+            const res = await axios.post(API_URL + '/api/create-payment-intent', data)
+            const { client_secret: clientSecret } = await res.data;
+            if (stripe) {
+                const { error } = await stripe.confirmPayment({
+                    //`Elements` instance that was used to create the Payment Element
+                    elements,
+                    clientSecret,
+                    confirmParams: {
+                        return_url: API_URL + '/success',
+                    },
+                });
+
+                if (error) {
+                    // This point will only be reached if there is an immediate error when
+                    // confirming the payment. Show error to your customer (for example, payment
+                    // details incomplete)
+                    setErrorMessage(error.message);
+                } else {
+                    // Your customer will be redirected to your `return_url`. For some payment
+                    // methods like iDEAL, your customer will be redirected to an intermediate
+                    // site first to authorize the payment, then redirected to the `return_url`.
+                }
+            }
+        };
+
+        return (
+            <form onSubmit={handleSubmit}>
+                <PaymentElement />
+                <button type="submit" disabled={!stripe || !elements}>
+                    Pay
+                </button>
+                {/* Show error message to your customers */}
+                {errorMessage && <div>{errorMessage}</div>}
+            </form>
+        );
+    };
 
     // Booking Modal
     const [cookies, , removeCookie] = useCookies(['token']);
@@ -180,6 +178,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
+        console.log('Total price: ' + totalPriceToPay)
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
@@ -191,7 +190,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     setTotalPriceToPay(totalPriceToPay + (plans[0].price ? plans[0].price : 50));
                 } else if (checkedPlan === 2) {
                     // VIP selected
-                    setTotalPriceToPay(totalPriceToPay + (plans[0].price ? plans[0].price : 150));
+                    setTotalPriceToPay(totalPriceToPay + (plans[1].price ? plans[1].price : 150));
                 }
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
@@ -199,7 +198,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 axios.get(API_URL + '/api/room/' + selectedRoomID).then(res => {
                     setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
                 }).catch(err => console.error(err))
-                if (selectedRoomID === 2) {
+                if (selectedRoomID == 2) {
                     // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
                     // Crear una copia del estado actual
                     const updatedSelectedServicesIDs = { ...selectedServicesIDs };
@@ -214,6 +213,19 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 }
                 break;
             case BookingSteps.StepChooseServices:
+                let totalServicesPrice = 0;
+                for (const [key, value] of Object.entries(selectedServicesIDs)) {
+                    // console.log(`${key}: ${value}`);
+                    if (value) {
+                        // Si es true, es que esta seleccionado
+                        const res = await axios.get(API_URL + '/api/service/' + key)
+                        if(res){
+                            totalServicesPrice+=res.data.data[0].serv_price;
+                        }
+                    }
+                }
+                
+                setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
@@ -362,7 +374,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
     const [endDate, onChangeEndDate] = useState<Value>(new Date());
     const [rooms, setRooms] = useState<Room[]>([]);
-    const [selectedRoomID, setSelectedRoomID] = useState(null);
+    const [selectedRoomID, setSelectedRoomID] = useState<number | null>(1);
 
     // Get rooms
     useEffect(() => {

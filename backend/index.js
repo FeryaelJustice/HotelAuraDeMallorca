@@ -10,7 +10,7 @@ const compression = require('compression')
 const moment = require('moment'); // for dates, library
 require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
-const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PRIVATE_KEY)
+const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
 
 // Init server
 const app = express();
@@ -325,6 +325,25 @@ expressRouter.get('/services', (req, res) => {
     });
 })
 
+expressRouter.get('/service/:id', (req, res)=>{
+    let id = req.params.id;
+    pool.getConnection((err, connection) => {
+        let sql = 'SELECT * FROM service  WHERE id = ?';
+        let values = [id]
+        connection.query(sql, [values], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+            }
+            if (results.length > 0) {
+                res.status(200).send({ status: "success", msg: "Services found", data: results });
+            } else {
+                res.status(500).send({ status: "error", msg: "No services found" });
+            }
+        });
+    });
+})
+
 // PAYMENT METHODS
 expressRouter.get('/paymentmethods', (req, res) => {
     pool.getConnection((err, connection) => {
@@ -578,13 +597,12 @@ expressRouter.post('/payment', (req, res) => {
 
 // Stripe
 expressRouter.post('/create-payment-intent', async (req, res)=>{
-    const { amount, currency, payment_method, plan } = req.body;
-    console.log(plan)
+    const { amount, currency, plan } = req.body;
+    console.log(req.body)
 
     const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,
-        payment_method,
         confirmation_method: 'manual',
         confirm: true,
         statement_descriptor_suffix: "Payment using Stripe",
