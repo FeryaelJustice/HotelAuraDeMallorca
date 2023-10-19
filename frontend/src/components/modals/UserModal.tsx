@@ -20,6 +20,15 @@ enum UserModalScreens {
     ScreenEditProfile,
 }
 
+// Axios request properties
+const axiosHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': '',
+    'Accept': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+}
+axios.defaults.withCredentials = true;
+
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
@@ -67,14 +76,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         window.location.reload();
     }
 
-    // Axios request properties
-    const axiosHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': '',
-        'Accept': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+    const deleteAccount = () => {
+        // Delete account
+        axios.delete(API_URL + '/user/' + currentUser.id).then(response => {
+            if (response.data.status == "success") {
+                alert(response.data.message)
+                // Remove cookies
+                removeCookie('token')
+                window.location.reload()
+            }
+        }).catch(err => console.error(err))
     }
-    axios.defaults.withCredentials = true;
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -285,7 +297,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h1>
                         User verify 2fa
                     </h1>
-                    <Button variant="primary" type="submit" onClick={onClose}>
+                    <Button variant="primary" onClick={onClose}>
                         Verify
                     </Button>
                 </div>
@@ -297,9 +309,10 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                         User edit profile
                     </h1>
                     <span>{currentUser.name}</span>
-                    <Button variant="primary" type="submit" onClick={logout}>
+                    <Button variant="primary" onClick={logout}>
                         Logout
                     </Button>
+                    <Button variant='danger' onClick={deleteAccount}>Delete Account</Button>
                 </div>
             )}
         </BaseModal>

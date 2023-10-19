@@ -45,6 +45,15 @@ enum BookingSteps {
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
+// Axios request properties para cors
+const axiosHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': '',
+    'Accept': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+}
+axios.defaults.withCredentials = true;
+
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
@@ -144,15 +153,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [cookies, , removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
-
-    // Axios request properties para cors
-    const axiosHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': '',
-        'Accept': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-    }
-    axios.defaults.withCredentials = true;
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {

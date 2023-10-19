@@ -202,9 +202,28 @@ expressRouter.post('/editprofile/:id', (req, res) => {
         connection.query(sql, values, (error, results, fields) => {
             if (error) {
                 console.error(error);
-                return res.status(500);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
             res.status(200).send({ status: "success", insertId: results.insertId });
+        });
+    });
+})
+
+expressRouter.delete('/user/:id', getJWTUser, (req, res)=>{
+    pool.getConnection((err, connection) => {
+        let userID = req.body.id;
+        let sql = 'DELETE FROM app_user WHERE id = ?';
+        let values = [userID];
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        connection.query(sql, values, (error, results, fields) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            }
+            res.status(200).send({ status: "success", message: `User ${userID} deleted` });
         });
     });
 })
@@ -516,7 +535,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Release the connection
                     await connection.release();
                     console.error(err);
-                    res.status(500).send({ error: "error creating booking services" });
+                    res.status(500).send({status: "error", error: "error creating booking services" });
                 }
 
                 // Start a transaction
@@ -573,7 +592,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Roll back the transaction if there is an error
                     await connection.rollback();
                     console.error(err);
-                    res.status(500).send({ error: "error creating booking guests" });
+                    res.status(500).send({ status: "error",error: "error creating booking guests" });
                 } finally {
                     // Release the connection
                     await connection.release();
@@ -601,7 +620,7 @@ expressRouter.post('/payment', (req, res) => {
         connection.query(sql, values, (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
             res.status(200).send({ status: "success", insertId: results.insertId });
         });
