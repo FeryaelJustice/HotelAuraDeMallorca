@@ -10,6 +10,7 @@ const compression = require('compression')
 const moment = require('moment'); // for dates, library
 require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
+const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PRIVATE_KEY)
 
 // Init server
 const app = express();
@@ -259,6 +260,25 @@ expressRouter.get('/rooms', (req, res) => {
     });
 })
 
+expressRouter.get('/room/:id', (req, res) => {
+    let id = req.params.id;
+    pool.getConnection((err, connection) => {
+        let sql = 'SELECT * FROM room WHERE id = ?';
+        let values = [id]
+        connection.query(sql, [values], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+            }
+            if (results.length > 0) {
+                res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+            } else {
+                res.status(500).send({ status: "error", msg: "No rooms found" });
+            }
+        });
+    });
+})
+
 // PLANS
 expressRouter.get('/plans', (req, res) => {
     pool.getConnection((err, connection) => {
@@ -434,7 +454,7 @@ expressRouter.post('/booking', (req, res) => {
                 try {
                     // Insert the booking
                     const bookingSQL = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
-                    const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format('YYYY-MM-DD'), moment(booking.endDate).format('YYYY-MM-DD')];
+                    const bookingValues = [booking.userID, booking.planID, booking.roomID, moment(booking.startDate).format(dateFormat), moment(booking.endDate).format(dateFormat)];
 
                     connection.query(bookingSQL, bookingValues, (err, result) => {
                         if (result) {
@@ -550,10 +570,34 @@ expressRouter.post('/booking', (req, res) => {
 
 // PAYMENT
 // Booking
-expressRouter.post('/api/payment', (req, res) => {
+expressRouter.post('/payment', (req, res) => {
     let data = req.body;
     console.log(data)
     res.status(200).send({ status: "success", msg: data });
+})
+
+// Stripe
+expressRouter.post('/create-payment-intent', async (req, res)=>{
+    const { amount, currency, payment_method, plan } = req.body;
+    console.log(plan)
+
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency,
+        payment_method,
+        confirmation_method: 'manual',
+        confirm: true,
+        statement_descriptor_suffix: "Payment using Stripe",
+    })
+
+    res.status(200).json({status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret})
+})
+// Stripe success or failure responses
+expressRouter.get('/success', (req, res) => {
+    res.status(200).json({status: "success", msg: 'Payment successful! Thank you for your purchase.'})
+})
+expressRouter.get('/cancel', (req, res) => {
+    res.status(200).json({status: "success", msg: 'Payment cancelled. Your order was not processed.'})
 })
 
 // Listen SERVER

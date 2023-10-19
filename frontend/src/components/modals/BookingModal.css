@@ -139,3 +139,15 @@
     flex-direction: row;
     justify-content: space-between;
 }
+
+.stripe{
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #FFFFFF;
+    border: 2px solid #ffff76;
+    border-radius: 4px;
+    color: #000000;
+}
