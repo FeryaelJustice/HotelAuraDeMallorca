@@ -300,7 +300,7 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
 
                 res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
             }).catch(err => {
-                console.error(error);
+                console.error(err);
                 res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
             })
         } catch (error) {
