@@ -266,11 +266,33 @@ button:focus-visible {
 
 .servicesPage{
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   justify-content: center;
   align-items: center;
   padding-top: 5%;
+}
+
+.contactPage{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  padding-top: 9%;
+  padding-left: 16%;
+  padding-right: 16%;
+}
+
+.contactForm{
+  display: block;
+  margin-top: 6%;
+}
+
+.contactForm .input{
+  width: 100%;
 }
 
 @media (prefers-color-scheme: light) {

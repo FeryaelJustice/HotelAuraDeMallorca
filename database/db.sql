@@ -10,7 +10,9 @@ CREATE TABLE app_user (
     user_surnames VARCHAR(255),
     user_email VARCHAR(255),
     user_password_hash VARCHAR(255),
-    user_verified BOOLEAN
+    user_verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(255),
+    verification_token_expiry TIMESTAMP
 );
 
 -- Create the table app_user
@@ -142,7 +144,9 @@ INSERT INTO
         user_surnames,
         user_email,
         user_password_hash,
-        user_verified
+        user_verified,
+        verification_token,
+        verification_token_expiry
     )
 VALUES
     (
@@ -150,21 +154,27 @@ VALUES
         'Gonzalez Serr',
         'john@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        true
+        true,
+        '',
+        CURRENT_TIMESTAMP
     ),
     (
         'Jane Smith',
         'Gonzalez Serr',
         'jane@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        false
+        false,
+        '',
+        CURRENT_TIMESTAMP
     ),
     (
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        false
+        false,
+        '',
+        CURRENT_TIMESTAMP
     );
 
 INSERT INTO

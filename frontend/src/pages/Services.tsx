@@ -1,14 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 import { Service } from '../models';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import Button from 'react-bootstrap/Button'
-import Form from 'react-bootstrap/Form';
+const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 export const Services = () => {
     const [services, setServices] = useState<Service[]>([])
 
@@ -29,7 +27,7 @@ export const Services = () => {
             <Container>
                 <Row className="mt-12">
                     <Col>
-                        <h2>Services</h2>
+                        <h1>Services</h1>
                     </Col>
                 </Row>
                 <br />

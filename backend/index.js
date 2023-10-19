@@ -11,6 +11,7 @@ const moment = require('moment'); // for dates, library
 require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
 const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
+const nodemailer = require("nodemailer");
 
 // Init server
 const app = express();
@@ -108,6 +109,17 @@ const getJWTUser = (req, res, next) => {
 
 // Hashing
 const salt = 10; // password hashing
+
+// MAILS
+const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: false,
+    auth: {
+        user: process.env.MAIL_USERNAME,
+        pass: process.env.MAIL_PASSWORD,
+    },
+});
 
 // ROUTES
 // if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
@@ -209,7 +221,7 @@ expressRouter.post('/editprofile/:id', (req, res) => {
     });
 })
 
-expressRouter.delete('/user/:id', getJWTUser, (req, res)=>{
+expressRouter.delete('/user/:id', getJWTUser, (req, res) => {
     pool.getConnection((err, connection) => {
         let userID = req.body.id;
         let sql = 'DELETE FROM app_user WHERE id = ?';
@@ -254,6 +266,24 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
             }
         })
     });
+})
+
+expressRouter.post('/user/sendConfirmationEmail', async (req, res) => {
+    try {
+        let formData = req.body;
+        const info = await transporter.sendMail({
+            from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'", // sender address
+            to: formData.email, // list of receivers
+            subject: formData.subject, // Subject line
+            text: formData.message, // plain text body
+            html: "<pre>" + formData.message + "</pre>", // html body
+        });
+        console.log("Message sent: %s", info.messageId);
+        res.status(200).send({ status: "success", msg: "Email confirmation sent!"});
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({ status: "error", msg: "Email couldn't be sent!" });
+    }
 })
 
 // ROOMS
@@ -535,7 +565,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Release the connection
                     await connection.release();
                     console.error(err);
-                    res.status(500).send({status: "error", error: "error creating booking services" });
+                    res.status(500).send({ status: "error", error: "error creating booking services" });
                 }
 
                 // Start a transaction
@@ -592,7 +622,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Roll back the transaction if there is an error
                     await connection.rollback();
                     console.error(err);
-                    res.status(500).send({ status: "error",error: "error creating booking guests" });
+                    res.status(500).send({ status: "error", error: "error creating booking guests" });
                 } finally {
                     // Release the connection
                     await connection.release();
