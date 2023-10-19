@@ -4,6 +4,7 @@ export class Payment {
   bookingID: number | null = null;
   amount: number | null = null;
   date: Date | null = null;
+  paymentMethodID: number | null = null;
 
   constructor(payment?: Payment) {
     if (payment) {
@@ -12,6 +13,7 @@ export class Payment {
       this.bookingID = payment.bookingID;
       this.amount = payment.amount;
       this.date = payment.date;
+      this.paymentMethodID = payment.paymentMethodID;
     }
   }
 }

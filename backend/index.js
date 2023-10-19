@@ -128,7 +128,7 @@ expressRouter.post('/register', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(checkSQL, checkValues, (err, resultss) => {
             if (err) {
@@ -164,7 +164,7 @@ expressRouter.post('/login', (req, res) => {
         let values = [data.email];
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, values, (error, results) => {
             if (error) {
@@ -197,14 +197,14 @@ expressRouter.post('/editprofile/:id', (req, res) => {
         let values = [data.username, data.surnames, data.email, data.password, 0];
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, values, (error, results, fields) => {
             if (error) {
                 console.error(error);
                 return res.status(500);
             }
-            res.status(200).send({ insertId: results.insertId });
+            res.status(200).send({ status: "success", insertId: results.insertId });
         });
     });
 })
@@ -221,7 +221,7 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, values, (error, results) => {
             if (error) {
@@ -244,7 +244,7 @@ expressRouter.get('/rooms', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, [], (error, results) => {
             if (error) {
@@ -261,8 +261,8 @@ expressRouter.get('/rooms', (req, res) => {
 })
 
 expressRouter.get('/room/:id', (req, res) => {
-    let id = req.params.id;
     pool.getConnection((err, connection) => {
+        let id = req.params.id;
         let sql = 'SELECT * FROM room WHERE id = ?';
         let values = [id]
         connection.query(sql, [values], (error, results) => {
@@ -286,7 +286,7 @@ expressRouter.get('/plans', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, [], (error, results) => {
             if (error) {
@@ -309,7 +309,7 @@ expressRouter.get('/services', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, [], (error, results) => {
             if (error) {
@@ -325,9 +325,9 @@ expressRouter.get('/services', (req, res) => {
     });
 })
 
-expressRouter.get('/service/:id', (req, res)=>{
-    let id = req.params.id;
+expressRouter.get('/service/:id', (req, res) => {
     pool.getConnection((err, connection) => {
+        let id = req.params.id;
         let sql = 'SELECT * FROM service  WHERE id = ?';
         let values = [id]
         connection.query(sql, [values], (error, results) => {
@@ -351,7 +351,7 @@ expressRouter.get('/paymentmethods', (req, res) => {
 
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         connection.query(sql, [], (error, results) => {
             if (error) {
@@ -467,7 +467,7 @@ expressRouter.post('/booking', (req, res) => {
                 if (err) {
                     console.error('Error acquiring connection from pool:', err);
                     connection.rollback();
-                    return res.status(500).send({ error: 'Internal server error' });
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });
                 }
 
                 try {
@@ -478,7 +478,7 @@ expressRouter.post('/booking', (req, res) => {
                     connection.query(bookingSQL, bookingValues, (err, result) => {
                         if (result) {
                             connection.commit();
-                            resolve({ insertId: result.insertId });
+                            resolve({ status: "success", insertId: result.insertId });
                         }
                     })
                 } catch (error) {
@@ -495,7 +495,7 @@ expressRouter.post('/booking', (req, res) => {
             pool.getConnection(async (err, connection) => {
                 if (err) {
                     console.error('Error acquiring connection from pool:', err);
-                    return res.status(500).send({ error: 'Internal server error' });
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });
                 }
 
                 // Start a transaction
@@ -579,7 +579,7 @@ expressRouter.post('/booking', (req, res) => {
                     await connection.release();
                 }
                 // Send the response outside the finally block
-                res.status(200).send({ insertId: bkInsertID });
+                res.status(200).send({ status: "success", insertId: bkInsertID });
             });
         }).catch(error => {
             console.error(error);
@@ -590,13 +590,27 @@ expressRouter.post('/booking', (req, res) => {
 // PAYMENT
 // Booking
 expressRouter.post('/payment', (req, res) => {
-    let data = req.body;
-    console.log(data)
+    pool.getConnection((err, connection) => {
+        let data = req.body;
+        let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
+        let values = [data.userID, data.bookingID, data.amount, data.date, paymentMethodID];
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        connection.query(sql, values, (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500);
+            }
+            res.status(200).send({ status: "success", insertId: results.insertId });
+        });
+    });
     res.status(200).send({ status: "success", msg: data });
 })
 
 // Stripe
-expressRouter.post('/create-payment-intent', async (req, res)=>{
+expressRouter.post('/create-payment-intent', async (req, res) => {
     const { amount, currency, plan } = req.body;
     console.log(req.body)
 
@@ -608,14 +622,14 @@ expressRouter.post('/create-payment-intent', async (req, res)=>{
         statement_descriptor_suffix: "Payment using Stripe",
     })
 
-    res.status(200).json({status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret})
+    res.status(200).json({ status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret })
 })
 // Stripe success or failure responses
 expressRouter.get('/success', (req, res) => {
-    res.status(200).json({status: "success", msg: 'Payment successful! Thank you for your purchase.'})
+    res.status(200).json({ status: "success", msg: 'Payment successful! Thank you for your purchase.' })
 })
 expressRouter.get('/cancel', (req, res) => {
-    res.status(200).json({status: "success", msg: 'Payment cancelled. Your order was not processed.'})
+    res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
 })
 
 // Listen SERVER

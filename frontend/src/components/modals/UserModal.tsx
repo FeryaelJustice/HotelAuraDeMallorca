@@ -21,6 +21,23 @@ enum UserModalScreens {
 }
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
+    const handleClose = () => {
+        // De cualquier forma cuando lo cierre, vaciar el modal de data
+        resetUserModal();
+        onClose();
+    }
+
+    const resetUserModal = () => {
+        if (!cookies.token) {
+            setCurrentScreen(UserModalScreens.ScreenLogin)
+            setCurrentUser(new User())
+            setUserLogin({ email: "", password: "" })
+            setUserRegister({ email: "", name: "", surnames: "", password: "" })
+        } else {
+            setCurrentScreen(UserModalScreens.ScreenEditProfile)
+        }
+    }
+
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
     const [cookies, , removeCookie] = useCookies(['token']);
@@ -166,16 +183,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // When close, reset
     useEffect(() => {
-        if (!show && !cookies.token) {
-            setCurrentScreen(UserModalScreens.ScreenLogin)
-            setCurrentUser(new User())
-            setUserLogin({ email: "", password: "" })
-            setUserRegister({ email: "", name: "", surnames: "", password: "" })
-        }
+        resetUserModal();
     }, [show])
 
     return (
-        <BaseModal title={'User'} show={show} onClose={onClose}>
+        <BaseModal title={'User'} show={show} onClose={handleClose}>
             {currentScreen === UserModalScreens.ScreenLogin && (
                 <div>
                     <Form validated={loginValidated} onSubmit={handleLoginSubmit}>

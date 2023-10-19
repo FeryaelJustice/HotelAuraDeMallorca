@@ -47,6 +47,13 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
+    
+    const handleClose = () => {
+        // De cualquier forma cuando lo cierre, vaciar el modal de data
+        resetBookingModal();
+        onClose();
+    }
+
     // Stripe
     const [totalPriceToPay, setTotalPriceToPay] = useState<number>(0);
     const [stripeOptions, setStripeOptions] = useState<StripeElementsOptions | undefined>({
@@ -78,34 +85,47 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 return;
             }
             // Create the PaymentIntent and obtain clientSecret from your server endpoint
+
+
             let data = {
                 amount: totalPriceToPay,
                 currency: stripeOptions.currency,
                 plan: plan
             }
-            const res = await axios.post(API_URL + '/api/create-payment-intent', data)
-            const { client_secret: clientSecret } = await res.data;
-            if (stripe) {
-                const { error } = await stripe.confirmPayment({
-                    //`Elements` instance that was used to create the Payment Element
-                    elements,
-                    clientSecret,
-                    confirmParams: {
-                        return_url: API_URL + '/success',
-                    },
-                });
 
-                if (error) {
-                    // This point will only be reached if there is an immediate error when
-                    // confirming the payment. Show error to your customer (for example, payment
-                    // details incomplete)
-                    setErrorMessage(error.message);
-                } else {
-                    // Your customer will be redirected to your `return_url`. For some payment
-                    // methods like iDEAL, your customer will be redirected to an intermediate
-                    // site first to authorize the payment, then redirected to the `return_url`.
+            console.log(data)
+            /*
+            try {
+                const res = await axios.post(API_URL + '/api/create-payment-intent', data)
+                const { client_secret: clientSecret } = await res.data;
+                if (stripe) {
+                    const { error } = await stripe.confirmPayment({
+                        //`Elements` instance that was used to create the Payment Element
+                        elements,
+                        clientSecret,
+                        confirmParams: {
+                            return_url: API_URL + '/success',
+                        },
+                    });
+
+                    if (error) {
+                        // This point will only be reached if there is an immediate error when
+                        // confirming the payment. Show error to your customer (for example, payment
+                        // details incomplete)
+                        setErrorMessage(error.message);
+                    } else {
+                        // Your customer will be redirected to your `return_url`. For some payment
+                        // methods like iDEAL, your customer will be redirected to an intermediate
+                        // site first to authorize the payment, then redirected to the `return_url`.
+                        goToNextStep();
+                    }
+                    setPaymentStripeMessage(res.data)
                 }
+            } catch (err) {
+                // setPaymentStripeMessage(err)
+                goToNextStep();
             }
+            */
         };
 
         return (
@@ -178,7 +198,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
-        console.log('Total price: ' + totalPriceToPay)
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
@@ -274,31 +293,39 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         id: null,
                         userID: userAllData?.id ?? null,
                         bookingID: booking.id,
-                        amount: 0,
-                        date: new Date()
+                        amount: totalPriceToPay,
+                        date: new Date(),
+                        paymentMethodID: checkedPaymentMethod,
                     });
 
                     try {
                         // Make the API call for booking, and there we will also insert the booking services and booking guests
-                        const bookingResponse = await axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders });
-                        if (bookingResponse.data.status == "success") {
-                            // Make the API call for payment
-                            const paymentResponse = await axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders })
-                            //if (paymentResponse.data.status == "success") {
-                            setPaymentStripeMessage(paymentResponse.data)
+                        axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders }).then(bookingResponse => {
+                            if (bookingResponse.data.status == "success") {
+                                // Make the API call for payment
+                                axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders }).then(paymentResponse => {
+                                    console.log(paymentResponse.data)
+                                    // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                    setCurrentStep(BookingSteps.StepConfirmation);
+                                }).catch(err => {
+                                    console.error(err)
+                                    setCurrentStep(BookingSteps.StepConfirmation);
+                                })
+                                //if (paymentResponse.data.status == "success") {
+                                //}
+                            }
                             setCurrentStep(BookingSteps.StepConfirmation);
-                            //}
-                        }
+                        }).catch(err => {
+                            console.error(err)
+                            setCurrentStep(BookingSteps.StepConfirmation);
+                        })
                     } catch (error) {
-                        console.error('Error in API call:', error);
+                        console.error('Error al realizar la reserva:', error);
                     }
                 } catch (error) {
                     // Manejo de errores
                     console.error('Error al realizar la reserva:', error);
                 }
-
-                // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                setCurrentStep(BookingSteps.StepConfirmation);
                 break;
             case BookingSteps.StepConfirmation:
                 resetBookingModal();
@@ -571,7 +598,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Step choose payment method and pay
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-    const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<string | null>('stripe');
+    const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<number | null>(1);
     const [paymentStripeMessage, setPaymentStripeMessage] = useState<string | null>('');
 
     useEffect(() => {
@@ -588,7 +615,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     const paymentMethodSelected = (paymentMethodID: any) => {
         setCheckedPaymentMethod(paymentMethodID);
-        goToNextStep();
     };
 
     const resetBookingModal = () => {
@@ -621,7 +647,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }, [show])
 
     return (
-        <BaseModal title={'Book'} show={show} onClose={onClose}>
+        <BaseModal title={'Book'} show={show} onClose={handleClose}>
             {currentStep === BookingSteps.StepPersonalData && (
                 <div>
                     <h2>Your personal data</h2>
@@ -770,14 +796,14 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                     name="pricing-plan"
                                                     value={selectedRoomID?.toString()}
                                                     checked={selectedRoomID === room.id}
-                                                    onChange={() => roomSelected(room.id)} 
+                                                    onChange={() => roomSelected(room.id)}
                                                     onClick={() => roomSelected(room.id)} label="Book" />
                                             </Card.Body>
                                         </Card>
                                     </Row>
                                 ))}
                             </Row>
-                        <Button onClick={goToNextStep}>Next</Button>
+                            <Button onClick={goToNextStep}>Next</Button>
                         </Container>
                     </div>
                 )
@@ -938,8 +964,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         <Form.Check
                                             type="radio"
                                             name="payment-method"
-                                            value={paymentMethod.name?.toString()}
-                                            checked={checkedPaymentMethod === paymentMethod.name}
+                                            value={paymentMethod.id?.toString()}
+                                            checked={checkedPaymentMethod === paymentMethod.id}
                                             onChange={() => paymentMethodSelected(paymentMethod.id)}
                                         />
                                     </Card.Body>
@@ -947,13 +973,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             ))}
                         </div>
                         <div className='payment-selected'>
-                            {checkedPaymentMethod == 'stripe' && (<div className="stripe">
+                            {checkedPaymentMethod == 1 && (<div className="stripe">
                                 <h4>Stripe</h4>
                                 <Elements stripe={stripePromise} options={stripeOptions}>
                                     <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
                                 </Elements>
                             </div>
                             )}
+                        </div>
+                        <div>
+                            <Button variant='primary' onClick={goToNextStep}>Finish booking, buy!</Button>
                         </div>
                     </div>
                 )
