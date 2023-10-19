@@ -47,7 +47,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
-    
+
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
         resetBookingModal();
@@ -226,9 +226,21 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         updatedSelectedServicesIDs[key] = true;
                     });
                     setSelectedServicesIDs(updatedSelectedServicesIDs)
-                    setCurrentStep(BookingSteps.StepFillGuests);
+
+                    // asegurarse que adultos son 10 o menos y con niños igual
+                    if (adults <= 10 && children <= 10) {
+                        setCurrentStep(BookingSteps.StepFillGuests);
+                    } else {
+                        alert('Adults: maximum 10. Children: maximum 10.')
+                    }
+
                 } else {
-                    setCurrentStep(BookingSteps.StepChooseServices);
+                    // asegurarse que adultos son 10 o menos y con niños igual
+                    if (adults <= 10 && children <= 10) {
+                        setCurrentStep(BookingSteps.StepChooseServices);
+                    } else {
+                        alert('Adults: maximum 10. Children: maximum 10.')
+                    }
                 }
                 break;
             case BookingSteps.StepChooseServices:
@@ -248,7 +260,24 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
-                setCurrentStep(BookingSteps.StepPaymentMethod);
+                // Asegurarse que corresponde el numero de niños y adultos con lo marcado ahora
+                let countAdults = 0;
+                let countChildren = 0;
+                
+                for (let i = 0; i < guests.length; i++) {
+                    const guest = guests[i];
+                    if (guest.isAdult) {
+                        countAdults++;
+                    } else {
+                        countChildren++;
+                    }
+                }
+
+                if(countAdults==adults && countChildren==children){
+                    setCurrentStep(BookingSteps.StepPaymentMethod);
+                }else{
+                    alert("Adults and children are not matching in number with a previous step! Please make it match or change the number of adults/children!")
+                }
                 break;
             case BookingSteps.StepPaymentMethod:
                 // Primero pagar
