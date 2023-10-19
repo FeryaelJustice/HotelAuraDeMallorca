@@ -12,13 +12,13 @@ export const Contact = () => {
 
     const handleSubmit = (event: any) => {
         event.preventDefault();
-        
+
         const data = {
             email,
             subject,
             message
         }
-        axios.post(API_URL + '/api/user/sendConfirmationEmail', data).then(response => {
+        axios.post(API_URL + '/api/sendContactForm', data).then(response => {
             alert(response.data.msg)
         }).catch(error => {
             console.error(error)

@@ -12,6 +12,7 @@ require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
 const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
 const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require('uuid');
 
 // Init server
 const app = express();
@@ -268,7 +269,7 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
     });
 })
 
-expressRouter.post('/user/sendConfirmationEmail', async (req, res) => {
+expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
     try {
         let formData = req.body;
         const info = await transporter.sendMail({
@@ -279,7 +280,53 @@ expressRouter.post('/user/sendConfirmationEmail', async (req, res) => {
             html: "<pre>" + formData.message + "</pre>", // html body
         });
         console.log("Message sent: %s", info.messageId);
-        res.status(200).send({ status: "success", msg: "Email confirmation sent!"});
+        res.status(200).send({ status: "success", msg: "Email confirmation sent!" });
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({ status: "error", msg: "Email couldn't be sent!" });
+    }
+})
+
+expressRouter.post('/user/verifyEmail/:token', function (req, res) {
+    pool.getConnection(async (err, connection) => {
+        const { token } = req.params;
+
+        // try {
+        //     // Find the user by verification token
+        //     const user = await db.getUserByVerificationToken(token);
+
+        //     // Check if the user exists and the token hasn't expired
+        //     if (!user || user.verification_token_expiry < new Date()) {
+        //         return res.status(400).json({ status: 'error', message: 'Invalid or expired token.' });
+        //     }
+
+        //     // Update user verification status
+        //     await db.updateUserVerificationStatus(user.id, true);
+
+        //     // Clear verification token and expiry
+        //     await db.clearVerificationToken(user.id);
+
+        //     res.json({ status: 'success', message: 'Email verified successfully.' });
+        // } catch (error) {
+        //     console.error('Error verifying email:', error);
+        //     res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+        // }
+    });
+})
+
+// Send contact form
+expressRouter.post('/user/sendContactForm', async (req, res) => {
+    try {
+        let formData = req.body;
+        const info = await transporter.sendMail({
+            from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'", // sender address
+            to: formData.email, // list of receivers
+            subject: formData.subject, // Subject line
+            text: formData.message, // plain text body
+            html: "<pre>" + formData.message + "</pre>", // html body
+        });
+        console.log("Message sent: %s", info.messageId);
+        res.status(200).send({ status: "success", msg: "Email confirmation sent!" });
     } catch (error) {
         console.error(error)
         res.status(500).send({ status: "error", msg: "Email couldn't be sent!" });

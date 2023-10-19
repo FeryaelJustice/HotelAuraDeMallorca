@@ -166,6 +166,15 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             // api call
             axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
                 console.log('registered successfully' + res)
+
+                // After successful registration, send a request to generate and send a confirmation email
+                axios.post(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                    .then(response => {
+                        console.log('Confirmation email sent successfully', response);
+                    })
+                    .catch(error => {
+                        console.error('Error sending confirmation email', error);
+                    });
             }).catch(err => {
                 console.error(err)
             })
