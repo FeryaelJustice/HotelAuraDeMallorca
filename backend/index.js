@@ -26,12 +26,12 @@ const corsOptions = {
 }
 app.use(cors(corsOptions));
 // Middleware ensure CORS
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', process.env.API_URL);
-    res.header('Access-Control-Allow-Credentials', true);
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
+// app.use((req, res, next) => {
+//     res.header('Access-Control-Allow-Origin', process.env.API_URL);
+//     res.header('Access-Control-Allow-Credentials', true);
+//     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+//     next();
+// });
 // Routes
 app.use('/api/', expressRouter)
 // Cookies and compression
