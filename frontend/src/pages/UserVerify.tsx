@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
-export const UserVerification = () => {
+export const UserVerify = () => {
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 

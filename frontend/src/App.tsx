@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
-import { Home, Services, Contact, NotFound, UserVerification } from './pages';
+import { Home, Services, Contact, UserVerify, NotFound } from './pages';
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
@@ -57,7 +57,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/userVerification/:token" element={<UserVerification />} />
+            <Route path="/userVerification/:token" element={<UserVerify />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
 

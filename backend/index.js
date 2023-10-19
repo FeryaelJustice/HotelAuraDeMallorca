@@ -290,7 +290,8 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
 expressRouter.post('/user/verifyEmail/:token', function (req, res) {
     pool.getConnection(async (err, connection) => {
         const { token } = req.params;
-
+        console.log(token)
+        res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
         // try {
         //     // Find the user by verification token
         //     const user = await db.getUserByVerificationToken(token);
@@ -306,7 +307,7 @@ expressRouter.post('/user/verifyEmail/:token', function (req, res) {
         //     // Clear verification token and expiry
         //     await db.clearVerificationToken(user.id);
 
-        //     res.json({ status: 'success', message: 'Email verified successfully.' });
+        //     res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
         // } catch (error) {
         //     console.error('Error verifying email:', error);
         //     res.status(500).json({ status: 'error', message: 'Internal Server Error' });
