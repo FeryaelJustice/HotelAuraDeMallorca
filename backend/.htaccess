@@ -1,0 +1,5 @@
+Options -Indexes
+<Directory "./public">
+    Order deny,allow
+    Deny from all
+</Directory>
