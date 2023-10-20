@@ -647,6 +647,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 retrievedPaymentMethods.push(new PaymentMethod({ id: pm.id, name: pm.payment_method_name.toLowerCase() }))
             })
             setPaymentMethods(retrievedPaymentMethods)
+            setPaymentStripeMessage('')
         }).catch
             (err => console.error(err))
     }, []);
