@@ -163,7 +163,7 @@ VALUES
         'Gonzalez Serr',
         'jane@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        false,
+        true,
         '',
         CURRENT_TIMESTAMP
     ),
@@ -172,7 +172,7 @@ VALUES
         'Gonzalez Serr',
         'fer@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        false,
+        true,
         '',
         CURRENT_TIMESTAMP
     );
