@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 Auth::routes();
 
-Route::get('/{any?}', function () {
-    return view('home');
-}) -> where('any', '.*');
+Route::get('/{any?}', [App\Http\Controllers\HomeController::class, 'index'])->where('any', '.*')->where('any', '^(?!login|logout|register).*'); // Exclude specific routes
 
-// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// Route::get('/{any?}', function () {
+//     return view('home');
+// }) -> where('any', '.*');
