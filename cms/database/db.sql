@@ -3,32 +3,33 @@ CREATE DATABASE IF NOT EXISTS gestortraducciones;
 
 USE gestortraducciones;
 
--- Create the table app_user
-CREATE TABLE app_user (
-    id INT PRIMARY KEY,
-    user_name VARCHAR(60),
-    user_surnames VARCHAR(255),
-    user_email VARCHAR(255),
-    user_password_hash VARCHAR(255),
-    user_verified BOOLEAN
+-- Create the table users
+CREATE TABLE users (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    name VARCHAR(60),
+    email VARCHAR(255),
+    password VARCHAR(255),
+    updated_at VARCHAR(255),
+    created_at TIMESTAMP,
+    remember_token VARCHAR(255)
 );
 
 -- Create the table app_page
 CREATE TABLE app_page (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     app_page_name VARCHAR(30)
 );
 
 -- Create the table lang
 CREATE TABLE lang (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     lang_code VARCHAR(6),
     lang_name VARCHAR(30)
 );
 
 -- Create the table page_lang
 CREATE TABLE app_page_lang (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     app_page_id INT,
     lang_id INT,
     FOREIGN KEY (app_page_id) REFERENCES app_page(id),
@@ -37,7 +38,7 @@ CREATE TABLE app_page_lang (
 
 -- Create the table section
 CREATE TABLE section (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     app_page_id INT,
     section_name VARCHAR(30),
     section_parent INT,
@@ -47,7 +48,7 @@ CREATE TABLE section (
 
 -- Create the table literal
 CREATE TABLE literal (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     literal_text TEXT
 );
 
@@ -62,22 +63,24 @@ CREATE TABLE section_literal (
 
 -- INSERTS of example data
 INSERT INTO
-    app_user (
+    users (
         id,
-        user_name,
-        user_surnames,
-        user_email,
-        user_password_hash,
-        user_verified
+        name,
+        email,
+        password,
+        updated_at,
+        created_at,
+        remember_token
     )
 VALUES
     (
         1,
         'Fer',
-        'Gonzalez Serr',
         'fer@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        true
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP,
+        ''
     );
 
 -- INSERTS en la tabla app_page
@@ -116,8 +119,8 @@ VALUES
     (7, 3, 2),
     -- Aura de Mallorca - Spanish
     (8, 3, 1);
-    -- Aura de Mallorca - English
 
+-- Aura de Mallorca - English
 -- INSERTS en la tabla section
 INSERT INTO
     section (id, app_page_id, section_name, section_parent)
