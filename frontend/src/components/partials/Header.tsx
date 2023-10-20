@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Button from 'react-bootstrap/Button';
@@ -13,7 +14,20 @@ interface HeaderProps {
 
 export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
     const [cookies] = useCookies(['token']);
+    const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
+
+    // Al iniciarlo, solo una vez, hacer...
+    useEffect(() => {
+        if (cookies.token) {
+            axios.post(API_URL + '/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
+                console.log(response.data)
+                let picURL = API_URL + "/" + response.data.photoURL;
+                setUserPhotoURL(picURL)
+            }).catch((err: any) => console.error(err))
+        }
+    }, [])
 
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {
@@ -75,11 +89,20 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                 <div id="nav-actions">
                     <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>Book</Button>
                     <div className="user-icon">
-                        {colorScheme === 'dark' ? (
-                            <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        {userPhotoURL && cookies.token ? (
+                            <div className="user-icon-container">
+                                <img id="user-icon" src={userPhotoURL} alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                            </div>
                         ) : (
-                            <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                            <div>
+                                {colorScheme === 'dark' ? (
+                                    <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                                ) : (
+                                    <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                                )}
+                            </div>
                         )}
+
                         {cookies.token ? (
                             <div className={`logged-icon${colorScheme === 'dark' ? '' : '-light'}`}>
                                 <FontAwesomeIcon icon={faCheck} />
@@ -108,7 +131,15 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                         return isActive ? 'is-active' : undefined
                     }} onClick={closeMenu}>Contact</NavLink>
                     <a className="user-icon-phone">
-                        <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                        {userPhotoURL && cookies.token ? (
+                            <div className="user-icon-container">
+                                <img id="user-icon" src={userPhotoURL} alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                            </div>
+                        ) : (
+                            <div className="user-icon-container">
+                                <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
+                            </div>
+                        )}
                         {cookies.token ? (
                             <div className="logged-icon">
                                 <FontAwesomeIcon icon={faCheck} />

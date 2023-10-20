@@ -146,6 +146,7 @@ nav a {
 #user-icon {
   width: 40px;
   height: 40px;
+  border-radius: 20px;
 }
 
 .menu-toggle {
@@ -264,7 +265,7 @@ button:focus-visible {
 
 /* Pages */
 
-.servicesPage{
+.servicesPage {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -274,7 +275,7 @@ button:focus-visible {
   padding-top: 5%;
 }
 
-.contactPage{
+.contactPage {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -286,12 +287,12 @@ button:focus-visible {
   padding-right: 16%;
 }
 
-.contactForm{
+.contactForm {
   display: block;
   margin-top: 6%;
 }
 
-.contactForm .input{
+.contactForm .input {
   width: 100%;
 }
 

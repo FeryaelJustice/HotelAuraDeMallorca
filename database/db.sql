@@ -414,7 +414,8 @@ INSERT INTO
     user_media (user_id, media_id)
 VALUES
     (1, 1),
-    (2, 1);
+    (2, 1),
+    (3, 1);
 
 INSERT INTO
     service_media (service_id, media_id)

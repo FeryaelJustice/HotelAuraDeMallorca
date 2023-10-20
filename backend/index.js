@@ -40,6 +40,8 @@ app.use('/api/', expressRouter)
 app.use(cookieParser());
 app.use(compression())
 app.use(morgan('combined'))
+var path = require('path');
+app.use(express.static(path.join(__dirname, 'public')))
 
 // MySQL
 const pool = mysql.createPool({
@@ -81,7 +83,7 @@ const verifyUser = (req, res, next) => {
             if (err) {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
-                req.name = decoded.name;
+                req.id = decoded.userID;
                 next();
             }
         })
@@ -838,6 +840,24 @@ expressRouter.get('/success', (req, res) => {
 })
 expressRouter.get('/cancel', (req, res) => {
     res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
+})
+
+// MEDIAS
+expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
+    pool.getConnection((err, connection) => {
+        let userID = req.id;
+        connection.query('SELECT media_id FROM user_media WHERE user_id = ' + userID, (error, results) => {
+            if (error) {
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            }
+            connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
+                if (error) {
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                }
+                res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
+            });
+        })
+    });
 })
 
 // Listen SERVER
