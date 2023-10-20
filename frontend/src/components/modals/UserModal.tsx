@@ -166,12 +166,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
             // api call
             axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
-                setCookie('token', res.data.cookieJWT)
+                // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
+                // setCookie('token', res.data.cookieJWT)
                 console.log('registered successfully' + res)
 
                 // After successful registration, send a request to generate and send a confirmation email
                 axios.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
                     .then(response => {
+                        alert('An email has been sent to your mail to verify your account!')
                         console.log('Confirmation email sent successfully', response);
                     })
                     .catch(error => {

@@ -346,7 +346,8 @@ expressRouter.post('/user/verifyEmail/:token', function (req, res) {
             // Clear verification token and expiry
             await clearVerificationToken(connection, user.id);
 
-            res.status(200).json({ status: 'success', message: 'Email verified successfully.' });
+            let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
+            res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: jwtToken });
         } catch (error) {
             console.error('Error verifying email:', error);
             res.status(500).json({ status: 'error', message: 'Internal Server Error' });
