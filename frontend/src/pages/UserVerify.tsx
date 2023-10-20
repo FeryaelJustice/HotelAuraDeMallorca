@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
+const FRONT_URL = process.env.FRONT_URL ? process.env.FRONT_URL : 'http://localhost:5173';
 
 export const UserVerify = () => {
-    
-  console.log('UserVerify function component');
+    const navigate = useNavigate();
+
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 
@@ -13,6 +14,7 @@ export const UserVerify = () => {
         axios.post(`${API_URL}/api/user/verifyEmail/${token}`)
             .then(response => {
                 setVerificationStatus(response.data.status);
+                navigate(FRONT_URL)
             })
             .catch(error => {
                 console.error('Error verifying email:', error);
