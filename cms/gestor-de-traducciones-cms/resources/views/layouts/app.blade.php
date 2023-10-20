@@ -7,18 +7,21 @@
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="author" content="Fernando GS" />
+    <meta name="description" content="Gestor de traducciones" />
+    <meta name="keywords" content="gestor, traducciones, languages, multilingual" />
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
-    <link rel="dns-prefetch" href="//fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
+    <!-- <link rel="dns-prefetch" href="//fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet"> -->
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
 
-<body>
+<body class="antialiased">
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
             <div class="container">
@@ -34,7 +37,8 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto">
-
+                        <router-link to="/">Home</router-link>
+                        <router-link to="/about">About</router-link>
                     </ul>
 
                     <!-- Right Side Of Navbar -->
@@ -80,6 +84,14 @@
         <main class="py-4">
             @yield('content')
         </main>
+
+        <!-- FOOTER -->
+        <footer class="main-footer">
+            <div class="d-none d-sm-inline mr-1">
+                <strong>{{ Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong>
+            </div>
+            <strong> &copy; Copyright 2023 - Gestor de Traducciones.</strong> All rights reserved.
+        </footer>
     </div>
 </body>
 

@@ -3,10 +3,10 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header">Example Component</div>
+                    <div class="card-header">Home Component</div>
 
                     <div class="card-body">
-                        I'm an example component.
+                        I'm home component.
                     </div>
                 </div>
             </div>
@@ -15,9 +15,11 @@
 </template>
 
 <script>
-    export default {
-        mounted() {
-            console.log('Component mounted.')
-        }
+export default {
+    name: 'home',
+    mounted() {
+        console.log('Home mounted.')
     }
+}
 </script>
+<style lang="scss" scoped></style>
