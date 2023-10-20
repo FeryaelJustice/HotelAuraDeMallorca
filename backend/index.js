@@ -113,14 +113,23 @@ const salt = 10; // password hashing
 
 // MAILS
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
+    host: "smtp-relay.brevo.com",
+    port: 587,
     secure: false,
     auth: {
         user: process.env.MAIL_USERNAME,
         pass: process.env.MAIL_PASSWORD,
     },
+    name: process.env.API_URL
 });
+
+transporter.verify((error, success) => {
+    if (error) {
+        console.log(error);
+    } else {
+        console.log("Server is ready to take our messages");
+    }
+})
 
 // ROUTES
 // if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
@@ -273,7 +282,6 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
     pool.getConnection(async (err, connection) => {
         try {
             const userId = req.params.id;
-
             // Generate a random confirmation token
             const confirmationToken = generateRandomToken();
 
@@ -285,17 +293,18 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
             await updateUserVerificationData(connection, userId, confirmationToken, verificationTokenExpiry);
 
             // Form the verification URL
-            const verificationUrl = `${process.env.FRONT_URL}/user/verifyEmail/${confirmationToken}`;
+            const verificationUrl = `${process.env.FRONT_URL}/userVerification/${confirmationToken}`;
 
             getUserById(connection, userId).then(async userRes => {
                 // Send the email
                 const info = await transporter.sendMail({
                     from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'",
-                    to: userRes.email, // Replace with the actual user's email
+                    to: userRes.user_email, // Replace with the actual user's email
                     subject: 'Email Confirmation', // Subject line
-                    html: `Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a>`, // HTML body
+                    html: `<html><body>Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a></body></html>`, // HTML body
                 });
 
+                console.log(info)
                 console.log("Message sent: %s", info.messageId);
 
                 res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
