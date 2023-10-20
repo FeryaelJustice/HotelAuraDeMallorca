@@ -126,6 +126,45 @@ CREATE TABLE payment (
     FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
 );
 
+-- MEDIAS
+CREATE TABLE media (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    type ENUM ('image', 'video') DEFAULT 'image' NOT NULL,
+    url TEXT NOT NULL
+);
+
+CREATE TABLE user_media (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    media_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_user(id),
+    FOREIGN KEY (media_id) REFERENCES media(id)
+);
+
+CREATE TABLE service_media (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    service_id INT NOT NULL,
+    media_id INT NOT NULL,
+    FOREIGN KEY (service_id) REFERENCES service(id),
+    FOREIGN KEY (media_id) REFERENCES media(id)
+);
+
+CREATE TABLE room_media (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    room_id INT NOT NULL,
+    media_id INT NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES room(id),
+    FOREIGN KEY (media_id) REFERENCES media(id)
+);
+
+CREATE TABLE plan_media (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    plan_id INT NOT NULL,
+    media_id INT NOT NULL,
+    FOREIGN KEY (plan_id) REFERENCES plan(id),
+    FOREIGN KEY (media_id) REFERENCES media(id)
+);
+
 -- RESTRICTIONS
 ALTER TABLE
     `app_user`
@@ -364,6 +403,35 @@ INSERT INTO
 VALUES
     (1, 1, 1, 50.00, '2023-10-23', 1),
     (2, 2, 2, 150.00, '2023-11-10', 1);
+
+-- MEDIAS
+INSERT INTO
+    media (type, url)
+VALUES
+    ('image', 'media/img/image1.jpg');
+
+INSERT INTO
+    user_media (user_id, media_id)
+VALUES
+    (1, 1),
+    (2, 1);
+
+INSERT INTO
+    service_media (service_id, media_id)
+VALUES
+    (1, 1);
+
+INSERT INTO
+    room_media (room_id, media_id)
+VALUES
+    (1, 1),
+    (2, 1);
+
+INSERT INTO
+    plan_media (plan_id, media_id)
+VALUES
+    (1, 1),
+    (2, 1);
 
 -- PROCEDIMIENTOS
 /*
