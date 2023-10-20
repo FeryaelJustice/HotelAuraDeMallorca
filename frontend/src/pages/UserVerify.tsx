@@ -4,6 +4,8 @@ import axios from 'axios';
 const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
 export const UserVerify = () => {
+    
+  console.log('UserVerify function component');
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 
@@ -16,7 +18,7 @@ export const UserVerify = () => {
                 console.error('Error verifying email:', error);
                 setVerificationStatus('error');
             });
-    }, [token]);
+    }, []);
 
     useEffect(() => {
         // Redirect to a different page after verification

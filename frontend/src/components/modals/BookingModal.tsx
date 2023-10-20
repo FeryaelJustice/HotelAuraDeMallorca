@@ -263,7 +263,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 // Asegurarse que corresponde el numero de niños y adultos con lo marcado ahora
                 let countAdults = 0;
                 let countChildren = 0;
-                
+
                 for (let i = 0; i < guests.length; i++) {
                     const guest = guests[i];
                     if (guest.isAdult) {
@@ -273,9 +273,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     }
                 }
 
-                if(countAdults==adults && countChildren==children){
+                if (countAdults == adults && countChildren == children) {
                     setCurrentStep(BookingSteps.StepPaymentMethod);
-                }else{
+                } else {
                     alert("Adults and children are not matching in number with a previous step! Please make it match or change the number of adults/children!")
                 }
                 break;
@@ -419,6 +419,15 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price }))
             })
             setPlans(retrievedPlans)
+            setStripeOptions({
+                mode: 'payment',
+                amount: 200,
+                currency: 'eur',
+                // Fully customizable with appearance API.
+                appearance: {
+                    /*...*/
+                },
+            })
         }).catch
             (err => console.error(err))
     }, [])
