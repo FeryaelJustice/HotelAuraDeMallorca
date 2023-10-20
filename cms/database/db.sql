@@ -77,7 +77,7 @@ VALUES
         'Gonzalez Serr',
         'fer@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
-        false
+        true
     );
 
 -- INSERTS en la tabla app_page
@@ -111,11 +111,12 @@ VALUES
     -- Vacalia - English
     (5, 2, 2),
     -- Vacalia - Spanish
-    (6, 2, 1),
-    -- Aura de Mallorca - Spanish
+    (6, 2, 3),
+    -- Vacalia - Spanish
     (7, 3, 2),
-    -- Aura de Mallorca - English
+    -- Aura de Mallorca - Spanish
     (8, 3, 1);
+    -- Aura de Mallorca - English
 
 -- INSERTS en la tabla section
 INSERT INTO
