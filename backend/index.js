@@ -427,7 +427,7 @@ const getUserById = (connection, userId) => {
 };
 
 // Send contact form
-expressRouter.post('/user/sendContactForm', async (req, res) => {
+expressRouter.post('/sendContactForm', async (req, res) => {
     try {
         let formData = req.body;
         const info = await transporter.sendMail({
@@ -438,10 +438,10 @@ expressRouter.post('/user/sendContactForm', async (req, res) => {
             html: "<pre>" + formData.message + "</pre>", // html body
         });
         console.log("Message sent: %s", info.messageId);
-        res.status(200).send({ status: "success", msg: "Email confirmation sent!" });
+        res.status(200).send({ status: "success", msg: "Your message was sent!" });
     } catch (error) {
         console.error(error)
-        res.status(500).send({ status: "error", msg: "Email couldn't be sent!" });
+        res.status(500).send({ status: "error", msg: "Message couldn't be sent!" });
     }
 })
 
