@@ -15,7 +15,8 @@
         "build": "vite build",
         "watch": "vite build --watch",
         "start": "php artisan serve",
-        "optimize": "php artisan optimize:clear"
+        "optimize": "php artisan optimize:clear",
+        "laravel:route-cache": "php artisan route:cache"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.8",

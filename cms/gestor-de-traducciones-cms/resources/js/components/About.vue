@@ -23,7 +23,7 @@
 export default {
     name: 'about',
     mounted() {
-        console.log('About mounted.')
+        // console.log('About mounted.')
     }
 }
 </script>

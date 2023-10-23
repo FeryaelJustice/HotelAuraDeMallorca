@@ -17,3 +17,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('', function () {
+    return Response::json(['status' => 'success', 'message' => 'Working correctly'], 200);
+});
+
+Route::prefix('languages')->group(function () {
+    Route::get('', [\App\Http\Controllers\LangController::class, 'getLanguages']);
+});

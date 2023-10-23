@@ -17,34 +17,35 @@
                                 <label for="pagesection">Sección de la página</label>
                                 <input type="text" id="pagesection" name="pagesection">
                             </fieldset>
-                            <fieldset>
+                            <fieldset v-if="languages">
                                 <legend>Traducciones</legend>
                                 <div class="languageSelect">
                                     <div class="myRow">
-                                        <div v-for="language in LanguagesEnum" :key="language" style="margin-left:10px">
+                                        <div v-for="language in languages" :key="language.lang_code"
+                                            style="margin-left:10px">
                                             <button type="button" class="btn btn-dark btn-space"
-                                                @click="changeLanguageFields(language)">{{
-                                                    language.toUpperCase() }}</button>
+                                                @click="changeLanguageFields(language.lang_code)">{{
+                                                    language.lang_name }}</button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="language-selection" v-for="language in LanguagesEnum" :key="language">
-                                    <transtion name="fade">
-                                        <div v-if="language == currentLanguage">
-                                            <div v-if="language === 'es'">
+                                <div class="language-selection" v-for="language in languages" :key="language.lang_code">
+                                    <transition name="fade">
+                                        <div v-if="language.lang_code == currentLanguage">
+                                            <div v-if="language.lang_code === 'es'">
                                                 Español
                                             </div>
-                                            <div v-else-if="language === 'en'">
+                                            <div v-else-if="language.lang_code === 'en'">
                                                 English
                                             </div>
-                                            <div v-else-if="language === 'ca'">
+                                            <div v-else-if="language.lang_code === 'ca'">
                                                 Catalan
                                             </div>
-                                            <div v-else-if="language === 'de'">
+                                            <div v-else-if="language.lang_code === 'de'">
                                                 German
                                             </div>
                                         </div>
-                                    </transtion>
+                                    </transition>
                                 </div>
                             </fieldset>
                         </form>
@@ -56,13 +57,16 @@
 </template>
 
 <script>
+import axios from "axios";
 import { LanguagesEnum } from "./../util/enums";
+const API_URL = "/api";
 export default {
     name: 'home',
     data() {
         return {
             currentLanguage: 'es',
             LanguagesEnum,
+            languages: []
         }
     },
     methods: {
@@ -71,7 +75,13 @@ export default {
         },
     },
     mounted() {
-        console.log('Home mounted.')
+        axios.get(API_URL + '/languages').then(response => {
+            if (response.data) {
+                this.languages = response.data.data;
+            } else {
+                console.error("No data in response.");
+            }
+        }).catch(err => console.error(err))
     }
 }
 </script>
