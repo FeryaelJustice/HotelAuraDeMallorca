@@ -25,14 +25,39 @@
     padding-left: 20px;
 }
 
+#vuenav a{
+    padding-left: 8px;
+}
+
 .main-footer{
     position: fixed;
     bottom: 0;
-    background-color: black;
-    color:white;
+    border-top: 1px solid #000000;
+    background-color: white;
+    box-shadow: 10px 10px 10px 6px #000000;
+    color:black;
     width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+#about{
+    width:100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.about-text{
+    width: 100%;
+    text-align: center;
+    text-wrap: balance;
+}
+
+.about-mail{
+    width: 100%;
+    text-align: center;
 }

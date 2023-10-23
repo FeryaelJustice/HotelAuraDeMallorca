@@ -1,12 +1,17 @@
 <template>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">About Component</div>
+                    <div class="card-header">Sobre nosotros</div>
 
-                    <div class="card-body">
-                        I'm about component.
+                    <div class="card-body" id="about">
+                        <p class="about-text">
+                            Somos tu gestor de traducciones de confianza para tu sitio web.
+                            Creado por Fernando González Serrano en 2023.
+                        </p>
+                        <br>
+                        <a class="about-mail" href="mailto:nano9gs@hotmail.es">Correo de Feryael Justice</a>
                     </div>
                 </div>
             </div>

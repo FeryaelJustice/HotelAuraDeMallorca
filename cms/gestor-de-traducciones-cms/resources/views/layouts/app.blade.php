@@ -36,7 +36,7 @@
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
-                    <ul class="navbar-nav me-auto">
+                    <ul class="navbar-nav me-auto" id="vuenav">
                         <router-link to="/">Home</router-link>
                         <router-link to="/about">About</router-link>
                     </ul>
