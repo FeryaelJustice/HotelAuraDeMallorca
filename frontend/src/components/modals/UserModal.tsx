@@ -23,11 +23,10 @@ enum UserModalScreens {
 // Axios request properties
 const axiosHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': '',
     'Accept': 'application/json',
     'Access-Control-Allow-Origin': '*'
 }
-axios.defaults.withCredentials = true;
+// axios.defaults.withCredentials = true;
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const handleClose = () => {
@@ -78,8 +77,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const deleteAccount = () => {
         // Delete account
-        axios.delete(API_URL + '/api/');
-        axios.delete(API_URL + '/api/user/' + currentUser.id).then(response => {
+        axios.delete(API_URL + '/api/user/' + currentUser.id, {
+            headers: {
+                Authorization: cookies.token
+            }
+        }).then(response => {
             if (response.data.status == "success") {
                 alert(response.data.message)
                 // Remove cookies

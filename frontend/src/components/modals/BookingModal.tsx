@@ -52,7 +52,7 @@ const axiosHeaders = {
     'Accept': 'application/json',
     'Access-Control-Allow-Origin': '*',
 }
-axios.defaults.withCredentials = true;
+// axios.defaults.withCredentials = true;
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {

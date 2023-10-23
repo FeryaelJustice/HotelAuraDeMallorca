@@ -1,3 +1,4 @@
+// DEPENDENCIES
 const express = require('express')
 const expressRouter = express.Router()
 const morgan = require('morgan')
@@ -16,27 +17,22 @@ const nodemailer = require("nodemailer");
 
 // Init server
 const app = express();
+
 // JSON enable
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
+
 // CORS
 const corsOptions = {
-    origin: process.env.FRONT_URL,
+    //origin: process.env.FRONT_URL,
+    origin: '*',
     credentials: true, //access-control-allow-credentials:true
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     preflightContinue: true,
     optionsSuccessStatus: 200,
 }
 app.use(cors(corsOptions));
-// Middleware ensure CORS
-// app.use((req, res, next) => {
-//     res.header('Access-Control-Allow-Origin', process.env.API_URL);
-//     res.header('Access-Control-Allow-Credentials', true);
-//     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-//     next();
-// });
-// Routes
-app.use('/api/', expressRouter)
+
 // Cookies and compression
 app.use(cookieParser());
 app.use(compression())
@@ -61,7 +57,6 @@ const pool = mysql.createPool({
         };
     }
 })
-
 function logFormedSQL(sql) {
     console.log('Formed SQL statement:', sql);
 }
@@ -73,7 +68,11 @@ const jwtSecretKey = 'jwt-secret-key'
 const verifyUser = (req, res, next) => {
     let token = '';
     if (!req.cookies) {
-        token = req.body.token;
+        if (!req.headers.authorization) {
+            token = req.body.token;
+        } else {
+            token = req.headers.authorization;
+        }
     } else {
         token = req.cookies.token;
     }
@@ -85,26 +84,6 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
                 req.id = decoded.userID;
-                next();
-            }
-        })
-    }
-}
-const getJWTUser = (req, res, next) => {
-    let token = '';
-    if (!req.cookies) {
-        token = req.body.token;
-    } else {
-        token = req.cookies.token;
-    }
-    if (!token) {
-        return res.status(401).json({ status: "error", msg: "No token." })
-    } else {
-        jwt.verify(token, jwtSecretKey, (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
-            } else {
-                req.jwt = decoded;
                 next();
             }
         })
@@ -136,6 +115,7 @@ transporter.verify((error, success) => {
 
 // ROUTES
 // if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
+app.use('/api/', expressRouter)
 
 app.get('/', verifyUser, (req, res) => {
     let test = process.env.NODE_ENV + ' ' + process.env.API_URL;
@@ -234,31 +214,24 @@ expressRouter.post('/editprofile/:id', (req, res) => {
     });
 })
 
-expressRouter.delete('', (req, res) => {
-    res.status(200).send({ status: "success", message: `User deleted` });
-})
-
-expressRouter.delete('/user/:id', getJWTUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        let userID = req.body.id;
-        let sql = 'DELETE FROM app_user WHERE id = ?';
-        let values = [userID];
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        connection.query(sql, values, (error, results, fields) => {
-            if (error) {
-                console.error(error);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
-            }
+expressRouter.delete('/user/:id', verifyUser, (req, res) => {
+    const userID = req.id;
+    deleteBookingByUserID()
+        .then(() => deletePaymentByUserID(userID))
+        .then(() => deleteUserRoleByUserID(userID))
+        .then(() => deleteUserMediaByUserID(userID))
+        .then(() => deleteUserByUserID(userID))
+        .then(() => {
             res.status(200).send({ status: "success", message: `User ${userID} deleted` });
+        })
+        .catch((error) => {
+            console.error(error);
+            res.status(500).send({ status: "error", error: 'Internal server error' });
         });
-    });
 })
 
-expressRouter.post('/currentUser', getJWTUser, (req, res) => {
-    return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.jwt.userID })
+expressRouter.post('/currentUser', verifyUser, (req, res) => {
+    return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.id })
 })
 
 expressRouter.get('/loggedUser/:id', (req, res) => {
@@ -433,7 +406,7 @@ const getUserById = (connection, userId) => {
     });
 };
 
-// Send contact form
+// CONTACT FORM
 expressRouter.post('/sendContactForm', async (req, res) => {
     try {
         let formData = req.body;
@@ -801,7 +774,6 @@ expressRouter.post('/booking', (req, res) => {
 });
 
 // PAYMENT
-// Booking
 expressRouter.post('/payment', (req, res) => {
     pool.getConnection((err, connection) => {
         let data = req.body;
@@ -863,7 +835,90 @@ expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
     });
 })
 
-// Listen SERVER
+// DELETES
+// By user ID
+function deleteUserByUserID(userID) {
+    return new Promise((resolve, reject) => {
+        pool.getConnection((err, connection) => {
+            if (err) {
+                reject(err);
+            } else {
+                const sql = 'DELETE FROM app_user WHERE id = ?';
+                const values = [userID];
+                connection.query(sql, values, (err, results, fields) => {
+                    connection.release(); // Release the connection
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+        });
+    });
+}
+
+function deleteBookingByUserID(userID) {
+    return new Promise((resolve, reject) => {
+        const sql = 'DELETE FROM booking WHERE user_id = ?';
+        const values = [userID];
+
+        pool.query(sql, values, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function deletePaymentByUserID(userID) {
+    return new Promise((resolve, reject) => {
+        const sql = 'DELETE FROM payment WHERE user_id = ?';
+        const values = [userID];
+
+        pool.query(sql, values, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function deleteUserRoleByUserID(userID) {
+    return new Promise((resolve, reject) => {
+        const sql = 'DELETE FROM user_role WHERE user_id = ?';
+        const values = [userID];
+
+        pool.query(sql, values, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function deleteUserMediaByUserID(userID) {
+    return new Promise((resolve, reject) => {
+        const sql = 'DELETE FROM user_media WHERE user_id = ?';
+        const values = [userID];
+
+        pool.query(sql, values, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Listen SERVER (RUN)
 const port = process.env.PORT || 3000
 app.listen(port, () => {
     console.log(`Hotel Aura de Mallorca SERVER listening on port ${port}`)
