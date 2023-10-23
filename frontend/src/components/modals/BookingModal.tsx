@@ -490,9 +490,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             let servicess = res.data.data;
             let retrievedServices: Service[] = [];
             servicess.forEach((service: any) => {
-                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end) }))
+                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: null }))
             })
             setServices(retrievedServices)
+
             // Create an array of key-value pairs for selectedServicesIDs
             const keyValuePairArray = retrievedServices.map(service => ({
                 [service.id ? service.id : (Math.random() * (retrievedServices.length - 0))]: false
@@ -501,6 +502,23 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             const selectedServicesObject = Object.assign({}, ...keyValuePairArray);
             // Update the state with the object
             setSelectedServicesIDs(selectedServicesObject);
+
+            // Get and set services images
+            axios.post(API_URL + '/api/servicesImages', { services: servicess }).then(res => {
+                const responseData = res.data.data;
+
+                // Update the imageURL property of matching services
+                setServices((prevServices) => {
+                    return prevServices.map((service) => {
+                        const matchingData = responseData.find((data: any) => data.serviceID === service.id);
+                        if (matchingData) {
+                            return { ...service, imageURL: API_URL + "/" + matchingData.mediaURL };
+                        }
+                        return service; // No match found, return the original service
+                    });
+                });
+
+            }).catch(err => { console.error(err) });
         }).catch
             (err => console.error(err))
     }, []);
@@ -865,7 +883,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card>
+                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover' }}>
                                             <Card.Body>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>

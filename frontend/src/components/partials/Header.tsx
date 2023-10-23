@@ -21,9 +21,10 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     useEffect(() => {
         if (cookies.token) {
             axios.post(API_URL + '/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
-                console.log(response.data)
-                let picURL = API_URL + "/" + response.data.photoURL;
-                setUserPhotoURL(picURL)
+                if (response && response.data && response.data.status != "error") {
+                    let picURL = API_URL + "/" + response.data.photoURL;
+                    setUserPhotoURL(picURL)
+                }
             }).catch((err: any) => console.error(err))
         }
     }, [cookies])

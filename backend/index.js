@@ -67,15 +67,15 @@ const jwtSecretKey = 'jwt-secret-key'
 // Verify user JWT
 const verifyUser = (req, res, next) => {
     let token = '';
-    if (!req.cookies) {
-        if (!req.headers.authorization) {
-            token = req.body.token;
-        } else {
-            token = req.headers.authorization;
-        }
+    //if (!req.cookies) {
+    if (!req.headers.authorization) {
+        token = req.body.token;
     } else {
-        token = req.cookies.token;
+        token = req.headers.authorization;
     }
+    // } else {
+    //     token = req.cookies.token;
+    // }
     if (!token) {
         return res.status(401).json({ status: "error", msg: "You are not authenticated, forbidden." })
     } else {
@@ -532,6 +532,55 @@ expressRouter.get('/service/:id', (req, res) => {
     });
 })
 
+expressRouter.post('/servicesImages', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+
+        const services = req.body.services;
+        let servicesMedias = [];
+        const promises = [];
+
+        for (service of services) {
+            const serviceMediaQuery = new Promise((resolve, reject) => {
+                const serviceID = service.id;
+                connection.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        if (results && results.length > 0) {
+                            connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
+                                    resolve();
+                                }
+                            });
+                        } else {
+                            resolve("no services media");
+                        }
+                    }
+                });
+            });
+            promises.push(serviceMediaQuery);
+        }
+        Promise.all(promises)
+            .then(() => {
+                res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
+            })
+            .catch(error => {
+                console.error(error);
+                res.status(500).send({ status: "error", msg: "Error in processing data" });
+            })
+            .finally(() => {
+                connection.release();
+            });
+    });
+})
+
 // PAYMENT METHODS
 expressRouter.get('/paymentmethods', (req, res) => {
     pool.getConnection((err, connection) => {
@@ -825,12 +874,16 @@ expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
             if (error) {
                 return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
-                if (error) {
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
-            });
+            if (results && results.length > 0) {
+                connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
+                    if (error) {
+                        return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                    }
+                    res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
+                });
+            } else {
+                return res.status(200).send({ status: "error", error: 'No user logo' });;
+            }
         })
     });
 })
