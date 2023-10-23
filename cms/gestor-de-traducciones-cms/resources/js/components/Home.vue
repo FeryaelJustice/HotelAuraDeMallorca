@@ -6,23 +6,33 @@
                     <div class="card-header">Formulario de gestor de traducciones para tu web</div>
 
                     <div class="card-body">
+                        <h2>Administra tus traducciones</h2>
+                        <span><em>Tienes que poner los nombres de la página y seccion exactamente igual a como los utilizas
+                                en el código de tu web.</em></span>
                         <form action="" id="form" @submit.prevent="onSubmit">
                             <fieldset>
                                 <legend>Página</legend>
                                 <label for="pagename">Nombre de la página</label>
-                                <input type="text" id="pagename" name="pagename" v-model="page" required>
+                                <input type="text" id="pagename" name="pagename" v-model="page" list="pages" required>
+                                <datalist id="pages">
+                                    <option v-for="page in pages" :key="page.id" :value="page.app_page_name"></option>
+                                </datalist>
                             </fieldset>
                             <fieldset>
                                 <legend>Sección</legend>
                                 <label for="pagesection">Sección de la página</label>
-                                <input type="text" id="pagesection" name="pagesection" v-model="section" required>
+                                <input type="text" id="pagesection" name="pagesection" v-model="section" list="sections"
+                                    required>
+                                <datalist id="sections">
+                                    <option v-for="section in sections" :key="section.id" :value="section.section_name">
+                                    </option>
+                                </datalist>
                             </fieldset>
                             <fieldset v-if="languages && languages[0]">
                                 <legend>Traducciones</legend>
                                 <div class="languageSelect">
                                     <div class="myRow">
-                                        <div v-for="language in languages" :key="language.lang_code"
-                                            style="margin-left:10px">
+                                        <div v-for="language in languages" :key="language.lang_code">
                                             <button type="button" class="btn btn-dark btn-space"
                                                 @click="changeLanguageFields(language.lang_code)">{{
                                                     language.lang_name }}</button>
@@ -69,6 +79,7 @@
                         </form>
                     </div>
                 </div>
+                <br>
             </div>
         </div>
     </div>
@@ -85,6 +96,8 @@ export default {
             currentLanguage: 'es',
             LanguagesEnum,
             languages: [],
+            pages: [],
+            sections: [],
             page: '',
             section: '',
             literal_es: '',
@@ -131,10 +144,50 @@ export default {
                 console.error("No data in response.");
             }
         }).catch(err => console.error(err))
+
+        axios.get(API_URL + '/pages').then(response => {
+            if (response.data) {
+                this.pages = response.data.data;
+            } else {
+                console.error("No data in response.");
+            }
+        }).catch(err => console.error(err))
+
+        axios.get(API_URL + '/sections').then(response => {
+            if (response.data) {
+                this.sections = response.data.data;
+            } else {
+                console.error("No data in response.");
+            }
+        }).catch(err => console.error(err))
     }
 }
 </script>
 <style lang="scss" scoped>
+.card {
+    min-height: 80vh;
+}
+
+.card-body {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    h2 {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    >span {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+}
+
 #form {
     width: 100%;
     display: flex;
@@ -148,6 +201,10 @@ export default {
     flex-direction: row;
     justify-content: center;
     align-items: center;
+
+    div {
+        margin-left: 10px;
+    }
 }
 
 fieldset {
@@ -165,5 +222,16 @@ fieldset {
 #submit {
     margin-top: 24px;
     border-radius: 6px;
+}
+
+@media screen and (max-width: 400px) {
+    .myRow {
+        flex-direction: column;
+
+        div {
+            margin-left: 0;
+            margin-bottom: 8px;
+        }
+    }
 }
 </style>
