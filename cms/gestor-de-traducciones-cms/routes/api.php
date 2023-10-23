@@ -25,3 +25,7 @@ Route::get('', function () {
 Route::prefix('languages')->group(function () {
     Route::get('', [\App\Http\Controllers\LangController::class, 'getLanguages']);
 });
+
+Route::prefix('translations')->group(function () {
+    Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
+});

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Lang;
 use Illuminate\Support\Facades\Response;
+use App\Models\Lang;
 
 class LangController extends Controller
 {
