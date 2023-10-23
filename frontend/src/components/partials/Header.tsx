@@ -18,7 +18,6 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     const [cookies] = useCookies(['token']);
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
-    // Al iniciarlo, solo una vez, hacer...
     useEffect(() => {
         if (cookies.token) {
             axios.post(API_URL + '/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
@@ -27,7 +26,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                 setUserPhotoURL(picURL)
             }).catch((err: any) => console.error(err))
         }
-    }, [])
+    }, [cookies])
 
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {
