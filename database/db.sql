@@ -12,7 +12,9 @@ CREATE TABLE app_user (
     user_password_hash VARCHAR(255),
     user_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(255),
-    verification_token_expiry TIMESTAMP
+    verification_token_expiry TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table app_user
@@ -21,13 +23,17 @@ CREATE TABLE guest (
     guest_name VARCHAR(255),
     guest_surnames VARCHAR(255),
     guest_email VARCHAR(255),
-    isAdult CHAR(1) NOT NULL
+    isAdult CHAR(1) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table role
 CREATE TABLE role (
     id INT PRIMARY KEY,
-    name ENUM('CLIENT', 'ADMIN', 'EMPLOYEE') NOT NULL
+    name ENUM('CLIENT', 'ADMIN', 'EMPLOYEE') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table user_role
@@ -35,6 +41,8 @@ CREATE TABLE user_role (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
     role_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (role_id) REFERENCES role(id)
 );
@@ -44,7 +52,9 @@ CREATE TABLE plan (
     id INT PRIMARY KEY,
     plan_name VARCHAR(255),
     plan_description TEXT,
-    plan_price DECIMAL(10, 2)
+    plan_price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table room
@@ -54,7 +64,9 @@ CREATE TABLE room (
     room_description TEXT,
     room_price DECIMAL(10, 2),
     room_availability_start DATE,
-    room_availability_end DATE
+    room_availability_end DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table service
@@ -64,7 +76,9 @@ CREATE TABLE service (
     serv_description TEXT,
     serv_price DECIMAL(10, 2),
     serv_availability_start DATE,
-    serv_availability_end DATE
+    serv_availability_end DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table booking
@@ -75,6 +89,8 @@ CREATE TABLE booking (
     room_id INT,
     booking_start_date DATE,
     booking_end_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (plan_id) REFERENCES plan(id),
     FOREIGN KEY (room_id) REFERENCES room(id)
@@ -85,6 +101,8 @@ CREATE TABLE booking_service (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     service_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES booking(id),
     FOREIGN KEY (service_id) REFERENCES service(id)
 );
@@ -94,6 +112,8 @@ CREATE TABLE booking_guest (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     guest_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES booking(id),
     FOREIGN KEY (guest_id) REFERENCES guest(id)
 );
@@ -104,13 +124,17 @@ CREATE TABLE weather (
     weather_date DATE,
     weather_state VARCHAR(255),
     affected_service_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (affected_service_id) REFERENCES service(id)
 );
 
 -- Create the table payment method
 CREATE TABLE payment_method (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    payment_method_name VARCHAR(255)
+    payment_method_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table payment (transaction)
@@ -121,6 +145,8 @@ CREATE TABLE payment (
     payment_amount DECIMAL(10, 2),
     payment_date DATE,
     payment_method_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (booking_id) REFERENCES booking(id),
     FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
@@ -130,13 +156,17 @@ CREATE TABLE payment (
 CREATE TABLE media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     type ENUM ('image', 'video') DEFAULT 'image' NOT NULL,
-    url TEXT NOT NULL
+    url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE user_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
     media_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (media_id) REFERENCES media(id)
 );
@@ -145,6 +175,8 @@ CREATE TABLE service_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     service_id INT NOT NULL,
     media_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (service_id) REFERENCES service(id),
     FOREIGN KEY (media_id) REFERENCES media(id)
 );
@@ -153,6 +185,8 @@ CREATE TABLE room_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     room_id INT NOT NULL,
     media_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (room_id) REFERENCES room(id),
     FOREIGN KEY (media_id) REFERENCES media(id)
 );
@@ -161,6 +195,8 @@ CREATE TABLE plan_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     plan_id INT NOT NULL,
     media_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (plan_id) REFERENCES plan(id),
     FOREIGN KEY (media_id) REFERENCES media(id)
 );

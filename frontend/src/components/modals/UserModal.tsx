@@ -78,7 +78,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const deleteAccount = () => {
         // Delete account
-        axios.delete(API_URL + '/user/' + currentUser.id).then(response => {
+        axios.delete(API_URL + '/api/');
+        axios.delete(API_URL + '/api/user/' + currentUser.id).then(response => {
             if (response.data.status == "success") {
                 alert(response.data.message)
                 // Remove cookies

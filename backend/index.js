@@ -12,7 +12,7 @@ require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
 const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
 const nodemailer = require("nodemailer");
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid');
 
 // Init server
 const app = express();
@@ -21,10 +21,11 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 // CORS
 const corsOptions = {
-    origin: process.env.API_URL,
+    origin: process.env.FRONT_URL,
     credentials: true, //access-control-allow-credentials:true
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'],
-    optionSuccessStatus: 200
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    preflightContinue: true,
+    optionsSuccessStatus: 200,
 }
 app.use(cors(corsOptions));
 // Middleware ensure CORS
@@ -231,6 +232,10 @@ expressRouter.post('/editprofile/:id', (req, res) => {
             res.status(200).send({ status: "success", insertId: results.insertId });
         });
     });
+})
+
+expressRouter.delete('', (req, res) => {
+    res.status(200).send({ status: "success", message: `User deleted` });
 })
 
 expressRouter.delete('/user/:id', getJWTUser, (req, res) => {
@@ -766,8 +771,6 @@ expressRouter.post('/booking', (req, res) => {
                             bookingGuestsValues.push([bkInsertID, guestId]);
                         }
                     });
-
-                    console.log(bookingGuestsValues)
 
                     // Check if there are any booking guests to insert
                     if (bookingGuestsValues.length > 0) {
