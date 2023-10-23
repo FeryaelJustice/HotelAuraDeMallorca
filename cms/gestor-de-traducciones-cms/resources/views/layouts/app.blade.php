@@ -24,7 +24,7 @@
 <body class="antialiased">
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-            <div class="container">
+            <div class="container" id="nav">
                 <a class="navbar-brand" href="{{ url('/') }}">
                     {{ config('app.name', 'Laravel') }}
                 </a>
@@ -81,16 +81,16 @@
             </div>
         </nav>
 
-        <main class="py-4">
+        <main class="py-4 px-4" id="main">
             @yield('content')
         </main>
 
         <!-- FOOTER -->
         <footer class="main-footer">
             <div class="d-none d-sm-inline mr-1">
-                <strong>{{ Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong>
+                <strong>{{ Carbon\Carbon::now()->format('d/m/Y H:i') }} </strong>
             </div>
-            <strong> &copy; Copyright 2023 - Gestor de Traducciones.</strong> All rights reserved.
+            <strong> &copy; Copyright 2023 - Gestor de Traducciones.</strong>
         </footer>
     </div>
 </body>
