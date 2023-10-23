@@ -13,7 +13,8 @@
                             <fieldset>
                                 <legend>Página</legend>
                                 <label for="pagename">Nombre de la página</label>
-                                <input type="text" id="pagename" name="pagename" v-model="page" list="pages" required>
+                                <input type="text" maxlength="100" id="pagename" name="pagename" v-model="page" list="pages"
+                                    required>
                                 <datalist id="pages">
                                     <option v-for="page in pages" :key="page.id" :value="page.app_page_name"></option>
                                 </datalist>
@@ -21,8 +22,8 @@
                             <fieldset>
                                 <legend>Sección</legend>
                                 <label for="pagesection">Sección de la página</label>
-                                <input type="text" id="pagesection" name="pagesection" v-model="section" list="sections"
-                                    required>
+                                <input type="text" maxlength="200" id="pagesection" name="pagesection" v-model="section"
+                                    list="sections" required>
                                 <datalist id="sections">
                                     <option v-for="section in sections" :key="section.id" :value="section.section_name">
                                     </option>
@@ -46,29 +47,29 @@
                                                 <br>
                                                 <span>ESPAÑOL - </span>
                                                 <label for="literal_es"></label>
-                                                <input type="text" id="literal_es" name="literal_es" v-model="literal_es"
-                                                    required>
+                                                <input type="textarea" maxlength="100000" id="literal_es" name="literal_es"
+                                                    v-model="literal_es" required>
                                             </div>
                                             <div v-else-if="language.lang_code === 'en'">
                                                 <br>
                                                 <span>ENGLISH - </span>
                                                 <label for="literal_en"></label>
-                                                <input type="text" id="literal_en" name="literal_en" v-model="literal_en"
-                                                    required>
+                                                <input type="textarea" maxlength="100000" id="literal_en" name="literal_en"
+                                                    v-model="literal_en" required>
                                             </div>
                                             <div v-else-if="language.lang_code === 'ca'">
                                                 <br>
                                                 <span>CATALAN - </span>
                                                 <label for="literal_ca"></label>
-                                                <input type="text" id="literal_ca" name="literal_ca" v-model="literal_ca"
-                                                    required>
+                                                <input type="textarea" maxlength="100000" id="literal_ca" name="literal_ca"
+                                                    v-model="literal_ca" required>
                                             </div>
                                             <div v-else-if="language.lang_code === 'de'">
                                                 <br>
                                                 <span>GERMAN - </span>
                                                 <label for="literal_de"></label>
-                                                <input type="text" id="literal_de" name="literal_de" v-model="literal_de"
-                                                    required>
+                                                <input type="textarea" maxlength="100000" id="literal_de" name="literal_de"
+                                                    v-model="literal_de" required>
                                             </div>
                                         </div>
                                     </transition>
@@ -131,8 +132,12 @@ export default {
                 }
             }
             axios.post(API_URL + '/translations/create', data).then(res => {
-                console.log(res)
-            }).catch(err => console.error(err))
+                 alert(res.data.message)
+            }).catch(err => {
+                console.error(err)
+                alert('Ha ocurrido un error realizando la inserción')
+            }
+            )
             this.resetForm();
         }
     },

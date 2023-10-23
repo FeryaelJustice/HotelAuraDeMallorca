@@ -18,25 +18,30 @@ class TranslationsController extends Controller
         $section = Section::where('section_name', $postData['section'])->first();
 
         if (!$page) {
-            return Response::json(['status' => '404', 'message' => 'Page not found']);
+            return Response::json(['status' => '404', 'message' => 'Page not found'], 200);
         }
 
         if (!$section) {
-            return Response::json(['status' => '404', 'message' => 'Section not found']);
+            return Response::json(['status' => '404', 'message' => 'Section not found'], 200);
         }
 
         $literals = $postData['literals'];
 
-        foreach ($literals as $literal) {
-            $literalObj = new Literal();
-            $literalObj->literal_text = $literal;
-            $literalObj->save();
-            $literalID = $literalObj->id;
-            // Check if $section exists before inserting into the section_literal table
-            if ($section && $literalObj) {
-                DB::table('section_literal')->insert(array('section_id' => $section->id, 'literal_id' => $literalID));
+        try {
+            foreach ($literals as $literal) {
+                $literalObj = new Literal();
+                $literalObj->literal_text = $literal;
+                $literalObj->save();
+                $literalID = $literalObj->id;
+                // Check if $section exists before inserting into the section_literal table
+                if ($section && $literalObj) {
+                    DB::table('section_literal')->insert(array('section_id' => $section->id, 'literal_id' => $literalID));
+                }
             }
+            return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
+        } catch (\Exception $e) {
+            return Response::json(['status' => '404', 'message' => 'Error inserting'], 404);
         }
-        return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
+
     }
 }
