@@ -132,7 +132,7 @@ export default {
                 }
             }
             axios.post(API_URL + '/translations/create', data).then(res => {
-                 alert(res.data.message)
+                alert(res.data.message)
             }).catch(err => {
                 console.error(err)
                 alert('Ha ocurrido un error realizando la inserción')
