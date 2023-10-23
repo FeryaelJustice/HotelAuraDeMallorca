@@ -7,12 +7,36 @@ use Illuminate\Support\Facades\Response;
 use App\Models\Literal;
 use App\Models\Section;
 use App\Models\Page;
+use Illuminate\Support\Facades\DB;
 
 class TranslationsController extends Controller
 {
-    public function createTranslation()
+    public function createTranslation(Request $request)
     {
-        // $languages = Lang::orderBy("lang_name")->get();
+        $postData = $request->all();
+        $page = Page::where('app_page_name', $postData['page'])->first();
+        $section = Section::where('section_name', $postData['section'])->first();
+
+        if (!$page) {
+            return Response::json(['status' => '404', 'message' => 'Page not found']);
+        }
+
+        if (!$section) {
+            return Response::json(['status' => '404', 'message' => 'Section not found']);
+        }
+
+        $literals = $postData['literals'];
+
+        foreach ($literals as $literal) {
+            $literalObj = new Literal();
+            $literalObj->literal_text = $literal;
+            $literalObj->save();
+            $literalID = $literalObj->id;
+            // Check if $section exists before inserting into the section_literal table
+            if ($section && $literalObj) {
+                DB::table('section_literal')->insert(array('section_id' => $section->id, 'literal_id' => $literalID));
+            }
+        }
         return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
     }
 }

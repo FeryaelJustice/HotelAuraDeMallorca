@@ -8,4 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Literal extends Model
 {
     use HasFactory;
+    protected $table = 'literal';
+    protected $primaryKey = 'id';
+    protected $fillable = [
+        'literal_text',
+    ];
 }
