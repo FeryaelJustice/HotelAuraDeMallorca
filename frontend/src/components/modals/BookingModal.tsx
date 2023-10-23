@@ -289,7 +289,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         try {
                             // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
                             const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
-                            console.log('Registered successfully', res);
                             const newUserAllData: User = {
                                 id: res.data.insertId,
                                 ...userToCreate,
@@ -339,6 +338,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 }).catch(err => {
                                     console.error(err)
                                     setCurrentStep(BookingSteps.StepConfirmation);
+                                    if (err.response.data && err.response.data.msg) {
+                                        alert(err.response.data.msg)
+                                    }
                                 })
                                 //if (paymentResponse.data.status == "success") {
                                 //}
@@ -776,11 +778,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 <Col md={6}>
                                     <h3>Start date</h3>
-                                    <Calendar onChange={onChangeStartDate} value={startDate} />
+                                    <Calendar minDate={new Date()} onChange={onChangeStartDate} value={startDate} />
                                 </Col>
                                 <Col md={6}>
                                     <h3>End date</h3>
-                                    <Calendar onChange={onChangeEndDate} value={endDate} />
+                                    <Calendar minDate={new Date()} onChange={onChangeEndDate} value={endDate} />
                                 </Col>
                             </Row>
                             <br />

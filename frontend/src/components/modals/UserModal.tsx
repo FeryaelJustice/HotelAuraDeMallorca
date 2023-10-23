@@ -128,6 +128,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 console.log("logged successfully" + res)
             }).catch(err => {
                 console.error(err)
+                if (err.response.data && err.response.data.msg) {
+                    alert(err.response.data.msg)
+                }
             })
         }
     }
@@ -184,6 +187,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     });
             }).catch(err => {
                 console.error(err)
+                if (err.response.data && err.response.data.msg) {
+                    alert(err.response.data.msg)
+                }
             })
         }
     }

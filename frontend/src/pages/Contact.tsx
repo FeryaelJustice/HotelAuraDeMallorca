@@ -22,6 +22,9 @@ export const Contact = () => {
             alert(response.data.msg)
         }).catch(error => {
             console.error(error)
+            if (error.response.data && error.response.data.msg) {
+                alert(error.response.data.msg)
+            }
         })
     }
 
@@ -44,7 +47,7 @@ export const Contact = () => {
 
                 <Form.Group className="mb-3" controlId="formBasicMessage">
                     <Form.Label>Message</Form.Label>
-                    <Form.Control type="text" id='message' name='message' maxLength={2000} placeholder="Message" className='input' onChange={(event) => setMessage(event.target.value)}/>
+                    <Form.Control type="text" id='message' name='message' maxLength={2000} placeholder="Message" className='input' onChange={(event) => setMessage(event.target.value)} />
                 </Form.Group>
 
                 <Button variant="primary" type="submit">
