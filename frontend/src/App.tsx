@@ -11,8 +11,6 @@ import UserModal from './components/modals/UserModal';
 import Button from 'react-bootstrap/Button';
 
 function App() {
-  // const url = process.env.REACT_APP_API_URL;
-
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
