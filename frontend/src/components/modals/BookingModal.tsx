@@ -897,13 +897,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             <Card.Body>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>
-                                                    <div>
-                                                        <span>{service.description}</span>
-                                                        <br />
-                                                        <span>{`Price: ${service.price} euros.`}</span>
-                                                        <br />
-                                                        <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
-                                                    </div>
+                                                    <span>{service.description}</span>
+                                                    <br />
+                                                    <span>{`Price: ${service.price} euros.`}</span>
+                                                    <br />
+                                                    <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
                                                 </Card.Text>
                                                 <Form.Check
                                                     type="checkbox"
