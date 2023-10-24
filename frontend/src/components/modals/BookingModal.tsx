@@ -198,6 +198,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
+        console.log(totalPriceToPay)
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
