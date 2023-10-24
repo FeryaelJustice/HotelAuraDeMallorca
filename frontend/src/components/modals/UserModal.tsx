@@ -17,7 +17,6 @@ interface UserModalProps {
 enum UserModalScreens {
     ScreenLogin,
     ScreenRegister,
-    ScreenVerify2FA,
     ScreenEditProfile,
 }
 
@@ -42,7 +41,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             setCurrentUser(new User())
             setUserEdit({ name: '', surnames: '', token: '' });
             setUserLogin({ email: "", password: "" })
-            setUserRegister({ email: "", name: "", surnames: "", password: "" })
+            setUserRegister({ email: "", name: "", surnames: "", password: "", repeatpassword: "" })
         } else {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
         }
@@ -229,7 +228,6 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     // Edit profile
 
     const [userEdit, setUserEdit] = useState({ name: '', surnames: '', token: '' });
-    const [userEditValidated, setUserEditValidated] = useState(false);
 
     const handleSaveEditChange = (event: any) => {
         setUserEdit({ ...userEdit, [event.target.name]: event.target.value });
@@ -240,8 +238,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         event.stopPropagation();
 
         let form = event.currentTarget;
-        setUserEditValidated(userEdit.name != "" && userEdit.surnames != "" && form.checkValidity());
-        if (userEditValidated) {
+        if (userEdit.name != "" && userEdit.surnames != "" && form.checkValidity()) {
             axios.post(API_URL + '/api/edituser/', userEdit, { headers: axiosHeaders }).then(res => {
                 alert(res.data.msg)
                 resetUserModal();
@@ -364,23 +361,12 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 </div>
             )}
 
-            {currentScreen === UserModalScreens.ScreenVerify2FA && (
-                <div>
-                    <h2>
-                        User verify 2fa
-                    </h2>
-                    <Button variant="primary" onClick={onClose}>
-                        Verify
-                    </Button>
-                </div>
-            )}
-
             {currentScreen === UserModalScreens.ScreenEditProfile && (
                 <div>
                     <h2>
                         Edit your profile
                     </h2>
-                    <Form validated={loginValidated} onSubmit={handleSaveEdit}>
+                    <Form onSubmit={handleSaveEdit}>
                         <div className='userEditDetails'>
                             <Form.Group className="mb-3" controlId="formName">
                                 <Form.Label>Name</Form.Label>
