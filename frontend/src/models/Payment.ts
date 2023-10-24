@@ -5,6 +5,7 @@ export class Payment {
   amount: number | null = null;
   date: Date | null = null;
   paymentMethodID: number | null = null;
+  stripeTransactionID: number | null = null;
 
   constructor(payment?: Payment) {
     if (payment) {
@@ -14,6 +15,7 @@ export class Payment {
       this.amount = payment.amount;
       this.date = payment.date;
       this.paymentMethodID = payment.paymentMethodID;
+      this.stripeTransactionID = payment.stripeTransactionID;
     }
   }
 }

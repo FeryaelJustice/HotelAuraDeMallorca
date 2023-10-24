@@ -324,6 +324,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         amount: totalPriceToPay,
                         date: new Date(),
                         paymentMethodID: checkedPaymentMethod,
+                        stripeTransactionID: null,
                     });
 
                     try {
