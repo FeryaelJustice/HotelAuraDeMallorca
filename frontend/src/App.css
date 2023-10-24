@@ -189,13 +189,40 @@ nav a {
   width: 100%;
   background-color: #FFFFFF;
   color: #000000;
-  height: 50px;
+  height: 160px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   font-size: 0.8em;
   padding: 25px 0;
   z-index: 1;
+}
+
+.footer .footer-sides {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 15%;
+}
+
+.footer .footer-sides div {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  width: 500px;
+  overflow: hidden;
+}
+
+.footer .footer-sides div p {
+  align-items: center;
+  text-wrap: balance;
+  word-break: break-word;
 }
 
 .card {
