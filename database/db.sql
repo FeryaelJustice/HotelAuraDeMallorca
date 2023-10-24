@@ -444,7 +444,8 @@ VALUES
 INSERT INTO
     media (type, url)
 VALUES
-    ('image', 'media/img/image1.jpg');
+    ('image', 'media/img/image1.webp'),
+    ('image', 'media/img/user_1.webp');
 
 INSERT INTO
     user_media (user_id, media_id)
