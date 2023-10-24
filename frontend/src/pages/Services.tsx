@@ -41,33 +41,38 @@ export const Services = () => {
 
     return (
         <div className='servicesPage'>
-            <Container>
-                <Row className="mt-12">
-                    <Col>
-                        <h1>Services</h1>
-                    </Col>
-                </Row>
-                <br />
-                {/* Services list */}
-                <Row className="mt-12">
-                    {services.map((service) => (
-                        <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                            <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover' }}>
-                                <Card.Body>
-                                    <Card.Title>{service.name}</Card.Title>
-                                    <Card.Text>
-                                        <span>{service.description}</span>
-                                        <br />
-                                        <span>{`Price: ${service.price} euros.`}</span>
-                                        <br />
-                                        <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Row>
-                    ))}
-                </Row>
-            </Container>
+            <div className='servicesPageBg' />
+            <div className='servicesPageContent' v-if='services'>
+                <Container>
+                    <Row className="mt-12">
+                        <Col>
+                            <h1 className='servicesPageTitle'>Services</h1>
+                        </Col>
+                    </Row>
+                    <br />
+                    {/* Services list */}
+                    <Row className="mt-12">
+                        {services.map((service) => (
+                            <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                >
+                                    <Card.Body>
+                                        <Card.Title>{service.name}</Card.Title>
+                                        <Card.Text>
+                                            <span>{service.description}</span>
+                                            <br />
+                                            <span>{`Price: ${service.price} euros.`}</span>
+                                            <br />
+                                            <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
+                                        </Card.Text>
+                                    </Card.Body>
+                                </Card>
+                            </Row>
+                        ))}
+                    </Row>
+                </Container>
+            </div>
         </div>
     );
 }
