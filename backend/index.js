@@ -679,7 +679,6 @@ expressRouter.post('/checkBookingAvalability', (req, res) => {
                         end: booking.booking_end_date,
                     });
                 });
-                console.log(occupiedRanges)
 
                 const availabilityStart = startDate;
                 const availabilityEnd = endDate;
@@ -710,7 +709,26 @@ expressRouter.post('/checkBookingAvalability', (req, res) => {
 })
 
 // BOOKING !!!
-expressRouter.post('/booking', (req, res) => {
+expressRouter.post('/booking', async (req, res) => {
+    // NEW VERSION
+    try {
+        const data = req.body;
+        const { booking, selectedServicesIDs, guests } = data;
+        const servicesIDs = Object.keys(selectedServicesIDs).map(Number);
+
+        // Create or select guests
+        const guestIds = await createOrSelectGuests(guests);
+
+        // Create a booking
+        const bookingId = await createBooking(booking, guestIds, servicesIDs);
+
+        res.status(200).send({ status: "success", insertId: bookingId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
+    /*
+    // OLD VERSION
     const data = req.body;
     const booking = data.booking;
     const servicesIDs = Object.keys(data.selectedServicesIDs).map(Number)
@@ -918,6 +936,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Release the connection
                     await connection.release();
                 }
+
                 // Send the response outside the finally block
                 return res.status(200).send({ status: "success", insertId: bkInsertID });
             });
@@ -925,14 +944,125 @@ expressRouter.post('/booking', (req, res) => {
             console.error(error);
         })
     }).catch(err => console.error(err))
+    */
 });
+
+// Booking functions
+async function createOrSelectGuests(guests) {
+    const existingGuests = guests.filter(guest => guest.id !== null);
+    const existingGuestIds = existingGuests.map(guest => guest.id);
+
+    const [guestIdMap, guestsToInsert] = await Promise.all([
+        selectGuestIds(existingGuestIds),
+        insertGuests(guests.filter(guest => guest.id === null))
+    ]);
+
+    return existingGuests.map(guest => guest.id).concat(guestIdMap).concat(guestsToInsert);
+}
+
+function selectGuestIds(existingGuestIds) {
+    return new Promise((resolve, reject) => {
+        if (existingGuestIds.length === 0) {
+            resolve([]);
+            return;
+        }
+
+        const query = 'SELECT id FROM guest WHERE id IN (?)';
+        pool.query(query, [existingGuestIds], (err, results) => {
+            if (err) {
+                reject("Error selecting guests");
+            } else {
+                resolve(results.map(result => result.id));
+            }
+        });
+    });
+}
+
+function insertGuests(guestsToInsert) {
+    return new Promise((resolve, reject) => {
+        if (guestsToInsert.length === 0) {
+            resolve([]);
+            return;
+        }
+
+        const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
+        const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+        pool.query(query, [values], (err, result) => {
+            if (err) {
+                reject("Error creating guests");
+            } else {
+                const insertedIds = Array(guestsToInsert.length).fill(result.insertId);
+                resolve(insertedIds);
+            }
+        });
+    });
+}
+
+async function createBooking(booking, guestIds, servicesIDs) {
+    return new Promise((resolve, reject) => {
+        const startDate = moment(booking.startDate).format(dateFormat);
+        const endDate = moment(booking.endDate).format(dateFormat);
+        const query = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
+        const values = [booking.userID, booking.planID, booking.roomID, startDate, endDate];
+
+        pool.getConnection(async (err, connection) => {
+            if (err) {
+                reject("Error acquiring connection from pool");
+                return;
+            }
+
+            connection.beginTransaction(async (err) => {
+                if (err) {
+                    connection.rollback(() => reject("Transaction start error"));
+                    return;
+                }
+
+                connection.query(query, values, async (err, result) => {
+                    if (err) {
+                        connection.rollback(() => reject("Error creating booking"));
+                        return;
+                    }
+
+                    const bookingId = result.insertId;
+
+                    await insertBookingServices(connection, bookingId, servicesIDs);
+                    await insertBookingGuests(connection, bookingId, guestIds);
+
+                    connection.commit((err) => {
+                        if (err) {
+                            connection.rollback(() => reject("Transaction commit error"));
+                        }
+                        connection.release();
+                        resolve(bookingId);
+                    });
+                });
+            });
+        });
+    });
+}
+
+function insertBookingServices(connection, bookingId, servicesIDs) {
+    const query = 'INSERT INTO booking_service (booking_id, service_id) VALUES ?';
+    const values = servicesIDs.map(serviceID => [bookingId, serviceID]);
+    return connection.query(query, [values]);
+}
+
+function insertBookingGuests(connection, bookingId, guestIds) {
+    if (guestIds.length === 0) {
+        return;
+    }
+
+    const query = 'INSERT INTO booking_guest (booking_id, guest_id) VALUES ?';
+    const values = guestIds.map(guestId => [bookingId, guestId]);
+    return connection.query(query, [values]);
+}
 
 // PAYMENT
 expressRouter.post('/payment', (req, res) => {
     pool.getConnection((err, connection) => {
-        let data = req.body;
-        let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
-        let values = [data.userID, data.bookingID, data.amount, data.date, paymentMethodID];
+        const data = req.body;
+        let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id, stripe_transaction_id) VALUES (?, ?, ?, ?, ?, ?)';
+        let values = [data.userID, data.bookingID, data.amount, data.date, data.paymentMethodID, data.stripeTransactionID];
         if (err) {
             console.error('Error acquiring connection from pool:', err);
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -945,7 +1075,6 @@ expressRouter.post('/payment', (req, res) => {
             return res.status(200).send({ status: "success", insertId: results.insertId });
         });
     });
-    return res.status(200).send({ status: "success", msg: data });
 })
 
 // Stripe

@@ -335,6 +335,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders }).then(bookingResponse => {
                                 if (bookingResponse.data.status == "success") {
                                     // Make the API call for payment
+                                    payment.bookingID = bookingResponse.data.insertId;
                                     axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders }).then(paymentResponse => {
                                         console.log(paymentResponse.data)
                                         // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
