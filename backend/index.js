@@ -606,31 +606,40 @@ expressRouter.get('/paymentmethods', (req, res) => {
 
 // Check booking availability
 function calculateAvailableRanges(occupiedRanges, start, end) {
+    console.log(occupiedRanges)
     const sortedRanges = [...occupiedRanges].sort((a, b) => new Date(a.start) - new Date(b.start));
+    console.log(sortedRanges)
 
     const availableRanges = [];
-    let currentStart = start;
+    let currentStart = new Date(start);
+    let currentEnd = new Date(start);
 
     for (const range of sortedRanges) {
         const rangeStart = new Date(range.start);
         const rangeEnd = new Date(range.end);
 
-        if (currentStart < rangeStart) {
+        if (currentEnd < rangeStart) {
+            // If there is a gap between the current end and the next range's start, add an available range.
             availableRanges.push({
-                start: currentStart,
+                start: currentEnd,
                 end: rangeStart,
             });
+            currentStart = rangeStart;
+            currentEnd = rangeEnd;
+        } else {
+            // If there's an overlap, adjust the current end to cover the range.
+            currentEnd = new Date(Math.max(currentEnd, rangeEnd));
         }
-
-        currentStart = new Date(Math.max(currentStart, rangeEnd));
     }
 
-    if (currentStart < end) {
+    if (currentEnd < end) {
         availableRanges.push({
-            start: currentStart,
-            end: end,
+            start: currentEnd,
+            end: new Date(end),
         });
     }
+
+    console.log(availableRanges)
 
     return availableRanges;
 }
@@ -644,7 +653,7 @@ expressRouter.post('/checkBookingAvalability', (req, res) => {
 
         const { roomID, startDate, endDate } = req.body.booking;
 
-        const sql = 'SELECT booking_start_date, booking_end_date FROM booking WHERE room_id = ? AND NOT (booking_end_date < ? OR booking_start_date > ?)';
+        const sql = 'SELECT booking_start_date, booking_end_date FROM booking WHERE room_id = ?';
 
         connection.query(sql, [roomID, endDate, startDate], (err, results) => {
             if (err) {
@@ -660,6 +669,7 @@ expressRouter.post('/checkBookingAvalability', (req, res) => {
                         end: booking.booking_end_date,
                     });
                 });
+                console.log(occupiedRanges)
 
                 const availabilityStart = startDate;
                 const availabilityEnd = endDate;
