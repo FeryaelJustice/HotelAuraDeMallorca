@@ -466,6 +466,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     const handleEndDateChange = (newEndDate: Value) => {
+        weatherAPI.get('daily/15day/308014').then(res => {
+            console.log(res)
+        }).catch(err => console.error(err))
         onChangeEndDate(newEndDate);
     }
 
