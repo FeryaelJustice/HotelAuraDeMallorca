@@ -7,6 +7,7 @@ import { useCookies } from 'react-cookie';
 import Alert from 'react-bootstrap/Alert';
 import ReCAPTCHA from "react-google-recaptcha";
 import { User } from './../../models/index'
+import './UserModal.css'
 
 interface UserModalProps {
     show: boolean,
@@ -215,6 +216,31 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Edit profile
 
+    const [userEdit, setUserEdit] = useState({ name: "", surnames: "", token: cookies.token });
+    const [userEditValidated, setUserEditValidated] = useState(false);
+
+    const handleSaveEditChange = (event: any) => {
+        setUserEdit({ ...userEdit, [event.target.name]: event.target.value });
+    }
+
+    const handleSaveEdit = (event: React.ChangeEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        let form = event.currentTarget;
+        setUserEditValidated(form.checkValidity());
+        if (userEditValidated) {
+            axios.post(API_URL + '/api/edituser/', userEdit, { headers: axiosHeaders }).then(res => {
+                alert(res.data.msg)
+            }).catch(err => {
+                console.error(err)
+                if (err.response.data && err.response.data.msg) {
+                    alert(err.response.data.msg)
+                }
+            })
+        }
+    }
+
     // When close, reset
     useEffect(() => {
         resetUserModal();
@@ -316,9 +342,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenVerify2FA && (
                 <div>
-                    <h1>
+                    <h2>
                         User verify 2fa
-                    </h1>
+                    </h2>
                     <Button variant="primary" onClick={onClose}>
                         Verify
                     </Button>
@@ -327,14 +353,33 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenEditProfile && (
                 <div>
-                    <h1>
-                        User edit profile
-                    </h1>
-                    <span>{currentUser.name}</span>
-                    <Button variant="primary" onClick={logout}>
-                        Logout
-                    </Button>
-                    <Button variant='danger' onClick={deleteAccount}>Delete Account</Button>
+                    <h2>
+                        Edit your profile
+                    </h2>
+                    <Form validated={loginValidated} onSubmit={handleSaveEdit}>
+                        <div className='userEditDetails'>
+                            <Form.Group className="mb-3" controlId="formName">
+                                <Form.Label>Name</Form.Label>
+                                <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleSaveEditChange} defaultValue={currentUser.name ? currentUser.name : ''} />
+                                <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3" controlId="formSurnames">
+                                <Form.Label>Surnames</Form.Label>
+                                <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleSaveEditChange} defaultValue={currentUser.surnames ? currentUser.surnames : ''} />
+                                <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
+                            </Form.Group>
+                        </div>
+                        <div className='userEditBtn'>
+                            <Button variant="primary" type='submit'>
+                                Save
+                            </Button>
+                            <Button variant="warning" type='button' onClick={logout}>
+                                Logout
+                            </Button>
+                            <Button variant='danger' type='button' onClick={deleteAccount}>Delete Account</Button>
+                        </div>
+                    </Form>
                 </div>
             )}
         </BaseModal>

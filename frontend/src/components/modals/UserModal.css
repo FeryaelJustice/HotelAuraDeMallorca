@@ -1,0 +1,15 @@
+.userEditDetails {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 8px;
+}
+
+.userEditBtn {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+}
+
+.userEditBtn button {
+    margin-bottom: 8px;
+}

@@ -195,21 +195,23 @@ expressRouter.post('/login', (req, res) => {
     });
 })
 
-expressRouter.post('/editprofile/:id', (req, res) => {
+// Edit by recieving cookie in body or authorization (NOT DIRECTLY WITH BROWSER COOKIES) with verifyUser
+expressRouter.post('/edituser', verifyUser, (req, res) => {
     pool.getConnection((err, connection) => {
-        let data = req.body;
-        let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password_hash, user_verified) VALUES (?, ?, ?, ?, ?)';
-        let values = [data.username, data.surnames, data.email, data.password, 0];
         if (err) {
             console.error('Error acquiring connection from pool:', err);
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
-        connection.query(sql, values, (error, results, fields) => {
+        let userID = req.id;
+        let data = req.body;
+        let sql = 'UPDATE app_user SET user_name = ?, user_surnames = ? WHERE id = ?';
+        let values = [data.name, data.surnames, userID];
+        connection.query(sql, values, (error) => {
             if (error) {
                 console.error(error);
                 return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            return res.status(200).send({ status: "success", insertId: results.insertId });
+            return res.status(200).send({ status: "success", msg: 'User updated successfully' });
         });
     });
 })
