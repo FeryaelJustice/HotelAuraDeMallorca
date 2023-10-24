@@ -134,13 +134,18 @@
     align-items: end;
 }
 
-.loggedUserWantsToBecomeGuest{
+.loggedUserWantsToBecomeGuest {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
 
-.stripe{
+.fillguests-info {
+    margin-left: 10px;
+    margin-bottom: 8px;
+}
+
+.stripe {
     margin-top: 20px;
     display: flex;
     flex-direction: column;

@@ -938,97 +938,102 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {
                 currentStep === BookingSteps.StepFillGuests && (
                     <div>
-                        <Container>
-                            <Form noValidate onSubmit={handleGuestsSubmit}>
-                                {guests.map((guest, index) => (
-                                    <Row key={index}>
-                                        <Row><strong>Guest {index}</strong></Row>
-                                        <Row>
-                                            <Col>
-                                                <Form.Group controlId={`name-${index}`}>
-                                                    <Form.Label>Name</Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        name="name"
-                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
-                                                        value={guest.name ? guest.name : ''}
-                                                        isInvalid={!!guestsDataErrors[index].nameError}
-                                                        onChange={(e) => handleGuestsInputChange(index, e)}
-                                                    />    <Form.Control.Feedback type='invalid'>
-                                                        {guestsDataErrors[index].nameError}
-                                                    </Form.Control.Feedback>
-                                                </Form.Group>
-                                            </Col>
-                                            <Col>
-                                                <Form.Group controlId={`surname-${index}`}>
-                                                    <Form.Label>Surname</Form.Label>
-                                                    <Form.Control
-                                                        type="text"
-                                                        name="surnames"
-                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
-                                                        value={guest.surnames ? guest.surnames : ''}
-                                                        isInvalid={!!guestsDataErrors[index].surnamesError}
-                                                        onChange={(e) => handleGuestsInputChange(index, e)}
-                                                    />    <Form.Control.Feedback type='invalid'>
-                                                        {guestsDataErrors[index].surnamesError}
-                                                    </Form.Control.Feedback>
-                                                </Form.Group>
-                                            </Col>
-                                            <Col>
-                                                <Form.Group controlId={`email-${index}`}>
-                                                    <Form.Label>Email</Form.Label>
-                                                    <Form.Control
-                                                        type="email"
-                                                        name="email"
-                                                        disabled={loggedUserWantsToBecomeGuest && index === 0}
-                                                        value={guest.email ? guest.email : ''}
-                                                        isInvalid={!!guestsDataErrors[index].emailError}
-                                                        onChange={(e) => handleGuestsInputChange(index, e)}
-                                                    />    <Form.Control.Feedback type='invalid'>
-                                                        {guestsDataErrors[index].emailError}
-                                                    </Form.Control.Feedback>
-                                                </Form.Group>
-                                            </Col>
-                                            <Col>
-                                                <div className='isAdultFillGuest'>
-                                                    <Form.Group controlId={`isAdult-${index}`}>
-                                                        <Form.Check
-                                                            type="checkbox"
-                                                            label="Adult"
-                                                            name="isAdult"
+                        <div className='fillguests-info'>
+                            <span>Adults selected: {adults} | Children selected: {children} </span>
+                        </div>
+                        <div className='fillguests-content'>
+                            <Container>
+                                <Form noValidate onSubmit={handleGuestsSubmit}>
+                                    {guests.map((guest, index) => (
+                                        <Row key={index}>
+                                            <Row><strong>Guest {index}</strong></Row>
+                                            <Row>
+                                                <Col>
+                                                    <Form.Group controlId={`name-${index}`}>
+                                                        <Form.Label>Name</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            name="name"
                                                             disabled={loggedUserWantsToBecomeGuest && index === 0}
-                                                            checked={guest.isAdult ? guest.isAdult : false}
+                                                            value={guest.name ? guest.name : ''}
+                                                            isInvalid={!!guestsDataErrors[index].nameError}
                                                             onChange={(e) => handleGuestsInputChange(index, e)}
-                                                        />
+                                                        />    <Form.Control.Feedback type='invalid'>
+                                                            {guestsDataErrors[index].nameError}
+                                                        </Form.Control.Feedback>
                                                     </Form.Group>
-                                                </div>
-                                            </Col></Row>
-                                    </Row>
-                                ))}
-                                <br />
-                                <Button variant="success" onClick={addGuest}>
-                                    Add Guest
-                                </Button>
-                                <Button variant="success" onClick={substractGuest}>
-                                    Remove last Guest
-                                </Button>
-                                <br />
-                                <br />
-                                {cookies.token && (
-                                    <div className='loggedUserWantsToBecomeGuest'>
-                                        <Form.Check type='checkbox' name="loggedUserWantsToBecomeGuest" label="Do you want the logged user to be 1 guest?" checked={loggedUserWantsToBecomeGuest} onChange={() => setLoggedUserWantsToBecomeGuest(!loggedUserWantsToBecomeGuest)} />
-                                        {loggedUserWantsToBecomeGuest && (
-                                            <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label="And are you an adult?" checked={isLoggedUserGuestAdult} onChange={() => setIsLoggedUserGuestAdult(!isLoggedUserGuestAdult)} />
-                                        )}
-                                        <br />
-                                        <br />
-                                    </div>
-                                )}
-                                <Button variant="primary" type="submit">
-                                    Submit
-                                </Button>
-                            </Form>
-                        </Container>
+                                                </Col>
+                                                <Col>
+                                                    <Form.Group controlId={`surname-${index}`}>
+                                                        <Form.Label>Surname</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            name="surnames"
+                                                            disabled={loggedUserWantsToBecomeGuest && index === 0}
+                                                            value={guest.surnames ? guest.surnames : ''}
+                                                            isInvalid={!!guestsDataErrors[index].surnamesError}
+                                                            onChange={(e) => handleGuestsInputChange(index, e)}
+                                                        />    <Form.Control.Feedback type='invalid'>
+                                                            {guestsDataErrors[index].surnamesError}
+                                                        </Form.Control.Feedback>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col>
+                                                    <Form.Group controlId={`email-${index}`}>
+                                                        <Form.Label>Email</Form.Label>
+                                                        <Form.Control
+                                                            type="email"
+                                                            name="email"
+                                                            disabled={loggedUserWantsToBecomeGuest && index === 0}
+                                                            value={guest.email ? guest.email : ''}
+                                                            isInvalid={!!guestsDataErrors[index].emailError}
+                                                            onChange={(e) => handleGuestsInputChange(index, e)}
+                                                        />    <Form.Control.Feedback type='invalid'>
+                                                            {guestsDataErrors[index].emailError}
+                                                        </Form.Control.Feedback>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col>
+                                                    <div className='isAdultFillGuest'>
+                                                        <Form.Group controlId={`isAdult-${index}`}>
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                label="Adult"
+                                                                name="isAdult"
+                                                                disabled={loggedUserWantsToBecomeGuest && index === 0}
+                                                                checked={guest.isAdult ? guest.isAdult : false}
+                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                            />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col></Row>
+                                        </Row>
+                                    ))}
+                                    <br />
+                                    <Button variant="success" onClick={addGuest}>
+                                        Add Guest
+                                    </Button>
+                                    <Button variant="success" onClick={substractGuest}>
+                                        Remove last Guest
+                                    </Button>
+                                    <br />
+                                    <br />
+                                    {cookies.token && (
+                                        <div className='loggedUserWantsToBecomeGuest'>
+                                            <Form.Check type='checkbox' name="loggedUserWantsToBecomeGuest" label="Do you want the logged user to be 1 guest?" checked={loggedUserWantsToBecomeGuest} onChange={() => setLoggedUserWantsToBecomeGuest(!loggedUserWantsToBecomeGuest)} />
+                                            {loggedUserWantsToBecomeGuest && (
+                                                <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label="And are you an adult?" checked={isLoggedUserGuestAdult} onChange={() => setIsLoggedUserGuestAdult(!isLoggedUserGuestAdult)} />
+                                            )}
+                                            <br />
+                                            <br />
+                                        </div>
+                                    )}
+                                    <Button variant="primary" type="submit">
+                                        Submit
+                                    </Button>
+                                </Form>
+                            </Container>
+                        </div>
                     </div>
                 )
             }
