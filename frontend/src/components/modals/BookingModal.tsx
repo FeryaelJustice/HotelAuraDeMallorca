@@ -327,28 +327,38 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     });
 
                     try {
-                        // Make the API call for booking, and there we will also insert the booking services and booking guests
-                        axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders }).then(bookingResponse => {
-                            if (bookingResponse.data.status == "success") {
-                                // Make the API call for payment
-                                axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders }).then(paymentResponse => {
-                                    console.log(paymentResponse.data)
-                                    // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                    setCurrentStep(BookingSteps.StepConfirmation);
-                                }).catch(err => {
-                                    console.error(err)
-                                    setCurrentStep(BookingSteps.StepConfirmation);
-                                    if (err.response.data && err.response.data.msg) {
-                                        alert(err.response.data.msg)
-                                    }
-                                })
-                                //if (paymentResponse.data.status == "success") {
-                                //}
-                            }
-                            setCurrentStep(BookingSteps.StepConfirmation);
-                        }).catch(err => {
+                        // First, check if room is available and not used on that dates
+                        axios.post(API_URL + '/api/checkBookingAvalability', bookingData, { headers: axiosHeaders }).then(availabilityResponse => {
+                            console.log(availabilityResponse.data)
+                            // Make the API call for booking, and there we will also insert the booking services and booking guests
+                            axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders }).then(bookingResponse => {
+                                if (bookingResponse.data.status == "success") {
+                                    // Make the API call for payment
+                                    axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders }).then(paymentResponse => {
+                                        console.log(paymentResponse.data)
+                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                        setCurrentStep(BookingSteps.StepConfirmation);
+                                    }).catch(err => {
+                                        console.error(err)
+                                        setCurrentStep(BookingSteps.StepConfirmation);
+                                        if (err.response.data && err.response.data.msg) {
+                                            alert(err.response.data.msg)
+                                        }
+                                    })
+                                    //if (paymentResponse.data.status == "success") {
+                                    //}
+                                }
+                                setCurrentStep(BookingSteps.StepConfirmation);
+                            }).catch(err => {
+                                console.error(err)
+                                setCurrentStep(BookingSteps.StepConfirmation);
+                            })
+
+                        }).catch((err) => {
                             console.error(err)
-                            setCurrentStep(BookingSteps.StepConfirmation);
+                            if (err.response && err.response.data) {
+                                alert(err.response.data.msg)
+                            }
                         })
                     } catch (error) {
                         console.error('Error al realizar la reserva:', error);

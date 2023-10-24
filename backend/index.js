@@ -1,7 +1,7 @@
 // DEPENDENCIES
 const express = require('express')
 const expressRouter = express.Router()
-const morgan = require('morgan')
+// const morgan = require('morgan') // logger
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
@@ -36,7 +36,7 @@ app.use(cors(corsOptions));
 // Cookies and compression
 app.use(cookieParser());
 app.use(compression())
-app.use(morgan('combined'))
+// app.use(morgan('combined'))
 var path = require('path');
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -154,7 +154,7 @@ expressRouter.post('/register', (req, res) => {
                         let userID = results.insertId;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                         // res.cookie('token', jwtToken)
-                        res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
+                        return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
                     });
                 })
             }
@@ -183,13 +183,13 @@ expressRouter.post('/login', (req, res) => {
                         let userID = results[0].id;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                         // res.cookie('token', jwtToken)
-                        res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                     } else {
-                        res.status(500).send({ status: "error", msg: "Passwords do not match" });
+                        return res.status(500).send({ status: "error", msg: "Passwords do not match" });
                     }
                 })
             } else {
-                res.status(500).send({ status: "error", msg: "No email exists" });
+                return res.status(500).send({ status: "error", msg: "No email exists" });
             }
         });
     });
@@ -209,7 +209,7 @@ expressRouter.post('/editprofile/:id', (req, res) => {
                 console.error(error);
                 return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            res.status(200).send({ status: "success", insertId: results.insertId });
+            return res.status(200).send({ status: "success", insertId: results.insertId });
         });
     });
 })
@@ -222,11 +222,11 @@ expressRouter.delete('/user/:id', verifyUser, (req, res) => {
         .then(() => deleteUserMediaByUserID(userID))
         .then(() => deleteUserByUserID(userID))
         .then(() => {
-            res.status(200).send({ status: "success", message: `User ${userID} deleted` });
+            return res.status(200).send({ status: "success", message: `User ${userID} deleted` });
         })
         .catch((error) => {
             console.error(error);
-            res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         });
 })
 
@@ -287,14 +287,14 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
                 console.log(info)
                 console.log("Message sent: %s", info.messageId);
 
-                res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
+                return res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
             }).catch(err => {
                 console.error(err);
-                res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+                return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
             })
         } catch (error) {
             console.error(error);
-            res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+            return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
         }
     });
 })
@@ -336,10 +336,10 @@ expressRouter.post('/user/verifyEmail/:token', function (req, res) {
             await clearVerificationToken(connection, user.id);
 
             let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
-            res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: jwtToken });
+            return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: jwtToken });
         } catch (error) {
             console.error('Error verifying email:', error);
-            res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+            return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
         }
     });
 })
@@ -418,10 +418,10 @@ expressRouter.post('/sendContactForm', async (req, res) => {
             html: "<pre>" + formData.message + "</pre>", // html body
         });
         console.log("Message sent: %s", info.messageId);
-        res.status(200).send({ status: "success", msg: "Your message was sent!" });
+        return res.status(200).send({ status: "success", msg: "Your message was sent!" });
     } catch (error) {
         console.error(error)
-        res.status(500).send({ status: "error", msg: "Message couldn't be sent!" });
+        return res.status(500).send({ status: "error", msg: "Message couldn't be sent!" });
     }
 })
 
@@ -440,9 +440,9 @@ expressRouter.get('/rooms', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+                return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No rooms found" });
+                return res.status(500).send({ status: "error", msg: "No rooms found" });
             }
         })
     });
@@ -459,9 +459,9 @@ expressRouter.get('/room/:id', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on querying db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+                return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No rooms found" });
+                return res.status(500).send({ status: "error", msg: "No rooms found" });
             }
         });
     });
@@ -482,9 +482,9 @@ expressRouter.get('/plans', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Plans found", data: results });
+                return res.status(200).send({ status: "success", msg: "Plans found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No plans found" });
+                return res.status(500).send({ status: "error", msg: "No plans found" });
             }
         })
     });
@@ -505,9 +505,9 @@ expressRouter.get('/services', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Services found", data: results });
+                return res.status(200).send({ status: "success", msg: "Services found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No services found" });
+                return res.status(500).send({ status: "error", msg: "No services found" });
             }
         })
     });
@@ -524,9 +524,9 @@ expressRouter.get('/service/:id', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on querying db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Services found", data: results });
+                return res.status(200).send({ status: "success", msg: "Services found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No services found" });
+                return res.status(500).send({ status: "error", msg: "No services found" });
             }
         });
     });
@@ -569,11 +569,11 @@ expressRouter.post('/servicesImages', (req, res) => {
         }
         Promise.all(promises)
             .then(() => {
-                res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
+                return res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
             })
             .catch(error => {
                 console.error(error);
-                res.status(500).send({ status: "error", msg: "Error in processing data" });
+                return res.status(500).send({ status: "error", msg: "Error in processing data" });
             })
             .finally(() => {
                 connection.release();
@@ -596,12 +596,97 @@ expressRouter.get('/paymentmethods', (req, res) => {
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
             if (results.length > 0) {
-                res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
+                return res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
             } else {
-                res.status(500).send({ status: "error", msg: "No payment methods found" });
+                return res.status(500).send({ status: "error", msg: "No payment methods found" });
             }
         })
     });
+})
+
+// Check booking availability
+function calculateAvailableRanges(occupiedRanges, start, end) {
+    const sortedRanges = [...occupiedRanges].sort((a, b) => new Date(a.start) - new Date(b.start));
+
+    const availableRanges = [];
+    let currentStart = start;
+
+    for (const range of sortedRanges) {
+        const rangeStart = new Date(range.start);
+        const rangeEnd = new Date(range.end);
+
+        if (currentStart < rangeStart) {
+            availableRanges.push({
+                start: currentStart,
+                end: rangeStart,
+            });
+        }
+
+        currentStart = new Date(Math.max(currentStart, rangeEnd));
+    }
+
+    if (currentStart < end) {
+        availableRanges.push({
+            start: currentStart,
+            end: end,
+        });
+    }
+
+    return availableRanges;
+}
+
+expressRouter.post('/checkBookingAvalability', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+
+        const { roomID, startDate, endDate } = req.body.booking;
+
+        const sql = 'SELECT booking_start_date, booking_end_date FROM booking WHERE room_id = ? AND NOT (booking_end_date < ? OR booking_start_date > ?)';
+
+        connection.query(sql, [roomID, endDate, startDate], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+
+            if (results && results.length > 0) {
+                const occupiedRanges = [];
+                results.forEach((booking) => {
+                    occupiedRanges.push({
+                        start: booking.booking_start_date,
+                        end: booking.booking_end_date,
+                    });
+                });
+
+                const availabilityStart = startDate;
+                const availabilityEnd = endDate;
+
+                if (occupiedRanges.length === 0) {
+                    return res.status(200).json({
+                        status: "success",
+                        msg: "OK, no rooms occupied.",
+                        occupied: [],
+                        available: [{ start: availabilityStart, end: availabilityEnd }],
+                    });
+                } else {
+                    // Calculate available ranges by subtracting occupied ranges
+                    const availableRanges = calculateAvailableRanges(occupiedRanges, startDate, endDate);
+                    return res.status(200).json({
+                        status: "success",
+                        msg: "OK, rooms occupied but with available ranges of dates.",
+                        occupied: occupiedRanges,
+                        available: availableRanges,
+                    });
+                }
+            } else {
+                return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
+            }
+        });
+    })
+
 })
 
 // BOOKING !!!
@@ -753,7 +838,7 @@ expressRouter.post('/booking', (req, res) => {
                     // Release the connection
                     await connection.release();
                     console.error(err);
-                    res.status(500).send({ status: "error", error: "error creating booking services" });
+                    return res.status(500).send({ status: "error", error: "error creating booking services" });
                 }
 
                 // Start a transaction
@@ -808,13 +893,13 @@ expressRouter.post('/booking', (req, res) => {
                     // Roll back the transaction if there is an error
                     await connection.rollback();
                     console.error(err);
-                    res.status(500).send({ status: "error", error: "error creating booking guests" });
+                    return res.status(500).send({ status: "error", error: "error creating booking guests" });
                 } finally {
                     // Release the connection
                     await connection.release();
                 }
                 // Send the response outside the finally block
-                res.status(200).send({ status: "success", insertId: bkInsertID });
+                return res.status(200).send({ status: "success", insertId: bkInsertID });
             });
         }).catch(error => {
             console.error(error);
@@ -837,10 +922,10 @@ expressRouter.post('/payment', (req, res) => {
                 console.error(error);
                 return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            res.status(200).send({ status: "success", insertId: results.insertId });
+            return res.status(200).send({ status: "success", insertId: results.insertId });
         });
     });
-    res.status(200).send({ status: "success", msg: data });
+    return res.status(200).send({ status: "success", msg: data });
 })
 
 // Stripe
@@ -856,14 +941,14 @@ expressRouter.post('/create-payment-intent', async (req, res) => {
         statement_descriptor_suffix: "Payment using Stripe",
     })
 
-    res.status(200).json({ status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret })
+    return res.status(200).json({ status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret })
 })
 // Stripe success or failure responses
 expressRouter.get('/success', (req, res) => {
-    res.status(200).json({ status: "success", msg: 'Payment successful! Thank you for your purchase.' })
+    return res.status(200).json({ status: "success", msg: 'Payment successful! Thank you for your purchase.' })
 })
 expressRouter.get('/cancel', (req, res) => {
-    res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
+    return res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
 })
 
 // MEDIAS
@@ -879,7 +964,7 @@ expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
                     if (error) {
                         return res.status(500).send({ status: "error", error: 'Internal server error' });;
                     }
-                    res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
+                    return res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
                 });
             } else {
                 return res.status(200).send({ status: "error", error: 'No user logo' });;
