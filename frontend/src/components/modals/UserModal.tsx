@@ -159,7 +159,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
-    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "" });
+    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "", repeatpassword: "" });
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
 
     const handleRegisterChange = (event: any) => {
@@ -173,29 +173,37 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         let form = event.currentTarget;
         setRegisterValidated(form.checkValidity());
         if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
-            // api call
-            axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
-                // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
-                // setCookie('token', res.data.cookieJWT)
-                console.log('registered successfully' + res)
+            if (userRegister.password === userRegister.repeatpassword) {
+                // api call
+                axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
+                    // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
+                    // setCookie('token', res.data.cookieJWT)
+                    console.log('registered successfully' + res)
 
-                // After successful registration, send a request to generate and send a confirmation email
-                axios.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
-                    .then(response => {
-                        alert('An email has been sent to your mail to verify your account!')
-                        console.log('Confirmation email sent successfully', response);
-                        resetUserModal();
-                        onClose();
-                    })
-                    .catch(error => {
-                        console.error('Error sending confirmation email', error);
-                    });
-            }).catch(err => {
-                console.error(err)
-                if (err.response.data && err.response.data.msg) {
-                    alert(err.response.data.msg)
-                }
-            })
+                    // After successful registration, send a request to generate and send a confirmation email
+                    axios.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                        .then(response => {
+                            alert('An email has been sent to your mail to verify your account!')
+                            console.log('Confirmation email sent successfully', response);
+                            resetUserModal();
+                            onClose();
+                        })
+                        .catch(error => {
+                            console.error('Error sending confirmation email', error);
+                            if (error.response.data) {
+                                alert(error.response.data.msg)
+                            }
+                        });
+                }).catch(err => {
+                    console.error(err)
+                    if (err.response.data && err.response.data.message) {
+                        alert(err.response.data.message)
+                    }
+                })
+            } else {
+                alert("Passwords don't match!")
+                setRegisterValidated(false)
+            }
         }
     }
 
@@ -329,6 +337,12 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Label>Password</Form.Label>
                             <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleRegisterChange} required />
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3" controlId="formRepeatPassword">
+                            <Form.Label>Repeat Password</Form.Label>
+                            <Form.Control type="password" name='repeatpassword' placeholder="Enter your password once again" onChange={handleRegisterChange} required />
+                            <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
                         </Form.Group>
 
                         {import.meta.env.MODE != 'development' && (<div className='captcha'>
