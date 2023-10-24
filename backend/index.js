@@ -154,6 +154,14 @@ expressRouter.post('/register', (req, res) => {
                         let userID = results.insertId;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
                         // res.cookie('token', jwtToken)
+
+                        // Insert default picture to user
+                        connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                            if (err) {
+                                console.error(err)
+                            }
+                        })
+
                         return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
                     });
                 })

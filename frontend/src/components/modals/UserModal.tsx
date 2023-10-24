@@ -40,6 +40,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if (!cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
             setCurrentUser(new User())
+            setUserEdit({ name: '', surnames: '', token: '' });
             setUserLogin({ email: "", password: "" })
             setUserRegister({ email: "", name: "", surnames: "", password: "" })
         } else {
@@ -61,6 +62,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 const userData = res.data;
                 const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password_hash, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
+                setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
             }).catch(err => console.error(err))
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)
@@ -182,6 +184,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     .then(response => {
                         alert('An email has been sent to your mail to verify your account!')
                         console.log('Confirmation email sent successfully', response);
+                        resetUserModal();
+                        onClose();
                     })
                     .catch(error => {
                         console.error('Error sending confirmation email', error);
@@ -216,7 +220,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Edit profile
 
-    const [userEdit, setUserEdit] = useState({ name: "", surnames: "", token: cookies.token });
+    const [userEdit, setUserEdit] = useState({ name: '', surnames: '', token: '' });
     const [userEditValidated, setUserEditValidated] = useState(false);
 
     const handleSaveEditChange = (event: any) => {
@@ -228,16 +232,22 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         event.stopPropagation();
 
         let form = event.currentTarget;
-        setUserEditValidated(form.checkValidity());
+        setUserEditValidated(userEdit.name != "" && userEdit.surnames != "" && form.checkValidity());
         if (userEditValidated) {
             axios.post(API_URL + '/api/edituser/', userEdit, { headers: axiosHeaders }).then(res => {
                 alert(res.data.msg)
+                resetUserModal();
+                onClose();
             }).catch(err => {
                 console.error(err)
                 if (err.response.data && err.response.data.msg) {
                     alert(err.response.data.msg)
                 }
             })
+        } else {
+            console.log(form.checkValidity())
+            console.log(userEdit)
+            alert('Something went wrong')
         }
     }
 
@@ -360,13 +370,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                         <div className='userEditDetails'>
                             <Form.Group className="mb-3" controlId="formName">
                                 <Form.Label>Name</Form.Label>
-                                <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleSaveEditChange} defaultValue={currentUser.name ? currentUser.name : ''} />
+                                <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleSaveEditChange} value={userEdit.name ? userEdit.name : ''} minLength={1} maxLength={100} />
                                 <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="formSurnames">
                                 <Form.Label>Surnames</Form.Label>
-                                <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleSaveEditChange} defaultValue={currentUser.surnames ? currentUser.surnames : ''} />
+                                <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleSaveEditChange} value={userEdit.surnames ? userEdit.surnames : ''} minLength={1} maxLength={200} />
                                 <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
                             </Form.Group>
                         </div>

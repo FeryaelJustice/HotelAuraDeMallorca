@@ -230,7 +230,7 @@ VALUES
         'john@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
-        '',
+        NULL,
         CURRENT_TIMESTAMP
     ),
     (
@@ -239,7 +239,7 @@ VALUES
         'jane@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
-        '',
+        NULL,
         CURRENT_TIMESTAMP
     ),
     (
@@ -248,7 +248,7 @@ VALUES
         'fer@example.com',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
-        '',
+        NULL,
         CURRENT_TIMESTAMP
     );
 
