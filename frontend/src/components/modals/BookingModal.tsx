@@ -13,6 +13,7 @@ import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
 import { isEmptyOrSpaces, validateEmail } from '../../utils';
 import './BookingModal.css'
+import weatherAPI from "./../../services/weatherAPI";
 // Stripe
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
 import {
@@ -457,6 +458,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [rooms, setRooms] = useState<Room[]>([]);
     const [selectedRoomID, setSelectedRoomID] = useState<number | null>(1);
 
+    const handleStartDateChange = (newStartDate: Value) => {
+        weatherAPI.get('daily/15day/308014').then(res => {
+            console.log(res)
+        }).catch(err => console.error(err))
+        onChangeStartDate(newStartDate);
+    }
+
+    const handleEndDateChange = (newEndDate: Value) => {
+        onChangeEndDate(newEndDate);
+    }
+
+
     // Get rooms
     useEffect(() => {
         axios.get(API_URL + '/api/rooms').then(res => {
@@ -772,11 +785,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     <Card.Body>
                                         <Card.Title>Plan: {plan.name}</Card.Title>
                                         <Card.Text>
-                                            <div>
-                                                <span>{plan.description}</span>
-                                                <br />
-                                                <span>Price: {plan.price} euros</span>
-                                            </div>
+                                            <span>{plan.description}</span>
+                                            <br />
+                                            <span>Price: {plan.price} euros</span>
                                         </Card.Text>
                                         <Form.Check
                                             type="radio"
@@ -809,11 +820,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 <Col md={6}>
                                     <h3>Start date</h3>
-                                    <Calendar minDate={new Date()} onChange={onChangeStartDate} value={startDate} />
+                                    <Calendar minDate={new Date()} onChange={handleStartDateChange} value={startDate} />
                                 </Col>
                                 <Col md={6}>
                                     <h3>End date</h3>
-                                    <Calendar minDate={new Date()} onChange={onChangeEndDate} value={endDate} />
+                                    <Calendar minDate={new Date()} onChange={handleEndDateChange} value={endDate} />
                                 </Col>
                             </Row>
                             <br />
@@ -855,14 +866,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             <Card.Body>
                                                 <Card.Title>{room.name}</Card.Title>
                                                 <Card.Text>
-                                                    <div>
-                                                        <span>{room.description}</span>
-                                                        <br />
-                                                        <span>{`Price: ${room.price} euros.`}</span>
-                                                        <br />
-                                                        <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
-                                                    </div>
-
+                                                    <span>{room.description}</span>
+                                                    <br />
+                                                    <span>{`Price: ${room.price} euros.`}</span>
+                                                    <br />
+                                                    <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
                                                 </Card.Text>
                                                 <Form.Check type="radio"
                                                     name="pricing-plan"
