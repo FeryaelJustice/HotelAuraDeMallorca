@@ -228,7 +228,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 } else {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        setCurrentStep(BookingSteps.StepChooseServices);
+                        if (selectedRoomID != null) {
+                            setCurrentStep(BookingSteps.StepChooseServices);
+                        } else {
+                            alert('No room selected')
+                        }
                     } else {
                         alert('Adults: maximum 10. Children: maximum 10.')
                     }
@@ -445,7 +449,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
     const [endDate, onChangeEndDate] = useState<Value>(new Date());
     const [rooms, setRooms] = useState<Room[]>([]);
-    const [selectedRoomID, setSelectedRoomID] = useState<number | null>(1);
+    const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
 
     const handleStartDateChange = (newStartDate: Value) => {
         const params = {
@@ -859,29 +863,37 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <br />
                             {/* Room list */}
                             <Row className="mt-12">
-                                <h4>Rooms found:</h4>
-                                {filteredRooms.map((room) => (
-                                    <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card>
-                                            <Card.Body>
-                                                <Card.Title>{room.name}</Card.Title>
-                                                <Card.Text>
-                                                    <span>{room.description}</span>
-                                                    <br />
-                                                    <span>{`Price: ${room.price} euros.`}</span>
-                                                    <br />
-                                                    <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
-                                                </Card.Text>
-                                                <Form.Check type="radio"
-                                                    name="pricing-plan"
-                                                    value={selectedRoomID?.toString()}
-                                                    checked={selectedRoomID === room.id}
-                                                    onChange={() => roomSelected(room.id)}
-                                                    onClick={() => roomSelected(room.id)} label="Book" />
-                                            </Card.Body>
-                                        </Card>
-                                    </Row>
-                                ))}
+                                {filteredRooms && filteredRooms.length > 0 ? (
+                                    <div>
+                                        <h4>Rooms found:</h4>
+                                        {filteredRooms.map((room) => (
+                                            <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                                <Card>
+                                                    <Card.Body>
+                                                        <Card.Title>{room.name}</Card.Title>
+                                                        <Card.Text>
+                                                            <span>{room.description}</span>
+                                                            <br />
+                                                            <span>{`Price: ${room.price} euros.`}</span>
+                                                            <br />
+                                                            <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
+                                                        </Card.Text>
+                                                        <Form.Check type="radio"
+                                                            name="pricing-plan"
+                                                            value={selectedRoomID?.toString()}
+                                                            checked={selectedRoomID === room.id}
+                                                            onChange={() => roomSelected(room.id)}
+                                                            onClick={() => roomSelected(room.id)} label="Book" />
+                                                    </Card.Body>
+                                                </Card>
+                                            </Row>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <h4>No rooms found</h4>
+                                    </div>
+                                )}
                             </Row>
                             <Button onClick={goToNextStep}>Next</Button>
                         </Container>
