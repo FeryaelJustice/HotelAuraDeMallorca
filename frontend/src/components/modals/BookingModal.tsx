@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
-import axios from 'axios';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, PaymentMethod, Plan, Room, Service, User, Guest, Payment } from '../../models';
+import { Booking, PaymentMethod, Plan, Room, Service, User, Guest, Payment } from './../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
-import { isEmptyOrSpaces, validateEmail } from '../../utils';
+import { isEmptyOrSpaces, validateEmail } from './../../utils';
 import './BookingModal.css'
+import { API_URL } from './../../services/consts';
+import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
 // Stripe
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
@@ -23,9 +24,6 @@ import {
     useElements,
 } from '@stripe/react-stripe-js';
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : '');
-
-// API URL
-const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
 interface BookingModalProps {
     show: boolean,
@@ -45,15 +43,6 @@ enum BookingSteps {
 // Booking step: calendar properties
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
-
-// Axios request properties para cors
-const axiosHeaders = {
-    'Content-Type': 'application/json',
-    'Authorization': '',
-    'Accept': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-}
-// axios.defaults.withCredentials = true;
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
@@ -106,7 +95,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             console.log(data)
             /*
             try {
-                const res = await axios.post(API_URL + '/api/create-payment-intent', data)
+                const res = await serverAPI.post('/api/create-payment-intent', data)
                 const { client_secret: clientSecret } = await res.data;
                 if (stripe) {
                     const { error } = await stripe.confirmPayment({
@@ -157,9 +146,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
+        const currentUser = await serverAPI.post('/api/currentUser', cookies);
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + currentUser.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
@@ -216,7 +205,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepChooseRoom:
-                axios.get(API_URL + '/api/room/' + selectedRoomID).then(res => {
+                serverAPI.get('/api/room/' + selectedRoomID).then(res => {
                     setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
                 }).catch(err => console.error(err))
                 if (selectedRoomID == 2) {
@@ -251,7 +240,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     // console.log(`${key}: ${value}`);
                     if (value) {
                         // Si es true, es que esta seleccionado
-                        const res = await axios.get(API_URL + '/api/service/' + key)
+                        const res = await serverAPI.get('/api/service/' + key)
                         if (res) {
                             totalServicesPrice += res.data.data[0].serv_price;
                         }
@@ -290,7 +279,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
                         try {
                             // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                            const res = await axios.post(API_URL + '/api/register', userToCreate, { headers: axiosHeaders })
+                            const res = await serverAPI.post('/api/register', userToCreate)
                             const newUserAllData: User = {
                                 id: res.data.insertId,
                                 ...userToCreate,
@@ -331,14 +320,14 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                     try {
                         // First, check if room is available and not used on that dates
-                        axios.post(API_URL + '/api/checkBookingAvalability', bookingData, { headers: axiosHeaders }).then(availabilityResponse => {
+                        serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
                             console.log(availabilityResponse.data)
                             // Make the API call for booking, and there we will also insert the booking services and booking guests
-                            axios.post(API_URL + '/api/booking', bookingData, { headers: axiosHeaders }).then(bookingResponse => {
+                            serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
                                 if (bookingResponse.data.status == "success") {
                                     // Make the API call for payment
                                     payment.bookingID = bookingResponse.data.insertId;
-                                    axios.post(API_URL + '/api/payment', payment, { headers: axiosHeaders }).then(paymentResponse => {
+                                    serverAPI.post('/api/payment', payment).then(paymentResponse => {
                                         console.log(paymentResponse.data)
                                         // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
                                         setCurrentStep(BookingSteps.StepConfirmation);
@@ -428,7 +417,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [checkedPlan, setCheckedPlan] = useState<number | null>(1);
 
     useEffect(() => {
-        axios.get(API_URL + '/api/plans').then(res => {
+        serverAPI.get('/api/plans').then(res => {
             let plans = res.data.data;
             let retrievedPlans: Plan[] = [];
             plans.forEach((plan: any) => {
@@ -463,7 +452,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             lat: 39.58130105,
             lon: 2.709183392285786,
         };
-        weatherAPI.get('data/2.5/forecast', { params, headers: axiosHeaders }).then(res => {
+        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
             console.log(res)
         }).catch(err => console.error(err))
         onChangeStartDate(newStartDate);
@@ -474,7 +463,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             lat: 39.58130105,
             lon: 2.709183392285786,
         };
-        weatherAPI.get('data/2.5/forecast', { params, headers: axiosHeaders }).then(res => {
+        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
             console.log(res)
         }).catch(err => console.error(err))
         onChangeEndDate(newEndDate);
@@ -483,7 +472,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Get rooms
     useEffect(() => {
-        axios.get(API_URL + '/api/rooms').then(res => {
+        serverAPI.get('/api/rooms').then(res => {
             let rooms = res.data.data;
             let retrievedRooms: Room[] = [];
             rooms.forEach((room: any) => {
@@ -523,7 +512,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [selectedServicesIDs, setSelectedServicesIDs] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
-        axios.get(API_URL + '/api/services').then(res => {
+        serverAPI.get('/api/services').then(res => {
             let servicess = res.data.data;
             let retrievedServices: Service[] = [];
             servicess.forEach((service: any) => {
@@ -541,7 +530,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             setSelectedServicesIDs(selectedServicesObject);
 
             // Get and set services images
-            axios.post(API_URL + '/api/servicesImages', { services: servicess }).then(res => {
+            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
                 const responseData = res.data.data;
 
                 // Update the imageURL property of matching services
@@ -697,7 +686,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [paymentStripeMessage, setPaymentStripeMessage] = useState<string | null>('');
 
     useEffect(() => {
-        axios.get(API_URL + '/api/paymentmethods').then(res => {
+        serverAPI.get('/api/paymentmethods').then(res => {
             let paymentMethodss = res.data.data;
             let retrievedPaymentMethods: PaymentMethod[] = [];
             paymentMethodss.forEach((pm: any) => {

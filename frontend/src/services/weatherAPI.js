@@ -1,9 +1,5 @@
 import axios from "axios";
-
-const OPENWEATHERMAP_API_KEY = process.env.OPENWEATHERMAP_API_KEY ? process.env.OPENWEATHERMAP_API_KEY : '';
-const OPENWEATHERMAP_BASE_URL = process.env.OPENWEATHERMAP_BASE_URL ? process.env.OPENWEATHERMAP_BASE_URL : '';
-const ACCUWEATHER_API_KEY = process.env.ACCUWEATHER_API_KEY ? process.env.ACCUWEATHER_API_KEY : '';
-const ACCUWEATHER_BASE_URL = process.env.ACCUWEATHER_BASE_URL ? process.env.ACCUWEATHER_BASE_URL : '';
+import { OPENWEATHERMAP_API_KEY, OPENWEATHERMAP_BASE_URL, ACCUWEATHER_API_KEY, ACCUWEATHER_BASE_URL } from "./consts";
 
 const weatherAPI = axios.create({
     baseURL: OPENWEATHERMAP_BASE_URL,
@@ -11,7 +7,12 @@ const weatherAPI = axios.create({
         apikey: OPENWEATHERMAP_API_KEY
     },
     headers: {
-        'Content-Encoding': 'gzip'
+        'Content-Encoding': 'gzip',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': true,
+        'Authorization': OPENWEATHERMAP_API_KEY,
     }
 });
 

@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useCookies } from 'react-cookie';
-const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
-// const FRONT_URL = process.env.FRONT_URL ? process.env.FRONT_URL : 'http://localhost:5173';
+import serverAPI from './../services/serverAPI';
 
 export const UserVerify = () => {
     const navigate = useNavigate();
-    const [, setCookie, ] = useCookies(['token']);
+    const [, setCookie,] = useCookies(['token']);
 
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 
     useEffect(() => {
-        axios.post(`${API_URL}/api/user/verifyEmail/${token}`)
+        serverAPI.post(`api/user/verifyEmail/${token}`)
             .then(response => {
                 setVerificationStatus(response.data.status);
                 setCookie('token', response.data.jwt)

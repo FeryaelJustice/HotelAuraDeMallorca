@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom"
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Button from 'react-bootstrap/Button';
 import { useCookies } from 'react-cookie';
+import serverAPI from './../../services/serverAPI';
 
 interface HeaderProps {
     colorScheme: string,
@@ -20,7 +20,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
 
     useEffect(() => {
         if (cookies.token) {
-            axios.post(API_URL + '/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
+            serverAPI.post('/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
                 if (response && response.data && response.data.status != "error") {
                     let picURL = API_URL + "/" + response.data.photoURL;
                     setUserPhotoURL(picURL)

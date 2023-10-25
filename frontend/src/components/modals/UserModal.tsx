@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
-import axios from 'axios'
 import { useCookies } from 'react-cookie';
 import Alert from 'react-bootstrap/Alert';
 import ReCAPTCHA from "react-google-recaptcha";
 import { User } from './../../models/index'
 import './UserModal.css'
+import { API_URL } from './../../services/consts';
+import serverAPI from './../../services/serverAPI';
 
 interface UserModalProps {
     show: boolean,
@@ -19,14 +20,6 @@ enum UserModalScreens {
     ScreenRegister,
     ScreenEditProfile,
 }
-
-// Axios request properties
-const axiosHeaders = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Access-Control-Allow-Origin': '*'
-}
-// axios.defaults.withCredentials = true;
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
     const handleClose = () => {
@@ -47,7 +40,6 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         }
     }
 
-    const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
     const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentUser, setCurrentUser] = useState(new User());
@@ -79,7 +71,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const deleteAccount = () => {
         // Delete account
-        axios.delete(API_URL + '/api/user/' + currentUser.id, {
+        serverAPI.delete('/api/user/' + currentUser.id, {
             headers: {
                 Authorization: cookies.token
             }
@@ -95,9 +87,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await axios.post(API_URL + '/api/currentUser', cookies, { headers: axiosHeaders });
+        const currentUser = await serverAPI.post('/api/currentUser', cookies);
         if (currentUser) {
-            const getLoggedUserData = await axios.get(API_URL + '/api/loggedUser/' + currentUser.data.userID, { headers: axiosHeaders }).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + currentUser.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
@@ -125,7 +117,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
-            axios.post(API_URL + '/api/login', userLogin, { headers: axiosHeaders }).then(res => {
+            serverAPI.post('/api/login', userLogin).then(res => {
                 setCookie('token', res.data.cookieJWT)
                 console.log("logged successfully" + res)
             }).catch(err => {
@@ -146,7 +138,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await axios.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        const isHuman = await serverAPI.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaLoginValid(true)
@@ -174,13 +166,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
             if (userRegister.password === userRegister.repeatpassword) {
                 // api call
-                axios.post(API_URL + '/api/register', userRegister, { headers: axiosHeaders }).then(res => {
+                serverAPI.post('/api/register', userRegister).then(res => {
                     // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
                     // setCookie('token', res.data.cookieJWT)
                     console.log('registered successfully' + res)
 
                     // After successful registration, send a request to generate and send a confirmation email
-                    axios.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                    serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
                         .then(response => {
                             alert('An email has been sent to your mail to verify your account!')
                             console.log('Confirmation email sent successfully', response);
@@ -215,7 +207,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await axios.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        const isHuman = await serverAPI.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaRegisterValid(true)
@@ -239,7 +231,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         if (userEdit.name != "" && userEdit.surnames != "" && form.checkValidity()) {
-            axios.post(API_URL + '/api/edituser/', userEdit, { headers: axiosHeaders }).then(res => {
+            serverAPI.post('/api/edituser/', userEdit).then(res => {
                 alert(res.data.msg)
                 resetUserModal();
                 onClose();

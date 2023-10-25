@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
-import axios from 'axios'
-const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
+import serverAPI from './../services/serverAPI';
 
 export const Contact = () => {
 
@@ -18,7 +17,7 @@ export const Contact = () => {
             subject,
             message
         }
-        axios.post(API_URL + '/api/sendContactForm', data).then(response => {
+        serverAPI.post('/api/sendContactForm', data).then(response => {
             alert(response.data.msg)
         }).catch(error => {
             console.error(error)

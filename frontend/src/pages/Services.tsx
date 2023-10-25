@@ -1,17 +1,17 @@
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from 'react'
 import { Service } from '../models';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
+import { API_URL } from './../services/consts';
+import serverAPI from './../services/serverAPI';
 export const Services = () => {
     const [services, setServices] = useState<Service[]>([])
 
     useEffect(() => {
-        axios.get(API_URL + '/api/services').then(res => {
+        serverAPI.get('/api/services').then(res => {
             let servicess = res.data.data;
             let retrievedServices: Service[] = [];
             servicess.forEach((service: any) => {
@@ -20,7 +20,7 @@ export const Services = () => {
             setServices(retrievedServices)
 
             // Get and set services images
-            axios.post(API_URL + '/api/servicesImages', { services: servicess }).then(res => {
+            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
                 const responseData = res.data.data;
 
                 // Update the imageURL property of matching services
