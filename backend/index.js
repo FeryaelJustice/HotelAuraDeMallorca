@@ -287,10 +287,10 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
 })
 
 expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) => {
+    const userID = req.body.userID;
     // Delete all existing media and user_media associated with the user.
     const deleteMediaAndUserMediaPromise = new Promise((resolve, reject) => {
         try {
-            const userID = req.body.userID;
             pool.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], async (error, results) => {
                 if (error) {
                     return reject(error);
@@ -897,7 +897,7 @@ expressRouter.post('/booking', async (req, res) => {
         // Create a booking
         const bookingId = await createBooking(booking, guestIds, servicesIDs);
 
-        return us(200).send({ status: "success", insertId: bookingId });
+        return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
     }
@@ -1006,7 +1006,7 @@ async function createBooking(booking, guestIds, servicesIDs) {
                     });
                 });
             } catch (error) {
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+                reject(error);
             }
         });
     });

@@ -301,29 +301,29 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         // First, check if room is available and not used on that dates
                         serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
                             console.log(availabilityResponse.data)
-                            // Make the API call for booking, and there we will also insert the booking services and booking guests
-                            serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
-                                if (bookingResponse.data.status == "success") {
-                                    // Check payment methods success
-                                    let paymentMethodSuccess = false;
-                                    let transactionID = '';
-                                    switch (checkedPaymentMethod) {
-                                        case 1:
-                                            // Stripe
-                                            paymentMethodSuccess = stripePaymentSuccess;
-                                            transactionID = stripeTransactionID ? stripeTransactionID : '';
-                                            break;
-                                        case 2:
-                                            // Paypal
-                                            paymentMethodSuccess = false;
-                                            transactionID = '';
-                                            break;
-                                        default:
-                                            break;
-                                    }
 
-                                    console.log(paymentMethodSuccess)
-                                    if (paymentMethodSuccess) {
+                            // Check payment methods success
+                            let paymentMethodSuccess = false;
+                            let transactionID = '';
+                            switch (checkedPaymentMethod) {
+                                case 1:
+                                    // Stripe
+                                    paymentMethodSuccess = stripePaymentSuccess;
+                                    transactionID = stripeTransactionID ? stripeTransactionID : '';
+                                    break;
+                                case 2:
+                                    // Paypal
+                                    paymentMethodSuccess = false;
+                                    transactionID = '';
+                                    break;
+                                default:
+                                    break;
+                            }
+
+                            if (paymentMethodSuccess) {
+                                // Make the API call for booking, and there we will also insert the booking services and booking guests
+                                serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
+                                    if (bookingResponse.data.status == "success") {
                                         // Make the API call for payment
                                         payment.bookingID = bookingResponse.data.insertId;
                                         // stripeTransactionID ? stripeTransactionID : null;
@@ -349,11 +349,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             }
                                         })
                                     }
-                                }
-                            }).catch(err => {
-                                console.error(err)
-                                setCurrentStep(BookingSteps.StepConfirmation);
-                            })
+                                }).catch(err => {
+                                    console.error(err)
+                                    setCurrentStep(BookingSteps.StepConfirmation);
+                                })
+                            }
 
                         }).catch((err) => {
                             console.error(err)
