@@ -447,8 +447,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     };
 
     // Step booking
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
     const [startDate, onChangeStartDate] = useState<Value>(new Date());
-    const [endDate, onChangeEndDate] = useState<Value>(new Date());
+    const [endDate, onChangeEndDate] = useState<Value>(tomorrow);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
 
@@ -829,6 +832,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </Col>
                                 <Col md={6}>
                                     <h3>End date</h3>
+                                    {/* 1 day */}
                                     <Calendar minDate={startDate instanceof Date ? startDate : undefined} onChange={handleEndDateChange} value={endDate} />
                                 </Col>
                             </Row>
