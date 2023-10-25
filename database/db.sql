@@ -145,12 +145,18 @@ CREATE TABLE payment (
     payment_amount DECIMAL(10, 2),
     payment_date DATE,
     payment_method_id INT,
-    stripe_transaction_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (booking_id) REFERENCES booking(id),
     FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
+);
+
+-- Create the table payment_transaction (link payments to real transactions from payment platforms)
+CREATE TABLE payment_transaction (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    payment_id INT DEFAULT NULL,
+    transaction_id VARCHAR(255) DEFAULT NULL
 );
 
 -- MEDIAS

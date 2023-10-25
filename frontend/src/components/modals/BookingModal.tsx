@@ -6,7 +6,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, PaymentMethod, Plan, Room, Service, User, Guest, Payment } from './../../models';
+import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest } from './../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
@@ -23,7 +23,7 @@ import {
     useStripe,
     useElements,
 } from '@stripe/react-stripe-js';
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : '');
+const stripePromise = loadStripe(process.env.STRIPE_PUBLISHABLE_KEY ? process.env.STRIPE_PUBLISHABLE_KEY : '');
 
 interface BookingModalProps {
     show: boolean,
@@ -64,6 +64,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             /*...*/
         },
     });
+    const [stripeTransactionID, setStripeTransactionID] = useState<string | null>();
+    const [stripePaymentSuccess, setStripePaymentSuccess] = useState(false);
+
     // STRIPE FORM
     const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
         const stripe = useStripe();
@@ -76,6 +79,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             if (elements == null) {
                 return;
             }
+
             // Trigger form validation and wallet collection
             const { error: submitError } = await elements.submit();
             if (submitError) {
@@ -83,48 +87,21 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setErrorMessage(submitError.message);
                 return;
             }
+
             // Create the PaymentIntent and obtain clientSecret from your server endpoint
-
-
             let data = {
                 amount: totalPriceToPay,
                 currency: stripeOptions.currency,
                 plan: plan
             }
-
-            console.log(data)
-            /*
-            try {
-                const res = await serverAPI.post('/api/create-payment-intent', data)
-                const { client_secret: clientSecret } = await res.data;
-                if (stripe) {
-                    const { error } = await stripe.confirmPayment({
-                        //`Elements` instance that was used to create the Payment Element
-                        elements,
-                        clientSecret,
-                        confirmParams: {
-                            return_url: API_URL + '/success',
-                        },
-                    });
-
-                    if (error) {
-                        // This point will only be reached if there is an immediate error when
-                        // confirming the payment. Show error to your customer (for example, payment
-                        // details incomplete)
-                        setErrorMessage(error.message);
-                    } else {
-                        // Your customer will be redirected to your `return_url`. For some payment
-                        // methods like iDEAL, your customer will be redirected to an intermediate
-                        // site first to authorize the payment, then redirected to the `return_url`.
-                        goToNextStep();
-                    }
-                    setPaymentStripeMessage(res.data)
-                }
-            } catch (err) {
-                // setPaymentStripeMessage(err)
+            const response = await serverAPI.post('/api/purchase', { data });
+            if (response) {
+                setStripeTransactionID(response.data.client_secret)
+                setStripePaymentSuccess(true)
                 goToNextStep();
+            } else {
+                setStripePaymentSuccess(false)
             }
-            */
         };
 
         return (
@@ -317,8 +294,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         bookingID: booking.id,
                         amount: totalPriceToPay,
                         date: new Date(),
-                        paymentMethodID: checkedPaymentMethod,
-                        stripeTransactionID: null,
+                        paymentMethodID: checkedPaymentMethod
                     });
 
                     try {
@@ -328,22 +304,52 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             // Make the API call for booking, and there we will also insert the booking services and booking guests
                             serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
                                 if (bookingResponse.data.status == "success") {
-                                    // Make the API call for payment
-                                    payment.bookingID = bookingResponse.data.insertId;
-                                    serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                        setCurrentStep(BookingSteps.StepConfirmation);
-                                    }).catch(err => {
-                                        console.error(err)
-                                        setCurrentStep(BookingSteps.StepConfirmation);
-                                        if (err.response.data && err.response.data.msg) {
-                                            alert(err.response.data.msg)
-                                        }
-                                    })
-                                    //if (paymentResponse.data.status == "success") {
-                                    //}
+                                    // Check payment methods success
+                                    let paymentMethodSuccess = false;
+                                    let transactionID = '';
+                                    switch (checkedPaymentMethod) {
+                                        case 1:
+                                            // Stripe
+                                            paymentMethodSuccess = stripePaymentSuccess;
+                                            transactionID = stripeTransactionID ? stripeTransactionID : '';
+                                            break;
+                                        case 2:
+                                            // Paypal
+                                            paymentMethodSuccess = false;
+                                            transactionID = '';
+                                            break;
+                                        default:
+                                            break;
+                                    }
+
+                                    console.log(paymentMethodSuccess)
+                                    if (paymentMethodSuccess) {
+                                        // Make the API call for payment
+                                        payment.bookingID = bookingResponse.data.insertId;
+                                        // stripeTransactionID ? stripeTransactionID : null;
+                                        serverAPI.post('/api/payment', payment).then(paymentResponse => {
+                                            if (paymentResponse) {
+                                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: transactionID })
+                                                serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
+                                                    if (paymentTransResponse) {
+                                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                                        setCurrentStep(BookingSteps.StepConfirmation);
+                                                    }
+                                                }).catch(err => {
+                                                    console.error(err)
+                                                    if (err.response.data && err.response.data.msg) {
+                                                        alert(err.response.data.msg)
+                                                    }
+                                                })
+                                            }
+                                        }).catch(err => {
+                                            console.error(err)
+                                            if (err.response.data && err.response.data.msg) {
+                                                alert(err.response.data.msg)
+                                            }
+                                        })
+                                    }
                                 }
-                                setCurrentStep(BookingSteps.StepConfirmation);
                             }).catch(err => {
                                 console.error(err)
                                 setCurrentStep(BookingSteps.StepConfirmation);

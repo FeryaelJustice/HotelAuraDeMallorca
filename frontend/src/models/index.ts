@@ -1,6 +1,7 @@
 export { Booking } from "./Booking";
-export { PaymentMethod } from "./PaymentMethod";
 export { Payment } from "./Payment";
+export { PaymentMethod } from "./PaymentMethod";
+export { PaymentTransaction } from "./PaymentTransaction";
 export { Plan } from "./Plan";
 export { Role } from "./Role";
 export { Room } from "./Room";

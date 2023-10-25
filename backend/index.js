@@ -11,7 +11,7 @@ const compression = require('compression')
 const moment = require('moment'); // for dates, library
 require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
-const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY)
 const nodemailer = require("nodemailer");
 const fileExtensionRegex = /\.[^.]+$/;
 const multer = require('multer');
@@ -929,37 +929,67 @@ function insertBookingGuests(connection, bookingId, guestIds) {
 // PAYMENT
 expressRouter.post('/payment', (req, res) => {
     pool.getConnection((err, connection) => {
-        const data = req.body;
-        let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id, stripe_transaction_id) VALUES (?, ?, ?, ?, ?, ?)';
-        let values = [data.userID, data.bookingID, data.amount, data.date, data.paymentMethodID, data.stripeTransactionID];
+        try {
+            const data = req.body;
+            let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
+            let values = [data.userID, data.bookingID, data.amount, data.date, data.paymentMethodID];
+            if (err) {
+                console.error('Error acquiring connection from pool:', err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            connection.query(sql, values, (error, result) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                }
+                return res.status(200).send({ status: "success", insertId: result.insertId });
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+    });
+})
+
+expressRouter.post('/paymentTransaction', (req, res) => {
+    pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error acquiring connection from pool:', err);
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
-        connection.query(sql, values, (error, results) => {
-            if (error) {
-                console.error(error);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
-            }
-            return res.status(200).send({ status: "success", insertId: results.insertId });
-        });
+        try {
+            const data = req.body;
+            connection.query('INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)', [data.payment_id, data.transaction_id], (error, result) => {
+                if (error) {
+                    console.error('Error acquiring connection from pool:', error);
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });
+                }
+                return res.status(200).send({ status: "success", insertId: result.insertId });
+            })
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
     });
 })
 
 // Stripe
-expressRouter.post('/create-payment-intent', async (req, res) => {
-    const { amount, currency, plan } = req.body;
-    console.log(req.body)
+expressRouter.post('/purchase', async (req, res) => {
+    try {
+        const { data } = req.body;
+        console.log(req.body)
 
-    const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        currency,
-        confirmation_method: 'manual',
-        confirm: true,
-        statement_descriptor_suffix: "Payment using Stripe",
-    })
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: data.amount,
+            currency: data.currency,
+            description: 'Hotel booking',
+            payment_method_types: ['card']
+        })
 
-    return res.status(200).json({ status: "success", msg: 'stripe', clientSecret: paymentIntent.client_secret })
+        const { client_secret } = paymentIntent
+
+        return res.status(200).json({ status: "success", msg: 'stripe', client_secret: client_secret })
+    } catch (error) {
+        return res.status(200).json({ status: "error", msg: 'stripe', error: error, client_secret: null })
+    }
 })
 // Stripe success or failure responses
 expressRouter.get('/success', (req, res) => {
@@ -972,22 +1002,26 @@ expressRouter.get('/cancel', (req, res) => {
 // MEDIAS
 expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
     pool.getConnection((err, connection) => {
-        let userID = req.id;
-        connection.query('SELECT media_id FROM user_media WHERE user_id = ' + userID, (error, results) => {
-            if (error) {
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
-            }
-            if (results && results.length > 0) {
-                connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
-                    if (error) {
-                        return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                    }
-                    return res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
-                });
-            } else {
-                return res.status(200).send({ status: "error", error: 'No user logo' });;
-            }
-        })
+        try {
+            let userID = req.id;
+            connection.query('SELECT media_id FROM user_media WHERE user_id = ' + userID, (error, results) => {
+                if (error) {
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                }
+                if (results && results.length > 0) {
+                    connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
+                        if (error) {
+                            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                        }
+                        return res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
+                    });
+                } else {
+                    return res.status(200).send({ status: "error", error: 'No user logo' });;
+                }
+            })
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
     });
 })
 
@@ -999,16 +1033,20 @@ function deleteUserByUserID(userID) {
             if (err) {
                 reject(err);
             } else {
-                const sql = 'DELETE FROM app_user WHERE id = ?';
-                const values = [userID];
-                connection.query(sql, values, (err, results, fields) => {
-                    connection.release();
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
+                try {
+                    const sql = 'DELETE FROM app_user WHERE id = ?';
+                    const values = [userID];
+                    connection.query(sql, values, (err, results, fields) => {
+                        connection.release();
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                } catch (error) {
+                    reject(error);
+                }
             }
         });
     });
@@ -1016,61 +1054,77 @@ function deleteUserByUserID(userID) {
 
 function deleteBookingByUserID(userID) {
     return new Promise((resolve, reject) => {
-        const sql = 'DELETE FROM booking WHERE user_id = ?';
-        const values = [userID];
+        try {
+            const sql = 'DELETE FROM booking WHERE user_id = ?';
+            const values = [userID];
 
-        pool.query(sql, values, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+            pool.query(sql, values, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
     });
 }
 
 function deletePaymentByUserID(userID) {
     return new Promise((resolve, reject) => {
-        const sql = 'DELETE FROM payment WHERE user_id = ?';
-        const values = [userID];
+        try {
+            const sql = 'DELETE FROM payment WHERE user_id = ?';
+            const values = [userID];
 
-        pool.query(sql, values, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+            pool.query(sql, values, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
     });
 }
 
 function deleteUserRoleByUserID(userID) {
     return new Promise((resolve, reject) => {
-        const sql = 'DELETE FROM user_role WHERE user_id = ?';
-        const values = [userID];
+        try {
+            const sql = 'DELETE FROM user_role WHERE user_id = ?';
+            const values = [userID];
 
-        pool.query(sql, values, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+            pool.query(sql, values, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
     });
 }
 
 function deleteUserMediaByUserID(userID) {
     return new Promise((resolve, reject) => {
-        const sql = 'DELETE FROM user_media WHERE user_id = ?';
-        const values = [userID];
+        try {
+            const sql = 'DELETE FROM user_media WHERE user_id = ?';
+            const values = [userID];
 
-        pool.query(sql, values, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+            pool.query(sql, values, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
     });
 }
 
