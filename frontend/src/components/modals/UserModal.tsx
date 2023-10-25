@@ -48,12 +48,27 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     useEffect(() => {
         if (cookies.token) {
+            getAllLoggedUserData().then(res => {
+                const userData = res.data;
+                // retrieve profile pic and put
+                serverAPI.get('/api/getUserImg', { params: { userID: userData.id } }).then(res => {
+                    setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
+                })
+            })
+        }
+    }, [])
+    useEffect(() => {
+        if (cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
             getAllLoggedUserData().then(res => {
                 const userData = res.data;
                 const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password_hash, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
+                // retrieve profile pic and put
+                serverAPI.get('/api/getUserImg', { params: { userID: userData.id } }).then(res => {
+                    setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
+                })
             }).catch(err => console.error(err))
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)
@@ -247,7 +262,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                         reader.onload = () => {
                             setImagePicPreview(reader.result);
                         }
-                        reader.readAsDataURL(res.data.fileURL)
+                        reader.readAsDataURL(res.data.fileURL.url)
                     })
 
                 })

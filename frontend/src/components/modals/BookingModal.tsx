@@ -188,7 +188,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
-        console.log(totalPriceToPay)
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
@@ -332,7 +331,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     // Make the API call for payment
                                     payment.bookingID = bookingResponse.data.insertId;
                                     serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                                        console.log(paymentResponse.data)
                                         // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
                                         setCurrentStep(BookingSteps.StepConfirmation);
                                     }).catch(err => {

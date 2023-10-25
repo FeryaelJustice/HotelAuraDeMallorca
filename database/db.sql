@@ -425,7 +425,8 @@ VALUES
 INSERT INTO
     payment_method (id, payment_method_name)
 VALUES
-    (1, 'Stripe');
+    (1, 'Stripe'),
+    (2, 'Paypal');
 
 -- Payment (transacciones)
 INSERT INTO
@@ -439,7 +440,7 @@ INSERT INTO
     )
 VALUES
     (1, 1, 1, 50.00, '2023-10-23', 1),
-    (2, 2, 2, 150.00, '2023-11-10', 1);
+    (2, 2, 2, 150.00, '2023-11-10', 2);
 
 -- MEDIAS
 INSERT INTO
