@@ -13,6 +13,17 @@ require('dotenv').config();
 const dateFormat = 'YYYY-MM-DD'
 const stripe = require('stripe')(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)
 const nodemailer = require("nodemailer");
+const fileExtensionRegex = /\.[^.]+$/;
+const multer = require('multer');
+var multerStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/media/img/')
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .jpg
+    }
+})
+const upload = multer({ storage: multerStorage })
 // const { v4: uuidv4 } = require('uuid');
 
 // Init server
@@ -28,7 +39,6 @@ const corsOptions = {
     origin: '*',
     credentials: true, //access-control-allow-credentials:true
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    preflightContinue: true,
     optionsSuccessStatus: 200,
 }
 app.use(cors(corsOptions));
@@ -267,6 +277,27 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
         })
     });
 })
+
+expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
+    pool.getConnection(async (err, connection) => {
+        const imageName = req.file.filename
+        const user = req.body.user;
+        connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + imageName], (err, result) => {
+            if (err) {
+                console.error('Error acquiring connection from pool:', err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            const newMediaID = result.insertId;
+            connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [user, newMediaID], (err, result) => {
+                if (err) {
+                    console.error('Error acquiring connection from pool:', err);
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });
+                }
+                return res.status(200).json({ status: 'success', message: `Image ${imageName} successfully uploaded` });
+            })
+        })
+    });
+});
 
 expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
     pool.getConnection(async (err, connection) => {

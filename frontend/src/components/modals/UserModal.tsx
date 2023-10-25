@@ -220,6 +220,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     // Edit profile
 
     const [userEdit, setUserEdit] = useState({ name: '', surnames: '', token: '' });
+    const [imagePic, setImagePic] = useState('')
+    const [imagePicPreview, setImagePicPreview] = useState<string | ArrayBuffer | null>()
 
     const handleSaveEditChange = (event: any) => {
         setUserEdit({ ...userEdit, [event.target.name]: event.target.value });
@@ -231,7 +233,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         if (userEdit.name != "" && userEdit.surnames != "" && form.checkValidity()) {
-            serverAPI.post('/api/edituser/', userEdit).then(res => {
+            serverAPI.post('/api/edituser', userEdit).then(res => {
+                const formData = new FormData();
+                formData.append("image", imagePic);
+                formData.append('user', currentUser.id?.toString() ? currentUser.id.toString() : '')
+
+                serverAPI.post('/api/uploadUserImg', formData).then(res => {
+                    console.log(res)
+                })
                 alert(res.data.msg)
                 resetUserModal();
                 onClose();
@@ -246,6 +255,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             console.log(userEdit)
             alert('Something went wrong')
         }
+    }
+
+    const handleProfilePicChange = (e: any) => {
+        const file = e.target.files[0];
+        setImagePic(file);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImagePicPreview(reader.result);
+        }
+        reader.readAsDataURL(file)
     }
 
     // When close, reset
@@ -360,6 +380,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     </h2>
                     <Form onSubmit={handleSaveEdit}>
                         <div className='userEditDetails'>
+                            <Form.Group className='mb-3' controlId='formImage'>
+                                <img src={typeof imagePicPreview === 'string' ? imagePicPreview : ''} width={200} height={200} alt='image picture' />
+                                <br />
+                                <br />
+                                <Form.Control type='file' accept='image/*' onChange={handleProfilePicChange} />
+                            </Form.Group>
+
                             <Form.Group className="mb-3" controlId="formName">
                                 <Form.Label>Name</Form.Label>
                                 <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleSaveEditChange} value={userEdit.name ? userEdit.name : ''} minLength={1} maxLength={100} />
