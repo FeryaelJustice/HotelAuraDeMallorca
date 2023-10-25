@@ -236,7 +236,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             serverAPI.post('/api/edituser', userEdit).then(res => {
                 const formData = new FormData();
                 formData.append("image", imagePic);
-                formData.append('user', currentUser.id?.toString() ? currentUser.id.toString() : '')
+                formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '')
 
                 serverAPI.post('/api/uploadUserImg', formData).then(res => {
                     console.log(res)
