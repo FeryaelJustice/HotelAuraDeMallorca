@@ -29,6 +29,20 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
         }
     }, [cookies])
 
+    useEffect(() => {
+        let timerProfilePic = setInterval(() => {
+            if (cookies.token) {
+                // retrieve profile pic and put each 20 seconds
+                serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                    setUserPhotoURL(process.env.API_URL + "/" + res.data.fileURL.url);
+                })
+            }
+        }, 20000)
+        return () => {
+            clearInterval(timerProfilePic)
+        }
+    }, [])
+
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);

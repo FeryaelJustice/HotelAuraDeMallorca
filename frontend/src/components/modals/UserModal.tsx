@@ -240,6 +240,16 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
                 serverAPI.post('/api/uploadUserImg', formData).then(res => {
                     console.log(res)
+
+                    // retrieve profile pic and put
+                    serverAPI.get('/api/getUserImg', { params: { userID: currentUser.id } }).then(res => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            setImagePicPreview(reader.result);
+                        }
+                        reader.readAsDataURL(res.data.fileURL)
+                    })
+
                 })
                 alert(res.data.msg)
                 resetUserModal();

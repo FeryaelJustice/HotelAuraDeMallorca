@@ -318,8 +318,46 @@ expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) =>
     return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
 });
 
+expressRouter.get('/getUserImg', (req, res) => {
+    pool.getConnection(async (err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        let userID = req.query.userID;
+        connection.query('SELECT url FROM media INNER JOIN user_media ON user_media.media_id = media.id WHERE user_media.user_id = ?', [userID], (err, results) => {
+            if (err) {
+                console.error('Error acquiring connection from connection:', err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            return res.status(200).send({ status: "success", fileURL: results[0] });
+        })
+    })
+})
+
+expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
+    pool.getConnection(async (err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        let userID = req.id;
+        connection.query('SELECT url FROM media INNER JOIN user_media ON user_media.media_id = media.id WHERE user_media.user_id = ?', [userID], (err, results) => {
+            if (err) {
+                console.error('Error acquiring connection from connection:', err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            return res.status(200).send({ status: "success", fileURL: results[0] });
+        })
+    })
+})
+
 expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
     pool.getConnection(async (err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
         try {
             const userId = req.params.id;
             // Generate a random confirmation token
