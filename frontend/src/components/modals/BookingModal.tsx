@@ -820,11 +820,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 <Col md={6}>
                                     <h3>Start date</h3>
-                                    <Calendar minDate={new Date()} onChange={handleStartDateChange} value={startDate} />
+                                    <Calendar minDate={new Date()} maxDate={endDate instanceof Date ? endDate : undefined} onChange={handleStartDateChange} value={startDate} />
                                 </Col>
                                 <Col md={6}>
                                     <h3>End date</h3>
-                                    <Calendar minDate={new Date()} onChange={handleEndDateChange} value={endDate} />
+                                    <Calendar minDate={startDate instanceof Date ? startDate : undefined} onChange={handleEndDateChange} value={endDate} />
                                 </Col>
                             </Row>
                             <br />

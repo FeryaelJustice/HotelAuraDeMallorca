@@ -61,6 +61,18 @@
     background-color: #f0f0f0;
 }
 
+.react-calendar__century-view__decades__decade {
+    color: #000000;
+}
+
+.react-calendar__decade-view__years__year {
+    color: #000000;
+}
+
+.react-calendar__year-view__months__month {
+    color: #000000;
+}
+
 .react-calendar__month-view__days {
     text-align: center;
     text-transform: uppercase;
