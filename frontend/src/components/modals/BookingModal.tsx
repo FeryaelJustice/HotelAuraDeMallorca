@@ -691,7 +691,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Step choose payment method and pay
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<number | null>(1);
-    const [paymentStripeMessage, setPaymentStripeMessage] = useState<string | null>('');
 
     useEffect(() => {
         serverAPI.get('/api/paymentmethods').then(res => {
@@ -701,7 +700,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 retrievedPaymentMethods.push(new PaymentMethod({ id: pm.id, name: pm.payment_method_name.toLowerCase() }))
             })
             setPaymentMethods(retrievedPaymentMethods)
-            setPaymentStripeMessage('')
         }).catch
             (err => console.error(err))
     }, []);
@@ -1092,9 +1090,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currentStep === BookingSteps.StepConfirmation && (
                     <div>
                         <h2>Step 5: Booking completed</h2>
-                        <em>Message of payment with stripe:</em>
-                        <p>{paymentStripeMessage}</p>
-                        <Button variant='primary' onClick={goToNextStep}>Close window!</Button>
+                        <Button variant='primary' onClick={goToNextStep}>Close this window!</Button>
                     </div>
                 )
             }
