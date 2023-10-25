@@ -1,12 +1,17 @@
 import axios from "axios";
 
-const ACCUWEATHER_APIKEY = process.env.ACCUWEATHER_API_KEY ? process.env.ACCUWEATHER_API_KEY : '';
-const WEATHER_APIURL = 'http://dataservice.accuweather.com/forecasts/v1/'
+const OPENWEATHERMAP_API_KEY = process.env.OPENWEATHERMAP_API_KEY ? process.env.OPENWEATHERMAP_API_KEY : '';
+const OPENWEATHERMAP_BASE_URL = process.env.OPENWEATHERMAP_BASE_URL ? process.env.OPENWEATHERMAP_BASE_URL : '';
+const ACCUWEATHER_API_KEY = process.env.ACCUWEATHER_API_KEY ? process.env.ACCUWEATHER_API_KEY : '';
+const ACCUWEATHER_BASE_URL = process.env.ACCUWEATHER_BASE_URL ? process.env.ACCUWEATHER_BASE_URL : '';
 
 const weatherAPI = axios.create({
-    baseURL: WEATHER_APIURL,
+    baseURL: OPENWEATHERMAP_BASE_URL,
     params: {
-        apikey: ACCUWEATHER_APIKEY
+        apikey: OPENWEATHERMAP_API_KEY
+    },
+    headers: {
+        'Content-Encoding': 'gzip'
     }
 });
 

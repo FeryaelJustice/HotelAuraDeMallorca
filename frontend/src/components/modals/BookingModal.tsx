@@ -459,14 +459,22 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [selectedRoomID, setSelectedRoomID] = useState<number | null>(1);
 
     const handleStartDateChange = (newStartDate: Value) => {
-        weatherAPI.get('daily/15day/308014').then(res => {
+        const params = {
+            lat: 39.58130105,
+            lon: 2.709183392285786,
+        };
+        weatherAPI.get('data/2.5/forecast', { params, headers: axiosHeaders }).then(res => {
             console.log(res)
         }).catch(err => console.error(err))
         onChangeStartDate(newStartDate);
     }
 
     const handleEndDateChange = (newEndDate: Value) => {
-        weatherAPI.get('daily/15day/308014').then(res => {
+        const params = {
+            lat: 39.58130105,
+            lon: 2.709183392285786,
+        };
+        weatherAPI.get('data/2.5/forecast', { params, headers: axiosHeaders }).then(res => {
             console.log(res)
         }).catch(err => console.error(err))
         onChangeEndDate(newEndDate);
