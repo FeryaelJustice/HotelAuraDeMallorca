@@ -64,8 +64,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             /*...*/
         },
     });
-    const [stripeTransactionID, setStripeTransactionID] = useState<string | null>();
-    const [stripePaymentSuccess, setStripePaymentSuccess] = useState(false);
+    const [paymentTransactionID, setPaymentTransactionID] = useState<string>();
+    const [transactionIDIsSet, setTransactionIDIsSet] = useState<boolean>(false);
 
     // STRIPE FORM
     const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
@@ -94,14 +94,28 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currency: stripeOptions.currency,
                 plan: plan
             }
-            const response = await serverAPI.post('/api/purchase', { data });
-            if (response) {
-                setStripeTransactionID(response.data.client_secret)
-                setStripePaymentSuccess(true)
-                goToNextStep();
-            } else {
-                setStripePaymentSuccess(false)
-            }
+
+            const postToServer = (data: any) => {
+                return new Promise((resolve, reject) => {
+                    serverAPI
+                        .post('/api/purchase', { data })
+                        .then((response) => {
+                            resolve(response.data.client_secret);
+                        })
+                        .catch((error) => {
+                            reject(error);
+                        });
+                });
+            };
+            postToServer(data)
+                .then((clientSecret: any) => {
+                    setPaymentTransactionID(clientSecret);
+                    setTransactionIDIsSet(true)
+                    goToNextStep();
+                })
+                .catch((error) => {
+                    console.error('Error in postToServer:', error);
+                });
         };
 
         return (
@@ -302,34 +316,15 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
                             console.log(availabilityResponse.data)
 
-                            // Check payment methods success
-                            let paymentMethodSuccess = false;
-                            let transactionID = '';
-                            switch (checkedPaymentMethod) {
-                                case 1:
-                                    // Stripe
-                                    paymentMethodSuccess = stripePaymentSuccess;
-                                    transactionID = stripeTransactionID ? stripeTransactionID : '';
-                                    break;
-                                case 2:
-                                    // Paypal
-                                    paymentMethodSuccess = false;
-                                    transactionID = '';
-                                    break;
-                                default:
-                                    break;
-                            }
-
-                            if (paymentMethodSuccess) {
+                            if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
                                 // Make the API call for booking, and there we will also insert the booking services and booking guests
                                 serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
                                     if (bookingResponse.data.status == "success") {
                                         // Make the API call for payment
                                         payment.bookingID = bookingResponse.data.insertId;
-                                        // stripeTransactionID ? stripeTransactionID : null;
                                         serverAPI.post('/api/payment', payment).then(paymentResponse => {
                                             if (paymentResponse) {
-                                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: transactionID })
+                                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
                                                 serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
                                                     if (paymentTransResponse) {
                                                         // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
@@ -353,6 +348,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     console.error(err)
                                     setCurrentStep(BookingSteps.StepConfirmation);
                                 })
+                            } else {
+                                alert('Hubo un error en el pago')
                             }
 
                         }).catch((err) => {

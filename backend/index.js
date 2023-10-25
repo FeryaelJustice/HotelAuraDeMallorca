@@ -1093,7 +1093,7 @@ expressRouter.post('/purchase', async (req, res) => {
             amount: data.amount,
             currency: data.currency,
             description: 'Hotel booking',
-            payment_method_types: ['card']
+            payment_method_types: ['card'],
         })
 
         const { client_secret } = paymentIntent
