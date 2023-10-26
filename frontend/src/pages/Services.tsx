@@ -55,24 +55,32 @@ export const Services = () => {
                     <br />
                     {/* Services list */}
                     <Row className="mt-12">
-                        {services.map((service) => (
-                            <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                                >
-                                    <Card.Body>
-                                        <Card.Title>{service.name}</Card.Title>
-                                        <Card.Text>
-                                            <span>{service.description}</span>
-                                            <br />
-                                            <span>{t("services_item_price", { price: service.price })}</span>
-                                            <br />
-                                            <span>{t("services_item_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
-                                        </Card.Text>
-                                    </Card.Body>
-                                </Card>
-                            </Row>
-                        ))}
+                        {services && services.length > 0 ? (
+                            <div>
+                                {services.map((service) => (
+                                    <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s' }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                        >
+                                            <Card.Body>
+                                                <Card.Title>{service.name}</Card.Title>
+                                                <Card.Text>
+                                                    <span>{service.description}</span>
+                                                    <br />
+                                                    <span>{t("services_item_price", { price: service.price })}</span>
+                                                    <br />
+                                                    <span>{t("services_item_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
+                                                </Card.Text>
+                                            </Card.Body>
+                                        </Card>
+                                    </Row>
+                                ))}
+                            </div>
+                        ) : (
+                            <div>
+                                <p>No services found</p>
+                            </div>
+                        )}
                     </Row>
                 </Container>
             </div>
