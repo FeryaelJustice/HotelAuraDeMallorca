@@ -354,7 +354,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     setCurrentStep(BookingSteps.StepConfirmation);
                                 })
                             } else {
-                                alert('Hubo un error en el pago')
+                                alert('Error on payment')
                             }
 
                         }).catch((err) => {
@@ -746,40 +746,40 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         <BaseModal title={t("book")} show={show} onClose={handleClose}>
             {currentStep === BookingSteps.StepPersonalData && (
                 <div>
-                    <h2>Your personal data</h2>
+                    <h2>{t("modal_booking_personaldata_title")}</h2>
 
                     <Form noValidate onSubmit={handlePersonalDataSubmit}>
                         <Form.Group className="mb-3" controlId="formName">
-                            <Form.Label>Name</Form.Label>
-                            <Form.Control type="text" name="name" placeholder="Enter your name" value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
+                            <Form.Label>{t("modal_booking_personaldata_name_label")}</Form.Label>
+                            <Form.Control type="text" name="name" placeholder={t("modal_booking_personaldata_name_placeholder")} value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
                             <Form.Control.Feedback type='invalid'>
                                 {userPersonalDataErrors.nameError}
                             </Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formSurnames">
-                            <Form.Label>Surnames</Form.Label>
-                            <Form.Control type="text" name="surnames" placeholder="Enter your surnames" value={userPersonalData.surnames} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.surnamesError} required />
+                            <Form.Label>{t("modal_booking_personaldata_surnames_label")}</Form.Label>
+                            <Form.Control type="text" name="surnames" placeholder={t("modal_booking_personaldata_surnames_placeholder")} value={userPersonalData.surnames} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.surnamesError} required />
                             <Form.Control.Feedback type='invalid'>
                                 {userPersonalDataErrors.surnamesError}
                             </Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formEmail">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control type="email" name="email" placeholder="Enter your email" value={userPersonalData.email} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.emailError} required />
+                            <Form.Label>{t("modal_booking_personaldata_email_label")}</Form.Label>
+                            <Form.Control type="email" name="email" placeholder={t("modal_booking_personaldata_email_placeholder")} value={userPersonalData.email} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.emailError} required />
                             <Form.Text className="text-muted">
-                                We'll never share your email with anyone else and we will send confirmation mails to this one.
+                                {t("modal_booking_personaldata_email_description")}
                             </Form.Text>
                             <Form.Control.Feedback type='invalid'>
                                 {userPersonalDataErrors.emailError}
                             </Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Label><em>*If you do a booking without signin in, your default password will be: 1234.</em><br /><strong>Please change it inmediatly when you finish by logging in and going to edit profile.</strong></Form.Label>
+                        <Form.Label><em>{t("modal_booking_personaldata_infodefaultaccount")}</em><br /><strong>{t("modal_booking_personaldata_infodefaultaccount_important")}</strong></Form.Label>
 
                         <Button variant="primary" type="submit">
-                            Next step: Choose plan
+                            {t("modal_booking_nextstep")}
                         </Button>
                     </Form>
                 </div>
@@ -789,30 +789,40 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {
                 currentStep === BookingSteps.StepPlan && (
                     <div>
-                        <h2>Choose your PLAN</h2>
+                        <h2>{t("modal_booking_plans_title")}</h2>
                         <div className="cards-plan">
-                            {plans.map((plan) => (
-                                <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()}>
-                                    <Card.Body>
-                                        <Card.Title>Plan: {plan.name}</Card.Title>
-                                        <Card.Text>
-                                            <span>{plan.description}</span>
-                                            <br />
-                                            <span>Price: {plan.price} euros</span>
-                                        </Card.Text>
-                                        <Form.Check
-                                            type="radio"
-                                            name="pricing-plan"
-                                            value={plan.name?.toLowerCase()}
-                                            checked={checkedPlan === plan.id}
-                                            onChange={() => selectPlan(plan.id)}
-                                        />
-                                    </Card.Body>
-                                </Card>
-                            ))}
+                            {plans && plans.length > 0 ? (
+                                <div>
+                                    {plans.map((plan) => (
+                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()}>
+                                            <Card.Body>
+                                                <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
+                                                <Card.Text>
+                                                    <span>{plan.description}</span>
+                                                    <br />
+                                                    <span>{t("modal_booking_plans_card_text_price", { price: plan.price })}</span>
+                                                </Card.Text>
+                                                <Form.Check
+                                                    type="radio"
+                                                    name="pricing-plan"
+                                                    value={plan.name?.toLowerCase()}
+                                                    checked={checkedPlan === plan.id}
+                                                    onChange={() => selectPlan(plan.id)}
+                                                />
+                                            </Card.Body>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div>
+                                    <h4>No plans found</h4>
+                                </div>
+                            )}
                         </div>
 
-                        <Button onClick={goToNextStep}>Next</Button>
+                        <Button variant='primary' onClick={goToNextStep}>
+                            {t("modal_booking_nextstep")}
+                        </Button>
                     </div>
                 )
             }
@@ -823,19 +833,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         <Container>
                             <Row className="mt-12">
                                 <Col>
-                                    <h2>Choose your room</h2>
+                                    <h2>{t("modal_booking_rooms_title")}</h2>
                                 </Col>
                             </Row>
                             <br />
                             {/* Inputs de fechas */}
                             <Row className="mt-12">
                                 <Col md={6}>
-                                    <h3>Start date</h3>
+                                    <h3>{t("modal_booking_rooms_startdate")}</h3>
                                     <Calendar minDate={new Date()} maxDate={endDate instanceof Date ? endDate : undefined} onChange={handleStartDateChange} value={startDate} />
                                 </Col>
                                 <Col md={6}>
-                                    <h3>End date</h3>
-                                    {/* 1 day */}
+                                    <h3>{t("modal_booking_rooms_enddate")}</h3>
                                     <Calendar minDate={startDate instanceof Date ? startDate : undefined} onChange={handleEndDateChange} value={endDate} />
                                 </Col>
                             </Row>
@@ -843,7 +852,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             {/* Inputs de adultos y niños */}
                             <Row className="mt-12">
                                 <Col md={6}>
-                                    <Form.Label>Adults</Form.Label>
+                                    <Form.Label>{t("modal_booking_rooms_adults")}</Form.Label>
                                     <Form.Control
                                         type="number"
                                         min={1}
@@ -853,7 +862,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     />
                                 </Col>
                                 <Col md={6}>
-                                    <Form.Label>Children</Form.Label>
+                                    <Form.Label>{t("modal_booking_rooms_children")}</Form.Label>
                                     <Form.Control
                                         type="number"
                                         min={0}
@@ -865,7 +874,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             </Row>
                             <br />
                             <Row className='mt-12'>
-                                <span><em>Maximum 10 adults or 10 children and minimum 1 adult.</em></span>
+                                <span><em>{t("modal_booking_rooms_info_adultschildren")}</em></span>
                                 <hr />
                             </Row>
                             <br />
@@ -873,7 +882,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 {filteredRooms && filteredRooms.length > 0 ? (
                                     <div>
-                                        <h4>Rooms found:</h4>
+                                        <h4>{t("modal_booking_rooms_found")}</h4>
                                         {filteredRooms.map((room) => (
                                             <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
                                                 <Card>
@@ -882,9 +891,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                         <Card.Text>
                                                             <span>{room.description}</span>
                                                             <br />
-                                                            <span>{`Price: ${room.price} euros.`}</span>
+                                                            <span>{t("modal_booking_rooms_card_text_price", { price: room.price })}</span>
                                                             <br />
-                                                            <span>{`Avalability start: ${room.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${room.availabilityEnd?.toISOString().split('T')[0]}`}</span>
+                                                            <span>{t("modal_booking_rooms_card_text_availabilityDates", { availabilityStart: room.availabilityStart?.toISOString().split('T')[0], availabilityEnd: room.availabilityEnd?.toISOString().split('T')[0] })}</span>
                                                         </Card.Text>
                                                         <Form.Check type="radio"
                                                             name="pricing-plan"
@@ -903,7 +912,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     </div>
                                 )}
                             </Row>
-                            <Button onClick={goToNextStep}>Next</Button>
+                            <Button variant='primary' onClick={goToNextStep}>
+                                {t("modal_booking_nextstep")}
+                            </Button>
                         </Container>
                     </div>
                 )
@@ -915,8 +926,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         <Container>
                             <Row className="mt-12">
                                 <Col>
-                                    <h2>Choose your services</h2>
-                                    <em>(Optional)</em>
+                                    <h2>{t("modal_booking_services_title")}</h2>
+                                    <em>({t("modal_booking_services_optional")})</em>
                                 </Col>
                             </Row>
                             <br />
@@ -930,23 +941,25 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                 <Card.Text>
                                                     <span>{service.description}</span>
                                                     <br />
-                                                    <span>{`Price: ${service.price} euros.`}</span>
+                                                    <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>
                                                     <br />
-                                                    <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
+                                                    <span>{t("modal_booking_services_card_text_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
                                                 </Card.Text>
                                                 <Form.Check
                                                     type="checkbox"
                                                     name="service"
                                                     value={service.id ? service.id : -1}
                                                     checked={selectedServicesIDs[service.id ? service.id : 1]}
-                                                    label="Choose"
+                                                    label={t("modal_booking_services_card_choose")}
                                                     onChange={() => serviceSelected(service.id)} />
                                             </Card.Body>
                                         </Card>
                                     </Row>
                                 ))}
-                                <Button variant='primary' onClick={goToNextStep}>Continue</Button>
                             </Row>
+                            <Button variant='primary' onClick={goToNextStep}>
+                                {t("modal_booking_nextstep")}
+                            </Button>
                         </Container>
                     </div>
                 )
@@ -956,18 +969,18 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currentStep === BookingSteps.StepFillGuests && (
                     <div>
                         <div className='fillguests-info'>
-                            <span>Adults selected: {adults} | Children selected: {children} </span>
+                            <span>{t("modal_booking_guests_info", { adults, children })}</span>
                         </div>
                         <div className='fillguests-content'>
                             <Container>
                                 <Form noValidate onSubmit={handleGuestsSubmit}>
                                     {guests.map((guest, index) => (
                                         <Row key={index}>
-                                            <Row><strong>Guest {index}</strong></Row>
+                                            <Row><strong>{t("modal_booking_guests_guestindex", { index })}</strong></Row>
                                             <Row>
                                                 <Col>
                                                     <Form.Group controlId={`name-${index}`}>
-                                                        <Form.Label>Name</Form.Label>
+                                                        <Form.Label>{t("modal_booking_guests_guest_name")}</Form.Label>
                                                         <Form.Control
                                                             type="text"
                                                             name="name"
@@ -982,7 +995,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                 </Col>
                                                 <Col>
                                                     <Form.Group controlId={`surname-${index}`}>
-                                                        <Form.Label>Surname</Form.Label>
+                                                        <Form.Label>{t("modal_booking_guests_guest_surnames")}</Form.Label>
                                                         <Form.Control
                                                             type="text"
                                                             name="surnames"
@@ -997,7 +1010,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                 </Col>
                                                 <Col>
                                                     <Form.Group controlId={`email-${index}`}>
-                                                        <Form.Label>Email</Form.Label>
+                                                        <Form.Label>{t("modal_booking_guests_guest_email")}</Form.Label>
                                                         <Form.Control
                                                             type="email"
                                                             name="email"
@@ -1015,7 +1028,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                                         <Form.Group controlId={`isAdult-${index}`}>
                                                             <Form.Check
                                                                 type="checkbox"
-                                                                label="Adult"
+                                                                label={t("modal_booking_guests_guest_adult")}
                                                                 name="isAdult"
                                                                 disabled={loggedUserWantsToBecomeGuest && index === 0}
                                                                 checked={guest.isAdult ? guest.isAdult : false}
@@ -1028,10 +1041,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     ))}
                                     <br />
                                     <Button variant="success" onClick={addGuest}>
-                                        Add Guest
+                                        {t("modal_booking_guests_button_add")}
                                     </Button>
                                     <Button variant="success" onClick={substractGuest}>
-                                        Remove last Guest
+                                        {t("modal_booking_guests_button_remove")}
                                     </Button>
                                     <br />
                                     <br />
@@ -1045,8 +1058,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                             <br />
                                         </div>
                                     )}
-                                    <Button variant="primary" type="submit">
-                                        Submit
+                                    <Button variant='primary' type='submit'>
+                                        {t("modal_booking_nextstep")}
                                     </Button>
                                 </Form>
                             </Container>
@@ -1058,7 +1071,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {
                 currentStep === BookingSteps.StepPaymentMethod && (
                     <div>
-                        <h2>Choose payment method</h2>
+                        <h2>{t("modal_booking_payment_title")}</h2>
                         <div className="cards-payment">
                             {paymentMethods.map((paymentMethod) => (
                                 <Card key={paymentMethod.id ? (paymentMethod.id + Math.random() * (1000 - 1)) : Math.random()}>
@@ -1076,16 +1089,24 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             ))}
                         </div>
                         <div className='payment-selected'>
-                            {checkedPaymentMethod == 1 && (<div className="stripe">
-                                <h4>Stripe</h4>
-                                <Elements stripe={stripePromise} options={stripeOptions}>
-                                    <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
-                                </Elements>
-                            </div>
-                            )}
+                            {checkedPaymentMethod == 1 ? (
+                                <div className="stripe">
+                                    <h4>Stripe</h4>
+                                    <Elements stripe={stripePromise} options={stripeOptions}>
+                                        <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
+                                    </Elements>
+                                </div>
+                            ) : checkedPaymentMethod == 2 ? (
+                                <div className='paypal'>
+                                    <h4>Paypal</h4>
+                                    <em>Not available</em>
+                                </div>
+                            ) : null}
                         </div>
                         <div>
-                            <Button variant='primary' onClick={goToNextStep}>Finish booking, buy!</Button>
+                            <Button variant='primary' onClick={goToNextStep}>
+                                {t("modal_booking_gotopay")}
+                            </Button>
                         </div>
                     </div>
                 )
@@ -1094,8 +1115,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             {
                 currentStep === BookingSteps.StepConfirmation && (
                     <div>
-                        <h2>Step 5: Booking completed</h2>
-                        <Button variant='primary' onClick={goToNextStep}>Close this window!</Button>
+                        <h2>{t("modal_booking_completed_title")}</h2>
+                        <Button variant='primary' onClick={goToNextStep}>{t("modal_booking_completed_close")}</Button>
                     </div>
                 )
             }
