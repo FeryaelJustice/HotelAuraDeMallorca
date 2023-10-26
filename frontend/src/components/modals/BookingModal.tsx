@@ -116,7 +116,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 .then((clientSecret: any) => {
                     setPaymentTransactionID(clientSecret);
                     setTransactionIDIsSet(true)
-                    goToNextStep();
+                    pay();
                 })
                 .catch((error) => {
                     console.error('Error in postToServer:', error);
@@ -273,7 +273,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 break;
             case BookingSteps.StepPaymentMethod:
                 // Primero pagar
-                // Después realizar la reserva
                 try {
                     if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
                         // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
@@ -284,6 +283,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 console.error(err);
                             }
                         } else {
+                            // Después realizar la reserva
                             doBooking(userAllData?.id)
                         }
                     } else {
@@ -773,6 +773,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         setCheckedPaymentMethod(paymentMethodID);
     };
 
+    const pay = () => {
+        // console.log(paymentTransactionID)
+        goToNextStep();
+    }
+
+    // RESET
     const resetBookingModal = () => {
         setCurrentStep(BookingSteps.StepPersonalData)
         if (cookies.token) {
