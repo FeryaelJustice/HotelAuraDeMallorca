@@ -65,9 +65,9 @@ export const Services = () => {
                                         <Card.Text>
                                             <span>{service.description}</span>
                                             <br />
-                                            <span>{`Price: ${service.price} euros.`}</span>
+                                            <span>{t("services_item_price", { price: service.price })}</span>
                                             <br />
-                                            <span>{`Avalability start: ${service.availabilityStart?.toISOString().split('T')[0]}, Avalability end: ${service.availabilityEnd?.toISOString().split('T')[0]}`}</span>
+                                            <span>{t("services_item_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
                                         </Card.Text>
                                     </Card.Body>
                                 </Card>

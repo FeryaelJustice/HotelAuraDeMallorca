@@ -15,6 +15,9 @@ import './BookingModal.css'
 import { API_URL } from './../../services/consts';
 import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
+
+import { useTranslation } from "react-i18next";
+
 // Stripe
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
 import {
@@ -46,6 +49,8 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ show, onClose }: BookingModalProps) => {
+
+    const { t } = useTranslation();
 
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
@@ -738,7 +743,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }, [show])
 
     return (
-        <BaseModal title={'Book'} show={show} onClose={handleClose}>
+        <BaseModal title={t("book")} show={show} onClose={handleClose}>
             {currentStep === BookingSteps.StepPersonalData && (
                 <div>
                     <h2>Your personal data</h2>

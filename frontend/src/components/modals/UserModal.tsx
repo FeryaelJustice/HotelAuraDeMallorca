@@ -10,6 +10,8 @@ import './UserModal.css'
 import { API_URL } from './../../services/consts';
 import serverAPI from './../../services/serverAPI';
 
+import { useTranslation } from "react-i18next";
+
 interface UserModalProps {
     show: boolean,
     onClose: () => void;
@@ -22,6 +24,9 @@ enum UserModalScreens {
 }
 
 const UserModal = ({ show, onClose }: UserModalProps) => {
+
+    const { t } = useTranslation();
+
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
         resetUserModal();
@@ -299,7 +304,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     }, [show])
 
     return (
-        <BaseModal title={'User'} show={show} onClose={handleClose}>
+        <BaseModal title={t("user")} show={show} onClose={handleClose}>
             {currentScreen === UserModalScreens.ScreenLogin && (
                 <div>
                     <Form validated={loginValidated} onSubmit={handleLoginSubmit}>
