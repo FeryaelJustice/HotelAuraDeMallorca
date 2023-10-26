@@ -133,7 +133,8 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                             </div>
                         )}
 
-                        {cookies.token ? (
+                        {/* Logged icon */}
+                        {/* {cookies.token ? (
                             <div className={`logged-icon${colorScheme === 'dark' ? '' : '-light'}`}>
                                 <FontAwesomeIcon icon={faCheck} />
                                 <span>Logged</span>
@@ -142,7 +143,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                             <div className="logged-icon">
                                 <span></span>
                             </div>
-                        )}
+                        )} */}
                     </div>
 
                     <div className="header-multilanguage">
@@ -180,7 +181,9 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                                 <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
                             </div>
                         )}
-                        {cookies.token ? (
+
+                        {/* Logged icon */}
+                        {/* {cookies.token ? (
                             <div className="logged-icon">
                                 <FontAwesomeIcon icon={faCheck} />
                                 <span>Logged</span>
@@ -190,7 +193,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                             <div className="logged-icon">
                                 <span></span>
                             </div>
-                        )}
+                        )} */}
                     </a>
 
                     <div className="header-multilanguage">
