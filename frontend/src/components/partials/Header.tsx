@@ -23,10 +23,12 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
     const { i18n, t } = useTranslation();
+    const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
 
     const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const lang_code = e.target.value;
         i18n.changeLanguage(lang_code);
+        setSelectedLanguage(lang_code);
     };
 
     useEffect(() => {
@@ -41,6 +43,9 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     }, [cookies])
 
     useEffect(() => {
+        // Set the default language to the one detected by i18next
+        setSelectedLanguage(i18n.language);
+        // Timer
         let timerProfilePic = setInterval(() => {
             if (cookies.token) {
                 // retrieve profile pic and put each 20 seconds
@@ -141,7 +146,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     </div>
 
                     <div className="header-multilanguage">
-                        <Form.Select aria-label="Select language" defaultValue={"en"} onChange={onChangeLang}>
+                        <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
                             {LANGUAGES.map(({ code, label }) => (
                                 <option key={code} value={code}>
                                     {label}
@@ -189,7 +194,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     </a>
 
                     <div className="header-multilanguage">
-                        <Form.Select aria-label="Select language" defaultValue={"en"} onChange={onChangeLang}>
+                        <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
                             {LANGUAGES.map(({ code, label }) => (
                                 <option key={code} value={code}>
                                     {label}
