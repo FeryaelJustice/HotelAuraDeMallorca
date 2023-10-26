@@ -1103,6 +1103,21 @@ expressRouter.post('/purchase', async (req, res) => {
         return res.status(200).json({ status: "error", msg: 'stripe', error: error, client_secret: null })
     }
 })
+expressRouter.post('/cancel-payment', async (req, res) => {
+    try {
+        const { client_secret } = req.body;
+
+        // Retrieve the Payment Intent using the client_secret
+        const paymentIntent = await stripe.paymentIntents.retrieve(null, { client_secret });
+
+        // Cancel the Payment Intent
+        const canceledPaymentIntent = await stripe.paymentIntents.cancel(paymentIntent.id);
+
+        return res.status(200).json({ status: "success", msg: 'Payment Intent canceled', canceledPaymentIntent });
+    } catch (error) {
+        return res.status(200).json({ status: "error", msg: 'Error canceling Payment Intent', error });
+    }
+});
 // Stripe success or failure responses
 expressRouter.get('/success', (req, res) => {
     return res.status(200).json({ status: "success", msg: 'Payment successful! Thank you for your purchase.' })

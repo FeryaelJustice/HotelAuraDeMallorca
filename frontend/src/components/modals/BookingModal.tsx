@@ -136,7 +136,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     };
 
     // Booking Modal
-    const [cookies, , removeCookie] = useCookies(['token']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
@@ -275,48 +275,19 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 // Primero pagar
                 // Después realizar la reserva
                 try {
-                    // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
-                    if (!cookies.token) {
-                        const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
-                        try {
-                            // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                            serverAPI.post('/api/register', userToCreate).then(res => {
-                                console.log('registered successfully' + res)
-
-                                // After successful registration, send a request to generate and send a confirmation email
-                                serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
-                                    .then(response => {
-                                        console.log('Confirmation email sent successfully', response);
-                                    })
-                                    .catch(error => {
-                                        console.error('Error sending confirmation email', error);
-                                        setBookingFinalMessage(prev => prev + "Error sending confirmation email / ")
-                                    });
-
-                                const newUserAllData: User = {
-                                    id: res.data.insertId,
-                                    ...userToCreate,
-                                    verified: false
-                                };
-
-                                // Update the state with the new userAllData
-                                setUserAllData(newUserAllData);
-
-                                doBooking(res.data.insertId)
-
-                            }).catch(err => {
-                                console.error(err)
-                                if (err.response.data && err.response.data.message) {
-                                    alert(err.response.data.message)
-                                }
-                                onClose();
-                                resetBookingModal();
-                            })
-                        } catch (err) {
-                            console.error(err);
+                    if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
+                        // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
+                        if (!cookies.token) {
+                            try {
+                                createUser();
+                            } catch (err) {
+                                console.error(err);
+                            }
+                        } else {
+                            doBooking(userAllData?.id)
                         }
                     } else {
-                        doBooking(userAllData?.id)
+                        alert('Error on payment, try again')
                     }
                 } catch (error) {
                     // Manejo de errores
@@ -332,9 +303,21 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     };
 
+    async function cancelBooking() {
+        await serverAPI.post('/api/cancel-payment', { client_secret: paymentTransactionID })
+        const deleteUser = await serverAPI.delete('/api/user/' + userAllData?.id, {
+            headers: {
+                Authorization: cookies.token
+            }
+        });
+        if (deleteUser) {
+            removeCookie('token')
+        }
+    }
+
     // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
     function doBooking(user_id: any) {
-        let booking = new Booking({
+        const booking = new Booking({
             id: null,
             userID: user_id,
             planID: checkedPlan,
@@ -343,13 +326,13 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             endDate: endDate as Date,
         });
 
-        let bookingData = {
+        const bookingData = {
             booking,
             selectedServicesIDs,
             guests
         }
 
-        let payment = new Payment({
+        const payment = new Payment({
             id: null,
             userID: user_id,
             bookingID: booking.id,
@@ -363,59 +346,93 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
                 console.log(availabilityResponse.data)
 
-                if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
-                    // Make the API call for booking, and there we will also insert the booking services and booking guests
-                    serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
-                        if (bookingResponse.data.status == "success") {
-                            // Make the API call for payment
-                            payment.bookingID = bookingResponse.data.insertId;
-                            serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                                if (paymentResponse) {
-                                    let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
-                                    serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
-                                        if (paymentTransResponse) {
-                                            // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                            if (!cookies.token) {
-                                                // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
-                                                setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
-                                            }
-                                            setCurrentStep(BookingSteps.StepConfirmation);
+                // Make the API call for booking, and there we will also insert the booking services and booking guests
+                serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
+                    if (bookingResponse.data.status == "success") {
+                        // Make the API call for payment
+                        payment.bookingID = bookingResponse.data.insertId;
+                        serverAPI.post('/api/payment', payment).then(paymentResponse => {
+                            if (paymentResponse) {
+                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
+                                serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
+                                    if (paymentTransResponse) {
+                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                        if (!cookies.token) {
+                                            // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
+                                            setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
                                         }
-                                    }).catch(err => {
-                                        console.error(err)
-                                        if (err.response.data && err.response.data.msg) {
-                                            alert(err.response.data.msg)
-                                        }
-                                    })
-                                }
-                            }).catch(err => {
-                                console.error(err)
-                                if (err.response.data && err.response.data.msg) {
-                                    alert(err.response.data.msg)
-                                }
-                            })
-                        }
-                    }).catch(err => {
-                        console.error(err)
-                        if (err.response.data && err.response.data.msg) {
-                            alert(err.response.data.msg)
-                        }
-                    })
-                } else {
-                    alert('Error on payment')
-                    onClose();
-                    resetBookingModal();
-                }
-
+                                        setCurrentStep(BookingSteps.StepConfirmation);
+                                    }
+                                }).catch(err => {
+                                    console.error(err)
+                                    if (err.response.data && err.response.data.msg) {
+                                        alert(err.response.data.msg)
+                                    }
+                                })
+                            }
+                        }).catch(err => {
+                            console.error(err)
+                            if (err.response.data && err.response.data.msg) {
+                                alert(err.response.data.msg)
+                            }
+                        })
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    if (err.response.data && err.response.data.msg) {
+                        alert(err.response.data.msg)
+                    }
+                })
             }).catch((err) => {
                 console.error(err)
                 if (err.response && err.response.data) {
                     alert(err.response.data.msg)
                 }
+                cancelBooking();
+                onClose();
+                resetBookingModal();
             })
         } catch (error) {
             console.error('Error al realizar la reserva:', error);
         }
+    }
+
+    function createUser() {
+        const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
+        // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
+        serverAPI.post('/api/register', userToCreate).then(res => {
+            console.log('registered successfully' + res)
+            setCookie('token', res.data.cookieJWT)
+
+            // After successful registration, send a request to generate and send a confirmation email
+            serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                .then(response => {
+                    console.log('Confirmation email sent successfully', response);
+                })
+                .catch(error => {
+                    console.error('Error sending confirmation email', error);
+                    setBookingFinalMessage(prev => prev + "Error sending confirmation email / ")
+                });
+
+            const newUserAllData: User = {
+                id: res.data.insertId,
+                ...userToCreate,
+                verified: false
+            };
+
+            // Update the state with the new userAllData
+            setUserAllData(newUserAllData);
+
+            doBooking(res.data.insertId)
+
+        }).catch(err => {
+            console.error(err)
+            if (err.response.data && err.response.data.message) {
+                alert(err.response.data.message)
+            }
+            onClose();
+            resetBookingModal();
+        })
     }
 
     // Step Personal data Form
