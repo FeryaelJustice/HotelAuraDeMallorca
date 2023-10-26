@@ -139,6 +139,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [cookies, , removeCookie] = useCookies(['token']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
+    const [bookingFinalMessage, setBookingFinalMessage] = useState("");
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -203,35 +204,36 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 serverAPI.get('/api/room/' + selectedRoomID).then(res => {
                     setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
                 }).catch(err => console.error(err))
-                if (selectedRoomID == 2) {
-                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                    // Crear una copia del estado actual
-                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                    // Establecer todos los valores en true
-                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                        updatedSelectedServicesIDs[key] = true;
-                    });
-                    setSelectedServicesIDs(updatedSelectedServicesIDs)
 
+                if (selectedRoomID != null) {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        setCurrentStep(BookingSteps.StepFillGuests);
-                    } else {
-                        alert('Adults: maximum 10. Children: maximum 10.')
-                    }
+                        if (selectedRoomID == 2) {
+                            // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
+                            // Crear una copia del estado actual
+                            const updatedSelectedServicesIDs = { ...selectedServicesIDs };
+                            // Establecer todos los valores en true
+                            Object.keys(updatedSelectedServicesIDs).forEach(key => {
+                                updatedSelectedServicesIDs[key] = true;
+                            });
+                            setSelectedServicesIDs(updatedSelectedServicesIDs)
 
-                } else {
-                    // asegurarse que adultos son 10 o menos y con niños igual
-                    if (adults <= 10 && children <= 10) {
-                        if (selectedRoomID != null) {
-                            setCurrentStep(BookingSteps.StepChooseServices);
+                            // asegurarse que adultos son 10 o menos y con niños igual
+                            if (adults <= 10 && children <= 10) {
+                                setCurrentStep(BookingSteps.StepFillGuests);
+                            } else {
+                                alert('Adults: maximum 10. Children: maximum 10.')
+                            }
                         } else {
-                            alert('No room selected')
+                            setCurrentStep(BookingSteps.StepChooseServices);
                         }
                     } else {
                         alert('Adults: maximum 10. Children: maximum 10.')
                     }
+                } else {
+                    alert('No room selected')
                 }
+
                 break;
             case BookingSteps.StepChooseServices:
                 let totalServicesPrice = 0;
@@ -278,93 +280,43 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
                         try {
                             // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-                            const res = await serverAPI.post('/api/register', userToCreate)
-                            const newUserAllData: User = {
-                                id: res.data.insertId,
-                                ...userToCreate,
-                                verified: false
-                            };
+                            serverAPI.post('/api/register', userToCreate).then(res => {
+                                console.log('registered successfully' + res)
 
-                            // Update the state with the new userAllData
-                            setUserAllData(newUserAllData);
+                                // After successful registration, send a request to generate and send a confirmation email
+                                serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                                    .then(response => {
+                                        console.log('Confirmation email sent successfully', response);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error sending confirmation email', error);
+                                        setBookingFinalMessage(prev => prev + "Error sending confirmation email / ")
+                                    });
+
+                                const newUserAllData: User = {
+                                    id: res.data.insertId,
+                                    ...userToCreate,
+                                    verified: false
+                                };
+
+                                // Update the state with the new userAllData
+                                setUserAllData(newUserAllData);
+
+                                doBooking(res.data.insertId)
+
+                            }).catch(err => {
+                                console.error(err)
+                                if (err.response.data && err.response.data.message) {
+                                    alert(err.response.data.message)
+                                }
+                                onClose();
+                                resetBookingModal();
+                            })
                         } catch (err) {
                             console.error(err);
                         }
-                    }
-
-                    let booking = new Booking({
-                        id: null,
-                        userID: userAllData?.id ?? null,
-                        planID: checkedPlan,
-                        roomID: selectedRoomID,
-                        startDate: startDate as Date,
-                        endDate: endDate as Date,
-                    });
-
-                    let bookingData = {
-                        booking,
-                        selectedServicesIDs,
-                        guests
-                    }
-
-                    let payment = new Payment({
-                        id: null,
-                        userID: userAllData?.id ?? null,
-                        bookingID: booking.id,
-                        amount: totalPriceToPay,
-                        date: new Date(),
-                        paymentMethodID: checkedPaymentMethod
-                    });
-
-                    try {
-                        // First, check if room is available and not used on that dates
-                        serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
-                            console.log(availabilityResponse.data)
-
-                            if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
-                                // Make the API call for booking, and there we will also insert the booking services and booking guests
-                                serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
-                                    if (bookingResponse.data.status == "success") {
-                                        // Make the API call for payment
-                                        payment.bookingID = bookingResponse.data.insertId;
-                                        serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                                            if (paymentResponse) {
-                                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
-                                                serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
-                                                    if (paymentTransResponse) {
-                                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                                        setCurrentStep(BookingSteps.StepConfirmation);
-                                                    }
-                                                }).catch(err => {
-                                                    console.error(err)
-                                                    if (err.response.data && err.response.data.msg) {
-                                                        alert(err.response.data.msg)
-                                                    }
-                                                })
-                                            }
-                                        }).catch(err => {
-                                            console.error(err)
-                                            if (err.response.data && err.response.data.msg) {
-                                                alert(err.response.data.msg)
-                                            }
-                                        })
-                                    }
-                                }).catch(err => {
-                                    console.error(err)
-                                    setCurrentStep(BookingSteps.StepConfirmation);
-                                })
-                            } else {
-                                alert('Error on payment')
-                            }
-
-                        }).catch((err) => {
-                            console.error(err)
-                            if (err.response && err.response.data) {
-                                alert(err.response.data.msg)
-                            }
-                        })
-                    } catch (error) {
-                        console.error('Error al realizar la reserva:', error);
+                    } else {
+                        doBooking(userAllData?.id)
                     }
                 } catch (error) {
                     // Manejo de errores
@@ -379,6 +331,92 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 break;
         }
     };
+
+    // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
+    function doBooking(user_id: any) {
+        let booking = new Booking({
+            id: null,
+            userID: user_id,
+            planID: checkedPlan,
+            roomID: selectedRoomID,
+            startDate: startDate as Date,
+            endDate: endDate as Date,
+        });
+
+        let bookingData = {
+            booking,
+            selectedServicesIDs,
+            guests
+        }
+
+        let payment = new Payment({
+            id: null,
+            userID: user_id,
+            bookingID: booking.id,
+            amount: totalPriceToPay * 100, // Debido a cómo funciona stripe, si le envías 1 euro él cobra 0,01 euros.
+            date: new Date(),
+            paymentMethodID: checkedPaymentMethod
+        });
+
+        try {
+            // First, check if room is available and not used on that dates
+            serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
+                console.log(availabilityResponse.data)
+
+                if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
+                    // Make the API call for booking, and there we will also insert the booking services and booking guests
+                    serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
+                        if (bookingResponse.data.status == "success") {
+                            // Make the API call for payment
+                            payment.bookingID = bookingResponse.data.insertId;
+                            serverAPI.post('/api/payment', payment).then(paymentResponse => {
+                                if (paymentResponse) {
+                                    let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
+                                    serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
+                                        if (paymentTransResponse) {
+                                            // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                            if (!cookies.token) {
+                                                // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
+                                                setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
+                                            }
+                                            setCurrentStep(BookingSteps.StepConfirmation);
+                                        }
+                                    }).catch(err => {
+                                        console.error(err)
+                                        if (err.response.data && err.response.data.msg) {
+                                            alert(err.response.data.msg)
+                                        }
+                                    })
+                                }
+                            }).catch(err => {
+                                console.error(err)
+                                if (err.response.data && err.response.data.msg) {
+                                    alert(err.response.data.msg)
+                                }
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err)
+                        if (err.response.data && err.response.data.msg) {
+                            alert(err.response.data.msg)
+                        }
+                    })
+                } else {
+                    alert('Error on payment')
+                    onClose();
+                    resetBookingModal();
+                }
+
+            }).catch((err) => {
+                console.error(err)
+                if (err.response && err.response.data) {
+                    alert(err.response.data.msg)
+                }
+            })
+        } catch (error) {
+            console.error('Error al realizar la reserva:', error);
+        }
+    }
 
     // Step Personal data Form
     const [userPersonalData, setUserPersonalData] = useState({ name: '', surnames: '', email: '' });
@@ -1119,6 +1157,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 currentStep === BookingSteps.StepConfirmation && (
                     <div>
                         <h2>{t("modal_booking_completed_title")}</h2>
+                        <p>{bookingFinalMessage}</p>
                         <Button variant='primary' onClick={goToNextStep}>{t("modal_booking_completed_close")}</Button>
                     </div>
                 )
