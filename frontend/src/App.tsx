@@ -10,6 +10,7 @@ import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
 import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
+import CookieConsent from "react-cookie-consent";
 
 function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -67,6 +68,7 @@ function App() {
             <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
             <UserModal show={isUserModalOpen} onClose={closeUserModal} />
 
+            <CookieConsent>This website uses cookies to enhance the user experience.</CookieConsent>
           </main>
           <Footer />
         </div>
