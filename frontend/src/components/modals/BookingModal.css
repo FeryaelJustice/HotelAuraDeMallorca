@@ -146,7 +146,7 @@
     align-items: end;
 }
 
-.loggedUserWantsToBecomeGuest {
+.userWantsToBecomeGuest {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
