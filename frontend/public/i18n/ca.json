@@ -88,6 +88,8 @@
     "modal_booking_guests_guest_adult": "És un adult?",
     "modal_booking_guests_button_add": "Afegir hoste",
     "modal_booking_guests_button_remove": "Eliminar últim hoste",
+    "modal_booking_guests_adduserasguest": "Voleu que l'usuari (usuari connectat o el que s'ha omplert en el primer pas) sigui 1 hoste?",
+    "modal_booking_guests_adduserasguest_adult": "I és un adult?",
     "modal_booking_payment_title": "Tria el teu mètode de pagament",
     "modal_booking_completed_title": "Reserva completada amb èxit!",
     "modal_booking_completed_close": "Tanca aquest ventana!",

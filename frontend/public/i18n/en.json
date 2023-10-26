@@ -88,6 +88,8 @@
     "modal_booking_guests_guest_adult": "Is an adult?",
     "modal_booking_guests_button_add": "Add guest",
     "modal_booking_guests_button_remove": "Remove last guest",
+    "modal_booking_guests_adduserasguest": "Do you want the user (logged user or the one filled in the first step) to be 1 guest?",
+    "modal_booking_guests_adduserasguest_adult": "And is an adult?",
     "modal_booking_payment_title": "Choose your payment method",
     "modal_booking_completed_title": "Reservation successfully completed!",
     "modal_booking_completed_close": "Close this window!",

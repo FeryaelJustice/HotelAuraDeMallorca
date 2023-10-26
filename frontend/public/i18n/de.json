@@ -88,6 +88,8 @@
     "modal_booking_guests_guest_adult": "Ist erwachsen?",
     "modal_booking_guests_button_add": "Gast hinzufügen",
     "modal_booking_guests_button_remove": "Letzten Gast löschen",
+    "modal_booking_guests_adduserasguest": "Möchten Sie, dass der Benutzer (angemeldeter Benutzer oder der im ersten Schritt ausgefüllte) 1 Gast ist?",
+    "modal_booking_guests_adduserasguest_adult": "Und ist ein Erwachsener?",
     "modal_booking_payment_title": "Wählen Sie Ihre Zahlungsmethode",
     "modal_booking_completed_title": "Reservierung erfolgreich abgeschlossen!",
     "modal_booking_completed_close": "Schließe dieses Fenster!",

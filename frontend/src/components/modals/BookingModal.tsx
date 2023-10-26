@@ -1109,9 +1109,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     <br />
                                     <br />
                                     <div className='userWantsToBecomeGuest'>
-                                        <Form.Check type='checkbox' name="userWantsToBecomeGuest" label="Do you want the user (logged user or the one filled in the first step) to be 1 guest?" checked={userWantsToBecomeGuest} onChange={() => setUserWantsToBecomeGuest(!userWantsToBecomeGuest)} />
+                                        <Form.Check type='checkbox' name="userWantsToBecomeGuest" label={t("modal_booking_guests_adduserasguest")} checked={userWantsToBecomeGuest} onChange={() => setUserWantsToBecomeGuest(!userWantsToBecomeGuest)} />
                                         {userWantsToBecomeGuest && (
-                                            <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label="And is an adult?" checked={isUserGuestAdult} onChange={() => setIsUserGuestAdult(!isUserGuestAdult)} />
+                                            <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label={t("modal_booking_guests_adduserasguest_adult")} checked={isUserGuestAdult} onChange={() => setIsUserGuestAdult(!isUserGuestAdult)} />
                                         )}
                                         <br />
                                         <br />

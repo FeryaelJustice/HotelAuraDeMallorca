@@ -88,6 +88,8 @@
     "modal_booking_guests_guest_adult": "¿Es un adulto?",
     "modal_booking_guests_button_add": "Añadir huesped",
     "modal_booking_guests_button_remove": "Eliminar último huesped",
+    "modal_booking_guests_adduserasguest": "¿Desea que el usuario (usuario registrado o el completado en el primer paso) sea 1 invitado?",
+    "modal_booking_guests_adduserasguest_adult": "¿Y es un adulto?",
     "modal_booking_payment_title": "Elige tu método de pago",
     "modal_booking_completed_title": "¡Reserva completada con éxito!",
     "modal_booking_completed_close": "¡Cierra esta ventana!",
