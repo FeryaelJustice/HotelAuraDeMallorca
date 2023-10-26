@@ -7,7 +7,10 @@ import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import { API_URL } from './../services/consts';
 import serverAPI from './../services/serverAPI';
+import { useTranslation } from "react-i18next";
+
 export const Services = () => {
+    const { t } = useTranslation();
     const [services, setServices] = useState<Service[]>([])
 
     useEffect(() => {
@@ -46,7 +49,7 @@ export const Services = () => {
                 <Container>
                     <Row className="mt-12">
                         <Col>
-                            <h1 className='servicesPageTitle'>Services</h1>
+                            <h1 className='servicesPageTitle'>{t("services_title")}</h1>
                         </Col>
                     </Row>
                     <br />

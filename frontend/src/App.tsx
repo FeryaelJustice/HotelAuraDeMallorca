@@ -1,6 +1,6 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
@@ -47,29 +47,31 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className='app'>
+    <Suspense fallback="loading">
+      <Router>
+        <div className='app'>
 
-        <ScrollToTop />
-        <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} />
-        <main id='main' className='main'>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/userVerification/:token" element={<UserVerify />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ScrollToTop />
+          <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} />
+          <main id='main' className='main'>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/userVerification/:token" element={<UserVerify />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
 
 
-          <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
-          <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
-          <UserModal show={isUserModalOpen} onClose={closeUserModal} />
+            <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
+            <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
+            <UserModal show={isUserModalOpen} onClose={closeUserModal} />
 
-        </main>
-        <Footer />
-      </div>
-    </Router>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </Suspense>
   )
 }
 

@@ -1,46 +1,24 @@
 import i18n from "i18next";
+import i18nBackend from "i18next-http-backend";
 import { initReactI18next } from "react-i18next";
 
-i18n.use(initReactI18next).init({
-  lng: "en",
-  fallbackLng: "en",
-  interpolation: {
-    escapeValue: false,
-  },
-  resources: {
-    en: {
-      translation: {
-        home: "Home",
-        services: "Services",
-        contact: "Contact",
-        book: "Book",
-      },
+const getCurrentHost =
+  import.meta.env.MODE === "development"
+    ? process.env.DEV_FRONT_URL
+    : process.env.FRONT_URL;
+
+i18n
+  .use(initReactI18next)
+  .use(i18nBackend)
+  .init({
+    lng: "en",
+    fallbackLng: "en",
+    interpolation: {
+      escapeValue: false,
     },
-    es: {
-      translation: {
-        home: "Inicio",
-        services: "Servicios",
-        contact: "Contacto",
-        book: "Reservar",
-      },
+    backend: {
+      loadPath: `${getCurrentHost}/i18n/{{lng}}.json`,
     },
-    ca: {
-      translation: {
-        home: "Inici",
-        services: "Servicis",
-        contact: "Contacte",
-        book: "Reservar",
-      },
-    },
-    de: {
-      translation: {
-        home: "Start",
-        services: "Dienstleistungen",
-        contact: "Kontakt",
-        book: "Reservieren",
-      },
-    },
-  },
-});
+  });
 
 export default i18n;

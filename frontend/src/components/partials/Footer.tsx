@@ -1,16 +1,17 @@
+import { useTranslation } from "react-i18next";
 export const Footer = () => {
+    const { t } = useTranslation();
     return (
         <footer id="footer" className="footer">
             <div className="footer-sides">
                 <div className="footer-left">
                     <strong>{process.env.APP_NAME}</strong>
-                    <p>Enjoy Mallorca in its purest form from our cozy hotel located in a spectacular area of Mallorca, historical and artistic heritage.
-                        A cozy and romantic hotel to enjoy this unique enclave in a simple and elegant environment.</p>
+                    <p>{t("footer_description")}</p>
                 </div>
                 <div className="footer-right">
-                    <span>Tlf: <a href="tel:123456789">Call us</a></span>
-                    <span>Whatsapp: <a href="https://api.whatsapp.com/send?phone=123456789">Send us a message</a> </span>
-                    <span>Email: <a href="mailto:hotelaurademallorca@aurademallorca.com">Contact us</a></span>
+                    <span>Tlf: <a href="tel:123456789">{t("footer_callus")}</a></span>
+                    <span>Whatsapp: <a href="https://api.whatsapp.com/send?phone=123456789">{t("footer_sendmsg")}</a> </span>
+                    <span>Email: <a href="mailto:hotelaurademallorca@aurademallorca.com">{t("footer_contact")}</a></span>
                 </div>
             </div>
             <div>

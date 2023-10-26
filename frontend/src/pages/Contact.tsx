@@ -2,8 +2,10 @@ import { useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import serverAPI from './../services/serverAPI';
+import { useTranslation } from "react-i18next";
 
 export const Contact = () => {
+    const { t } = useTranslation();
 
     const [email, setEmail] = useState('')
     const [subject, setSubject] = useState('')
@@ -29,28 +31,28 @@ export const Contact = () => {
 
     return (
         <div className='contactPage'>
-            <h1>Contact us!</h1>
+            <h1>{t("contact_title")}</h1>
             <Form className='contactForm' onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control type="email" name='email' placeholder="Enter email" className='input' onChange={(event) => setEmail(event.target.value)} />
+                    <Form.Label>{t("contact_email_label")}</Form.Label>
+                    <Form.Control type="email" name='email' placeholder={t("contact_email_placeholder")} className='input' onChange={(event) => setEmail(event.target.value)} />
                     <Form.Text className="text-muted">
-                        We'll never share your email with anyone else.
+                        {t("contact_email_description")}
                     </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="subject">
-                    <Form.Label>Subject</Form.Label>
-                    <Form.Control type="text" name='subject' maxLength={200} placeholder="Subject" className='input' onChange={(event) => setSubject(event.target.value)} />
+                    <Form.Label>{t("contact_subject_label")}</Form.Label>
+                    <Form.Control type="text" name='subject' maxLength={200} placeholder={t("contact_subject_placeholder")} className='input' onChange={(event) => setSubject(event.target.value)} />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="message">
-                    <Form.Label>Message</Form.Label>
-                    <Form.Control as='textarea' rows={8} name='message' maxLength={1000} placeholder="Message" className='input' onChange={(event) => setMessage(event.target.value)} />
+                    <Form.Label>{t("contact_message_label")}</Form.Label>
+                    <Form.Control as='textarea' rows={8} name='message' maxLength={1000} placeholder={t("contact_message_placeholder")} className='input' onChange={(event) => setMessage(event.target.value)} />
                 </Form.Group>
 
                 <Button variant="primary" type="submit">
-                    Submit
+                    {t("contact_send")}
                 </Button>
             </Form>
         </div>
