@@ -307,7 +307,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         <BaseModal title={t("user")} show={show} onClose={handleClose}>
             {currentScreen === UserModalScreens.ScreenLogin && (
                 <div>
-                    <Form validated={loginValidated} onSubmit={handleLoginSubmit}>
+                    <Form id='userLoginForm' validated={loginValidated} onSubmit={handleLoginSubmit}>
                         <Form.Group className="mb-3" controlId="formEmail">
                             <Form.Label>{t("modal_user_login_email_label")}</Form.Label>
                             <Form.Control type="email" name='email' minLength={1} maxLength={100} placeholder={t("modal_user_login_email_placeholder")} onChange={handleLoginChange} required />
@@ -350,7 +350,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenRegister && (
                 <div>
-                    <Form validated={registerValidated} onSubmit={handleRegisterSubmit}>
+                    <Form id='userRegisterForm' validated={registerValidated} onSubmit={handleRegisterSubmit}>
                         <Form.Group className="mb-3" controlId="formEmail">
                             <Form.Label>{t("modal_user_register_email_label")}</Form.Label>
                             <Form.Control type="email" minLength={1} maxLength={100} name='email' placeholder={t("modal_user_register_email_placeholder")} onChange={handleRegisterChange} required />
@@ -408,7 +408,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h2>
                         {t("modal_user_editprofile_title")}
                     </h2>
-                    <Form onSubmit={handleSaveEdit}>
+                    <Form id='userEditProfileForm' onSubmit={handleSaveEdit}>
                         <div className='userEditDetails'>
                             <Form.Group className='mb-3' controlId='formImage'>
                                 <img src={typeof imagePicPreview === 'string' ? imagePicPreview : ''} width={200} height={200} alt='image picture' />

@@ -814,7 +814,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 <div>
                     <h2>{t("modal_booking_personaldata_title")}</h2>
 
-                    <Form noValidate onSubmit={handlePersonalDataSubmit}>
+                    <Form id='personalDataForm' noValidate onSubmit={handlePersonalDataSubmit}>
                         <Form.Group className="mb-3" controlId="formName">
                             <Form.Label>{t("modal_booking_personaldata_name_label")}</Form.Label>
                             <Form.Control type="text" name="name" placeholder={t("modal_booking_personaldata_name_placeholder")} value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
@@ -1039,7 +1039,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         </div>
                         <div className='fillguests-content'>
                             <Container>
-                                <Form noValidate onSubmit={handleGuestsSubmit}>
+                                <Form id='fillGuestsForm' noValidate onSubmit={handleGuestsSubmit}>
                                     {guests.map((guest, index) => (
                                         <Row key={index}>
                                             <Row><strong>{t("modal_booking_guests_guestindex", { index })}</strong></Row>

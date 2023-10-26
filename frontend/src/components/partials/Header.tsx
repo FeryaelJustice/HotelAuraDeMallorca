@@ -147,13 +147,15 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     </div>
 
                     <div className="header-multilanguage">
-                        <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
-                            {LANGUAGES.map(({ code, label }) => (
-                                <option key={code} value={code}>
-                                    {label}
-                                </option>
-                            ))}
-                        </Form.Select>
+                        <Form id="selectLangForm">
+                            <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
+                                {LANGUAGES.map(({ code, label }) => (
+                                    <option key={code} value={code}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        </Form>
                     </div>
                 </div>
             </nav>
@@ -197,13 +199,15 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     </a>
 
                     <div className="header-multilanguage">
-                        <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
-                            {LANGUAGES.map(({ code, label }) => (
-                                <option key={code} value={code}>
-                                    {label}
-                                </option>
-                            ))}
-                        </Form.Select>
+                        <Form id="selectLangFormPhone">
+                            <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
+                                {LANGUAGES.map(({ code, label }) => (
+                                    <option key={code} value={code}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        </Form>
                     </div>
                 </div>)}
         </header>

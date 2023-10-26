@@ -32,7 +32,7 @@ export const Contact = () => {
     return (
         <div className='contactPage'>
             <h1>{t("contact_title")}</h1>
-            <Form className='contactForm' onSubmit={handleSubmit}>
+            <Form id='contactForm' className='contactForm' onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="email">
                     <Form.Label>{t("contact_email_label")}</Form.Label>
                     <Form.Control type="email" name='email' placeholder={t("contact_email_placeholder")} className='input' onChange={(event) => setEmail(event.target.value)} />
