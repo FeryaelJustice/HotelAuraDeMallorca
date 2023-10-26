@@ -49,7 +49,7 @@ CREATE TABLE user_role (
 
 -- Create the table plan
 CREATE TABLE plan (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     plan_name VARCHAR(255),
     plan_description TEXT,
     plan_price DECIMAL(10, 2),
@@ -59,7 +59,7 @@ CREATE TABLE plan (
 
 -- Create the table room
 CREATE TABLE room (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     room_name VARCHAR(255),
     room_description TEXT,
     room_price DECIMAL(10, 2),
@@ -71,7 +71,7 @@ CREATE TABLE room (
 
 -- Create the table service
 CREATE TABLE service (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     serv_name VARCHAR(255),
     serv_description TEXT,
     serv_price DECIMAL(10, 2),
@@ -120,10 +120,10 @@ CREATE TABLE booking_guest (
 
 -- Create the table weather
 CREATE TABLE weather (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     weather_date DATE,
     weather_state VARCHAR(255),
-    affected_service_id INT,
+    affected_service_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (affected_service_id) REFERENCES service(id)
