@@ -9,11 +9,13 @@ import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
 import Button from 'react-bootstrap/Button';
+import { useTranslation } from "react-i18next";
 
 function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const { t } = useTranslation();
 
   useEffect(() => {
     document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', colorScheme)
@@ -60,7 +62,7 @@ function App() {
           </Routes>
 
 
-          <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>Book</Button>
+          <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
           <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
           <UserModal show={isUserModalOpen} onClose={closeUserModal} />
 

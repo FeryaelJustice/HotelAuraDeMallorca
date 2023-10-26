@@ -3,8 +3,12 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
 import { useCookies } from 'react-cookie';
 import serverAPI from './../../services/serverAPI';
+// Multilanguage
+import { LANGUAGES } from "../../constants";
+import { useTranslation } from "react-i18next";
 
 interface HeaderProps {
     colorScheme: string,
@@ -17,6 +21,13 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
     const [cookies] = useCookies(['token']);
     const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
+
+    const { i18n, t } = useTranslation();
+
+    const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const lang_code = e.target.value;
+        i18n.changeLanguage(lang_code);
+    };
 
     useEffect(() => {
         if (cookies.token) {
@@ -73,7 +84,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     }
 
                     return classNames;
-                }}>Home</NavLink>
+                }}>{t("home")}</NavLink>
                 <NavLink to="/services" className={({ isActive }) => {
                     let classNames = '';
 
@@ -86,7 +97,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     }
 
                     return classNames;
-                }}>Services</NavLink>
+                }}>{t("services")}</NavLink>
                 <NavLink to="/contact" className={({ isActive }) => {
                     let classNames = '';
 
@@ -99,9 +110,9 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     }
 
                     return classNames;
-                }}>Contact</NavLink>
+                }}>{t("contact")}</NavLink>
                 <div id="nav-actions">
-                    <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>Book</Button>
+                    <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>{t("book")}</Button>
                     <div className="user-icon">
                         {userPhotoURL && cookies.token ? (
                             <div className="user-icon-container">
@@ -128,6 +139,16 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                             </div>
                         )}
                     </div>
+
+                    <div className="header-multilanguage">
+                        <Form.Select aria-label="Select language" defaultValue={"en"} onChange={onChangeLang}>
+                            {LANGUAGES.map(({ code, label }) => (
+                                <option key={code} value={code}>
+                                    {label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </div>
                 </div>
             </nav>
             <button className="menu-toggle" >
@@ -137,13 +158,13 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                 <div id="nav-menu">
                     <NavLink to="/" className={({ isActive }) => {
                         return isActive ? 'is-active' : undefined
-                    }} onClick={closeMenu}>Home</NavLink>
+                    }} onClick={closeMenu}>{t("home")}</NavLink>
                     <NavLink to="/services" className={({ isActive }) => {
                         return isActive ? 'is-active' : undefined
-                    }} onClick={closeMenu}>Services</NavLink>
+                    }} onClick={closeMenu}>{t("services")}</NavLink>
                     <NavLink to="/contact" className={({ isActive }) => {
                         return isActive ? 'is-active' : undefined
-                    }} onClick={closeMenu}>Contact</NavLink>
+                    }} onClick={closeMenu}>{t("contact")}</NavLink>
                     <a className="user-icon-phone">
                         {userPhotoURL && cookies.token ? (
                             <div className="user-icon-container">
@@ -166,6 +187,16 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                             </div>
                         )}
                     </a>
+
+                    <div className="header-multilanguage">
+                        <Form.Select aria-label="Select language" defaultValue={"en"} onChange={onChangeLang}>
+                            {LANGUAGES.map(({ code, label }) => (
+                                <option key={code} value={code}>
+                                    {label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </div>
                 </div>)}
         </header>
     )
