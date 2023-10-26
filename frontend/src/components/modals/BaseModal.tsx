@@ -4,6 +4,8 @@ import './BaseModal.css';
 import Button from 'react-bootstrap/Button'
 import Modal from 'react-bootstrap/Modal';
 
+import { useTranslation } from "react-i18next";
+
 interface BaseModalProps {
     title: String,
     children: ReactNode;
@@ -13,6 +15,8 @@ interface BaseModalProps {
 
 
 const BaseModal = ({ title, children, show, onClose }: BaseModalProps) => {
+    const { t } = useTranslation();
+
     return (
         <Modal size="lg" show={show} onHide={onClose} backdrop="static" keyboard={false} arial-labelledby="contained-modal-title-vcenter" centered>
             <Modal.Header closeButton>
@@ -24,7 +28,7 @@ const BaseModal = ({ title, children, show, onClose }: BaseModalProps) => {
             </Modal.Body>
 
             <Modal.Footer>
-                <Button variant="secondary" onClick={onClose}>Close</Button>
+                <Button variant="secondary" onClick={onClose}>{t("close")}</Button>
             </Modal.Footer>
         </Modal>
     );

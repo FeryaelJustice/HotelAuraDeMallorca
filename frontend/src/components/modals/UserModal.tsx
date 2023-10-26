@@ -309,17 +309,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 <div>
                     <Form validated={loginValidated} onSubmit={handleLoginSubmit}>
                         <Form.Group className="mb-3" controlId="formEmail">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control type="email" name='email' minLength={1} maxLength={100} placeholder="Enter your email" onChange={handleLoginChange} required />
+                            <Form.Label>{t("modal_user_login_email_label")}</Form.Label>
+                            <Form.Control type="email" name='email' minLength={1} maxLength={100} placeholder={t("modal_user_login_email_placeholder")} onChange={handleLoginChange} required />
                             <Form.Text className="text-muted">
-                                We'll never share your email with anyone else and we will send confirmation mails to this one.
+                                {t("modal_user_login_email_description")}
                             </Form.Text>
                             <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formPassword">
-                            <Form.Label>Password</Form.Label>
-                            <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleLoginChange} required />
+                            <Form.Label>{t("modal_user_login_password_label")}</Form.Label>
+                            <Form.Control type="password" name='password' placeholder={t("modal_user_login_password_placeholder")} onChange={handleLoginChange} required />
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 
@@ -330,18 +330,18 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             />
                             {captchaLoginValid == false ? (
                                 <Alert key='danger' variant='danger'>
-                                    Completa el captcha
+                                    Captcha error
                                 </Alert>
                             ) : null}
                         </div>)}
 
                         <div className="userLoginModalActions">
                             <Button variant="primary" type="submit">
-                                Login
+                                {t("modal_user_login_send")}
                             </Button>
                             <div className="vertical-align">
-                                <span>Don't have an account?</span>
-                                <a id='goToRegisterA' onClick={goToRegisterScreen}>Register here</a>
+                                <span>{t("modal_user_login_advert")}</span>
+                                <a id='goToRegisterA' onClick={goToRegisterScreen}>{t("modal_user_login_register")}</a>
                             </div>
                         </div>
                     </Form>
@@ -352,35 +352,35 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 <div>
                     <Form validated={registerValidated} onSubmit={handleRegisterSubmit}>
                         <Form.Group className="mb-3" controlId="formEmail">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control type="email" minLength={1} maxLength={100} name='email' placeholder="Enter your email" onChange={handleRegisterChange} required />
+                            <Form.Label>{t("modal_user_register_email_label")}</Form.Label>
+                            <Form.Control type="email" minLength={1} maxLength={100} name='email' placeholder={t("modal_user_register_email_placeholder")} onChange={handleRegisterChange} required />
                             <Form.Text className="text-muted">
-                                We'll never share your email with anyone else and we will send confirmation mails to this one.
+                                {t("modal_user_register_email_description")}
                             </Form.Text>
                             <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formName">
-                            <Form.Label>Name</Form.Label>
-                            <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleRegisterChange} />
+                            <Form.Label>{t("modal_user_register_name_label")}</Form.Label>
+                            <Form.Control type="text" name='name' placeholder={t("modal_user_register_name_placeholder")} onChange={handleRegisterChange} />
                             <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formSurnames">
-                            <Form.Label>Surnames</Form.Label>
-                            <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleRegisterChange} />
+                            <Form.Label>{t("modal_user_register_surnames_label")}</Form.Label>
+                            <Form.Control type="text" name='surnames' placeholder={t("modal_user_register_surnames_placeholder")} onChange={handleRegisterChange} />
                             <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formPassword">
-                            <Form.Label>Password</Form.Label>
-                            <Form.Control type="password" name='password' placeholder="Enter your password" onChange={handleRegisterChange} required />
+                            <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
+                            <Form.Control type="password" name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 
                         <Form.Group className="mb-3" controlId="formRepeatPassword">
-                            <Form.Label>Repeat Password</Form.Label>
-                            <Form.Control type="password" name='repeatpassword' placeholder="Enter your password once again" onChange={handleRegisterChange} required />
+                            <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
+                            <Form.Control type="password" name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
                             <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
                         </Form.Group>
 
@@ -391,13 +391,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             />
                             {captchaRegisterValid == false ? (
                                 <Alert key='danger' variant='danger'>
-                                    Completa el captcha
+                                    Captcha error
                                 </Alert>
                             ) : null}
                         </div>)}
 
                         <Button variant="primary" type="submit">
-                            Register
+                            {t("modal_user_register_send")}
                         </Button>
                     </Form>
                 </div>
@@ -406,7 +406,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             {currentScreen === UserModalScreens.ScreenEditProfile && (
                 <div>
                     <h2>
-                        Edit your profile
+                        {t("modal_user_editprofile_title")}
                     </h2>
                     <Form onSubmit={handleSaveEdit}>
                         <div className='userEditDetails'>
@@ -418,25 +418,27 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="formName">
-                                <Form.Label>Name</Form.Label>
-                                <Form.Control type="text" name='name' placeholder="Enter your name" onChange={handleSaveEditChange} value={userEdit.name ? userEdit.name : ''} minLength={1} maxLength={100} />
+                                <Form.Label>{t("modal_user_editprofile_name_label")}</Form.Label>
+                                <Form.Control type="text" name='name' placeholder={t("modal_user_editprofile_name_placeholder")} onChange={handleSaveEditChange} value={userEdit.name ? userEdit.name : ''} minLength={1} maxLength={100} />
                                 <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="formSurnames">
-                                <Form.Label>Surnames</Form.Label>
-                                <Form.Control type="text" name='surnames' placeholder="Enter your surnames" onChange={handleSaveEditChange} value={userEdit.surnames ? userEdit.surnames : ''} minLength={1} maxLength={200} />
+                                <Form.Label>{t("modal_user_editprofile_surnames_label")}</Form.Label>
+                                <Form.Control type="text" name='surnames' placeholder={t("modal_user_editprofile_surnames_placeholder")} onChange={handleSaveEditChange} value={userEdit.surnames ? userEdit.surnames : ''} minLength={1} maxLength={200} />
                                 <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
                             </Form.Group>
                         </div>
                         <div className='userEditBtn'>
                             <Button variant="primary" type='submit'>
-                                Save
+                                {t("modal_user_editprofile_send")}
                             </Button>
                             <Button variant="warning" type='button' onClick={logout}>
-                                Logout
+                                {t("modal_user_editprofile_logout")}
                             </Button>
-                            <Button variant='danger' type='button' onClick={deleteAccount}>Delete Account</Button>
+                            <Button variant='danger' type='button' onClick={deleteAccount}>
+                                {t("modal_user_editprofile_delete")}
+                            </Button>
                         </div>
                     </Form>
                 </div>
