@@ -426,6 +426,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             })
         } catch (error) {
             console.error('Error al realizar la reserva:', error);
+        } finally {
+            removeCookie('token');
         }
     }
 
