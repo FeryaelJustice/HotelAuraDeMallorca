@@ -16,6 +16,10 @@ header {
   z-index: 3;
 }
 
+header h1 {
+  display: none;
+}
+
 header a {
   text-decoration: none;
 }

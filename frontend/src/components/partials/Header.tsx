@@ -69,11 +69,12 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
     };
     return (
         <header id="header" className="header">
-            <NavLink id="logo" className="logo" to="/">
+            <h1>.</h1>
+            <NavLink id="logo" className="logo" to="/" aria-hidden role="presentation">
                 {colorScheme == 'dark' ? (
-                    <img src="/logo.svg" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+                    <img src="/logo.svg" alt="logo dark mode" aria-description="logo" width={'300px'} height={'40px'} />
                 ) : (
-                    <img src="/logo-white.webp" alt="logo" aria-description="logo" width={'300px'} height={'40px'} />
+                    <img src="/logo-white.webp" alt="logo light mode" aria-description="logo" width={'300px'} height={'40px'} />
                 )}
             </NavLink>
             <nav id="nav" className="navigation">
