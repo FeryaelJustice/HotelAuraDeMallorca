@@ -13,6 +13,7 @@ import { useCookies } from 'react-cookie';
 import { isEmptyOrSpaces, validateEmail } from './../../utils';
 import './BookingModal.css'
 import { API_URL } from './../../services/consts';
+import { WeatherStates } from '../../constants';
 import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
 
@@ -158,6 +159,21 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }
 
+    function extractFormattedDate(date: any) {
+
+        const inputDateString = date;
+        const inputDate = new Date(inputDateString);
+
+        // Extract the date components (year, month, and day)
+        const year = inputDate.getFullYear();
+        const month = (inputDate.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed, so we add 1
+        const day = inputDate.getDate().toString().padStart(2, '0');
+
+        // Create the 'yyyy-mm-dd' formatted date
+        const formattedDate = `${year}-${month}-${day}`;
+        return formattedDate;
+    }
+
     useEffect(() => {
         if (cookies.token) {
             // Si ya esta logeado, no pedir los datos personales
@@ -237,10 +253,13 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             case BookingSteps.StepChooseServices:
                 // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
                 let canBookBasedOnWeather = true;
+                const startDateFormat = extractFormattedDate(startDate)
                 weatherFiveDaysForecastList?.forEach(weatherForecast => {
-                    console.log(weatherForecast)
-                    console.log(startDate)
-                    if (startDate == weatherForecast.date && weatherForecast.state == "Rain") {
+                    const foreDateFormat = extractFormattedDate(weatherForecast.date)
+                    // console.log(foreDateFormat)
+                    // console.log(startDateFormat)
+                    // console.log(weatherForecast.state)
+                    if (startDateFormat == foreDateFormat && weatherForecast.state == WeatherStates.RAIN) {
                         canBookBasedOnWeather = false;
                         return;
                     }
@@ -261,6 +280,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                     setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
                     setCurrentStep(BookingSteps.StepFillGuests);
+                } else {
+                    alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
                 }
                 break;
             case BookingSteps.StepFillGuests:

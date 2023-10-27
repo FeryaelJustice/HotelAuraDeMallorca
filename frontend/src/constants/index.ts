@@ -4,3 +4,9 @@ export const LANGUAGES = [
   { label: "Catalan", code: "ca" },
   { label: "German", code: "de" },
 ];
+
+export enum WeatherStates {
+  CLOUDS = "Clouds",
+  RAIN = "Rain",
+  CLEAR = "Clear",
+}
