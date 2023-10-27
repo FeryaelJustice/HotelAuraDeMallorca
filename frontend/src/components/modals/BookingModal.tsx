@@ -6,7 +6,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest } from './../../models';
+import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest, Weather } from './../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
@@ -140,6 +140,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
+    const [weatherFiveDaysForecastList, setWeatherFiveDaysForecastList] = useState<Weather[]>();
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -198,6 +199,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     // VIP selected
                     setTotalPriceToPay(totalPriceToPay + (plans[1].price ? plans[1].price : 150));
                 }
+                // setCheckedPlan(1)
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepChooseRoom:
@@ -233,6 +235,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 } else {
                     alert('No room selected')
                 }
+                // setCurrentStep(BookingSteps.StepChooseServices);
 
                 break;
             case BookingSteps.StepChooseServices:
@@ -500,6 +503,22 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             })
         }).catch
             (err => console.error(err))
+
+        // Weather information (5 days)
+        const params = {
+            lat: 39.58130105,
+            lon: 2.709183392285786,
+        };
+        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
+            const forecastFiveDaysList = res.data.list;
+            const fiveDaysListObj: Weather[] = [];
+            forecastFiveDaysList.forEach((forecastDay: any) => {
+                const day = new Date(forecastDay.dt_txt)
+                // day.setHours(0, 0, 0, 0)
+                fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
+            });
+            setWeatherFiveDaysForecastList(fiveDaysListObj)
+        }).catch(err => console.error(err))
     }, [])
 
     const selectPlan = (planID: any) => {
@@ -516,24 +535,24 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
 
     const handleStartDateChange = (newStartDate: Value) => {
-        const params = {
-            lat: 39.58130105,
-            lon: 2.709183392285786,
-        };
-        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-            console.log(res)
-        }).catch(err => console.error(err))
+        // const params = {
+        //     lat: 39.58130105,
+        //     lon: 2.709183392285786,
+        // };
+        // weatherAPI.get('data/2.5/forecast', { params }).then(res => {
+        //     console.log(res)
+        // }).catch(err => console.error(err))
         onChangeStartDate(newStartDate);
     }
 
     const handleEndDateChange = (newEndDate: Value) => {
-        const params = {
-            lat: 39.58130105,
-            lon: 2.709183392285786,
-        };
-        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-            console.log(res)
-        }).catch(err => console.error(err))
+        // const params = {
+        //     lat: 39.58130105,
+        //     lon: 2.709183392285786,
+        // };
+        // weatherAPI.get('data/2.5/forecast', { params }).then(res => {
+        //     console.log(res)
+        // }).catch(err => console.error(err))
         onChangeEndDate(newEndDate);
     }
 

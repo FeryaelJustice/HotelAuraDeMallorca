@@ -30,7 +30,7 @@ CREATE TABLE guest (
 
 -- Create the table role
 CREATE TABLE role (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     name ENUM('CLIENT', 'ADMIN', 'EMPLOYEE') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -123,10 +123,8 @@ CREATE TABLE weather (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     weather_date DATE,
     weather_state VARCHAR(255),
-    affected_service_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (affected_service_id) REFERENCES service(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the table payment method
@@ -287,11 +285,11 @@ VALUES
     );
 
 INSERT INTO
-    role (id, name)
+    role (name)
 VALUES
-    (1, 'CLIENT'),
-    (2, 'ADMIN'),
-    (3, 'EMPLOYEE');
+    ('CLIENT'),
+    ('ADMIN'),
+    ('EMPLOYEE');
 
 INSERT INTO
     user_role (user_id, role_id)
@@ -305,16 +303,14 @@ VALUES
 
 -- Planes
 INSERT INTO
-    plan (id, plan_name, plan_description, plan_price)
+    plan (plan_name, plan_description, plan_price)
 VALUES
     (
-        1,
         'Basic',
         'Basic plan without extra services',
         50.00
     ),
     (
-        2,
         'VIP',
         'VIP plan with all luxury services included',
         150.00
@@ -323,7 +319,6 @@ VALUES
 -- Habitaciones
 INSERT INTO
     room (
-        id,
         room_name,
         room_description,
         room_price,
@@ -332,7 +327,6 @@ INSERT INTO
     )
 VALUES
     (
-        1,
         'Standard Room',
         'Standard room with sea view',
         80.00,
@@ -340,7 +334,6 @@ VALUES
         '2023-12-15'
     ),
     (
-        2,
         'VIP Suite',
         'VIP suite with luxury services',
         200.00,
@@ -351,7 +344,6 @@ VALUES
 -- Servicios
 INSERT INTO
     service (
-        id,
         serv_name,
         serv_description,
         serv_price,
@@ -360,34 +352,37 @@ INSERT INTO
     )
 VALUES
     (
-        1,
         'Luxury Garden',
         'Premium garden services',
         20.00,
-        '2023-10-15',
-        '2023-12-15'
+        '2023-10-27',
+        '2023-10-31'
     ),
     (
-        2,
         'Deluxe Pool',
         'Exclusive pool services',
         30.00,
-        '2023-10-01',
-        '2023-12-31'
+        '2023-11-01',
+        '2023-11-06'
     ),
     (
-        3,
         'High-speed Wi-Fi',
         'High-speed Wi-Fi connection',
         10.00,
-        '2023-10-01',
-        '2023-12-31'
+        '2023-12-01',
+        '2023-11-28'
+    ),
+    (
+        'High-speed Wi-Fi',
+        'High-speed Wi-Fi connection',
+        10.00,
+        '2023-12-01',
+        '2023-11-28'
     );
 
 -- Reservas
 INSERT INTO
     booking (
-        id,
         user_id,
         plan_id,
         room_id,
@@ -395,8 +390,8 @@ INSERT INTO
         booking_end_date
     )
 VALUES
-    (1, 1, 1, 1, '2023-10-20', '2023-10-25'),
-    (2, 2, 2, 2, '2023-11-01', '2023-11-10');
+    (1, 1, 1, '2023-10-20', '2023-10-25'),
+    (2, 2, 2, '2023-11-01', '2023-11-10');
 
 -- Servicios asociados a reservas
 INSERT INTO
@@ -418,26 +413,25 @@ VALUES
 -- Condiciones meteorológicas
 INSERT INTO
     weather (
-        id,
         weather_date,
-        weather_state,
-        affected_service_id
+        weather_state
     )
 VALUES
-    (1, '2023-10-22', 'Sunny', 1),
-    (2, '2023-11-05', 'Rainy', 3);
+    ('2023-10-27', 'Sunny'),
+    ('2023-10-28', 'Clouds'),
+    ('2023-11-29', 'Rainy'),
+    ('2023-11-30', 'Sunny');
 
 -- Payment methods
 INSERT INTO
-    payment_method (id, payment_method_name)
+    payment_method (payment_method_name)
 VALUES
-    (1, 'Stripe'),
-    (2, 'Paypal');
+    ('Stripe'),
+    ('Paypal');
 
 -- Payment (transacciones)
 INSERT INTO
     payment (
-        id,
         user_id,
         booking_id,
         payment_amount,
@@ -445,8 +439,8 @@ INSERT INTO
         payment_method_id
     )
 VALUES
-    (1, 1, 1, 50.00, '2023-10-23', 1),
-    (2, 2, 2, 150.00, '2023-11-10', 2);
+    (1, 1, 50.00, '2023-10-23', 1),
+    (2, 2, 150.00, '2023-11-10', 2);
 
 -- MEDIAS
 INSERT INTO
