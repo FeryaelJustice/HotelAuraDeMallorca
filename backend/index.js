@@ -196,10 +196,16 @@ expressRouter.post('/login', (req, res) => {
                     bcrypt.compare(data.password, results[0].user_password_hash, (error, response) => {
                         if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
                         if (response) {
-                            let userID = results[0].id;
-                            let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                            // res.cookie('token', jwtToken)
-                            return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                            // Check is verified
+                            if (results[0].user_verified === 1) {
+                                // Login
+                                let userID = results[0].id;
+                                let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                                // res.cookie('token', jwtToken)
+                                return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                            } else {
+                                return res.status(500).send({ status: "error", msg: "User not verified" });
+                            }
                         } else {
                             return res.status(500).send({ status: "error", msg: "Passwords do not match" });
                         }
@@ -282,6 +288,34 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
             })
         } catch (error) {
             return res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
+expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            connection.query('SELECT user_verified FROM app_user WHERE id = ?', [req.params.id], (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                if (results.length > 0) {
+                    if (results[0].user_verified === 1) {
+                        return res.status(200).send({ status: "success", msg: "User verified" });
+                    } else {
+                        return res.status(200).send({ status: "error", msg: "User not verified" });
+                    }
+                } else {
+                    return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+                }
+            })
+        } catch (error) {
+
         }
     });
 })
