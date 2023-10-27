@@ -202,6 +202,20 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
+        // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
+        let canBookBasedOnWeather = true;
+        const startDateFormat = extractFormattedDate(startDate)
+        weatherFiveDaysForecastList?.forEach(weatherForecast => {
+            const foreDateFormat = extractFormattedDate(weatherForecast.date)
+            // console.log(foreDateFormat)
+            // console.log(startDateFormat)
+            // console.log(weatherForecast.state)
+            if (startDateFormat == foreDateFormat && weatherForecast.state == WeatherStates.RAIN) {
+                canBookBasedOnWeather = false;
+                return;
+            }
+        })
+
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
@@ -237,7 +251,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
                         if (checkedPlan == 2) {
-                            setCurrentStep(BookingSteps.StepFillGuests);
+                            if (canBookBasedOnWeather) {
+                                setCurrentStep(BookingSteps.StepFillGuests);
+                            } else {
+                                alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
+                            }
                         } else {
                             setCurrentStep(BookingSteps.StepChooseServices);
                         }
@@ -251,20 +269,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                 break;
             case BookingSteps.StepChooseServices:
-                // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
-                let canBookBasedOnWeather = true;
-                const startDateFormat = extractFormattedDate(startDate)
-                weatherFiveDaysForecastList?.forEach(weatherForecast => {
-                    const foreDateFormat = extractFormattedDate(weatherForecast.date)
-                    // console.log(foreDateFormat)
-                    // console.log(startDateFormat)
-                    // console.log(weatherForecast.state)
-                    if (startDateFormat == foreDateFormat && weatherForecast.state == WeatherStates.RAIN) {
-                        canBookBasedOnWeather = false;
-                        return;
-                    }
-                })
-
                 if (canBookBasedOnWeather) {
                     let totalServicesPrice = 0;
                     for (const [key, value] of Object.entries(selectedServicesIDs)) {
