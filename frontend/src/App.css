@@ -304,8 +304,9 @@ button:focus-visible {
 .servicesPage {
   width: 100%;
   height: 100%;
-  min-height: 100vh;
   position: relative;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .servicesPageBg {
@@ -323,12 +324,12 @@ button:focus-visible {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 100vh;
   justify-content: center;
   align-items: center;
   z-index: 2;
   position: absolute;
   top: 0;
+  overflow-y: auto;
 }
 
 .servicesPageTitle {

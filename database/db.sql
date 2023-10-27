@@ -373,11 +373,18 @@ VALUES
         '2023-11-28'
     ),
     (
-        'High-speed Wi-Fi',
-        'High-speed Wi-Fi connection',
-        10.00,
-        '2023-12-01',
-        '2023-11-28'
+        'Spa',
+        'A luxury spa inside the hotel',
+        50.00,
+        '2023-12-11',
+        '2023-12-06'
+    ),
+    (
+        'Gym',
+        'Awesome gym to stay healthy during your stay',
+        5.00,
+        '2023-12-23',
+        '2023-11-18'
     );
 
 -- Reservas
@@ -461,7 +468,9 @@ INSERT INTO
 VALUES
     (1, 1),
     (2, 1),
-    (3, 1);
+    (3, 1),
+    (4, 1),
+    (5, 1);
 
 INSERT INTO
     room_media (room_id, media_id)
