@@ -225,6 +225,11 @@ nav a {
   word-break: break-word;
 }
 
+.footer-right a {
+  color: #0148B2;
+  /* contrast accessibility */
+}
+
 .card {
   padding: 2em;
 }

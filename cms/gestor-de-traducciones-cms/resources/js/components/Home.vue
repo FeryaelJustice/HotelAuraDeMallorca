@@ -153,8 +153,6 @@ export default {
             const languages = responses[0].data.data;
             const pages = responses[1].data.data;
             const sections = responses[2].data.data;
-            console.log(pages)
-            console.log(sections)
 
             // Iterate over the sections and check if they exist and have a length greater than 0
             if (sections && sections.length > 0) {
@@ -174,7 +172,6 @@ export default {
             this.languages = languages;
             this.pages = pages;
             this.sections = sections;
-            console.log(sections)
         }).catch(err => console.error(err))
     }
 }
