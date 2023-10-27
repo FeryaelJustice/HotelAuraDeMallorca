@@ -28,6 +28,11 @@ header a {
   width: 300px;
   height: 40px;
   cursor: pointer;
+  transition: 500ms;
+}
+
+.logo:hover {
+  scale: 1.03;
 }
 
 .user-icon {
