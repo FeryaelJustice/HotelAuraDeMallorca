@@ -168,3 +168,15 @@
     border-radius: 4px;
     color: #000000;
 }
+
+.bookingNavButtons {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bookingNavButtons span {
+    display: none;
+}

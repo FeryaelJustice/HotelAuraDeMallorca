@@ -93,6 +93,7 @@
     "modal_booking_payment_title": "Tria el teu mètode de pagament",
     "modal_booking_completed_title": "Reserva completada amb èxit!",
     "modal_booking_completed_close": "Tanca aquest ventana!",
+    "modal_booking_previousstep": "Torna al pas anterior",
     "modal_booking_nextstep": "Següent pas",
     "modal_booking_gotopay": "Finalitza la reserva, paga!"
 }

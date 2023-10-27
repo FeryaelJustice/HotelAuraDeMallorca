@@ -93,6 +93,7 @@
     "modal_booking_payment_title": "Elige tu método de pago",
     "modal_booking_completed_title": "¡Reserva completada con éxito!",
     "modal_booking_completed_close": "¡Cierra esta ventana!",
+    "modal_booking_previousstep": "Volver al paso anterior",
     "modal_booking_nextstep": "Siguiente paso",
     "modal_booking_gotopay": "Finaliza la reserva, ¡paga!"
 }

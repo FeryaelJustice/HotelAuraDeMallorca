@@ -197,6 +197,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     setTotalPriceToPay(totalPriceToPay + (plans[0].price ? plans[0].price : 50));
                 } else if (checkedPlan === 2) {
                     // VIP selected
+
+                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
+                    // Crear una copia del estado actual
+                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
+                    // Establecer todos los valores en true
+                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
+                        updatedSelectedServicesIDs[key] = true;
+                    });
+                    setSelectedServicesIDs(updatedSelectedServicesIDs)
+
                     setTotalPriceToPay(totalPriceToPay + (plans[1].price ? plans[1].price : 150));
                 }
                 // setCheckedPlan(1)
@@ -210,22 +220,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 if (selectedRoomID != null) {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        if (selectedRoomID == 2) {
-                            // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                            // Crear una copia del estado actual
-                            const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                            // Establecer todos los valores en true
-                            Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                                updatedSelectedServicesIDs[key] = true;
-                            });
-                            setSelectedServicesIDs(updatedSelectedServicesIDs)
-
-                            // asegurarse que adultos son 10 o menos y con niños igual
-                            if (adults <= 10 && children <= 10) {
-                                setCurrentStep(BookingSteps.StepFillGuests);
-                            } else {
-                                alert('Adults: maximum 10. Children: maximum 10.')
-                            }
+                        if (checkedPlan == 2) {
+                            setCurrentStep(BookingSteps.StepFillGuests);
                         } else {
                             setCurrentStep(BookingSteps.StepChooseServices);
                         }
@@ -305,6 +301,39 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 break;
         }
     };
+
+    // Logica de navegacion por el modal, paso atrás
+    const goToPreviousStep = async () => {
+        switch (currentStep) {
+            case BookingSteps.StepPersonalData:
+                alert("You can't turn back, you are in the first step!")
+                break;
+            case BookingSteps.StepPlan:
+                setCurrentStep(BookingSteps.StepPersonalData);
+                break;
+            case BookingSteps.StepChooseRoom:
+                setCurrentStep(BookingSteps.StepPlan);
+                break;
+            case BookingSteps.StepChooseServices:
+                setCurrentStep(BookingSteps.StepChooseRoom);
+                break;
+            case BookingSteps.StepFillGuests:
+                if (checkedPlan == 2) {
+                    setCurrentStep(BookingSteps.StepChooseRoom);
+                } else {
+                    setCurrentStep(BookingSteps.StepChooseServices);
+                }
+                break;
+            case BookingSteps.StepPaymentMethod:
+                setCurrentStep(BookingSteps.StepFillGuests);
+                break;
+            case BookingSteps.StepConfirmation:
+                alert("You can't turn back, you already did the booking!")
+                break;
+            default:
+                break;
+        }
+    }
 
     async function cancelBooking() {
         await serverAPI.post('/api/cancel-payment', { client_secret: paymentTransactionID })
@@ -863,9 +892,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                         <Form.Label><em>{t("modal_booking_personaldata_infodefaultaccount")}</em><br /><strong>{t("modal_booking_personaldata_infodefaultaccount_important")}</strong></Form.Label>
 
-                        <Button variant="primary" type="submit">
-                            {t("modal_booking_nextstep")}
-                        </Button>
+                        <div className='bookingNavButtons'>
+                            <span>.</span>
+                            <Button variant='primary' type='submit'>
+                                {t("modal_booking_nextstep")}
+                            </Button>
+                        </div>
                     </Form>
                 </div>
             )
@@ -905,9 +937,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             )}
                         </div>
 
-                        <Button variant='primary' onClick={goToNextStep}>
-                            {t("modal_booking_nextstep")}
-                        </Button>
+                        <div className='bookingNavButtons'>
+                            <Button variant="secondary" onClick={goToPreviousStep}>
+                                {t("modal_booking_previousstep")}
+                            </Button>
+
+                            <Button variant='primary' onClick={goToNextStep}>
+                                {t("modal_booking_nextstep")}
+                            </Button>
+                        </div>
+
                     </div>
                 )
             }
@@ -997,9 +1036,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     </div>
                                 )}
                             </Row>
-                            <Button variant='primary' onClick={goToNextStep}>
-                                {t("modal_booking_nextstep")}
-                            </Button>
+
+                            <div className='bookingNavButtons'>
+                                <Button variant="secondary" onClick={goToPreviousStep}>
+                                    {t("modal_booking_previousstep")}
+                                </Button>
+
+                                <Button variant='primary' onClick={goToNextStep}>
+                                    {t("modal_booking_nextstep")}
+                                </Button>
+                            </div>
                         </Container>
                     </div>
                 )
@@ -1042,9 +1088,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                     </Row>
                                 ))}
                             </Row>
-                            <Button variant='primary' onClick={goToNextStep}>
-                                {t("modal_booking_nextstep")}
-                            </Button>
+
+                            <div className='bookingNavButtons'>
+                                <Button variant="secondary" onClick={goToPreviousStep}>
+                                    {t("modal_booking_previousstep")}
+                                </Button>
+
+                                <Button variant='primary' onClick={goToNextStep}>
+                                    {t("modal_booking_nextstep")}
+                                </Button>
+                            </div>
                         </Container>
                     </div>
                 )
@@ -1141,9 +1194,16 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         <br />
                                         <br />
                                     </div>
-                                    <Button variant='primary' type='submit'>
-                                        {t("modal_booking_nextstep")}
-                                    </Button>
+
+                                    <div className='bookingNavButtons'>
+                                        <Button variant="secondary" type='button' onClick={goToPreviousStep}>
+                                            {t("modal_booking_previousstep")}
+                                        </Button>
+
+                                        <Button variant='primary' type='submit'>
+                                            {t("modal_booking_nextstep")}
+                                        </Button>
+                                    </div>
                                 </Form>
                             </Container>
                         </div>
@@ -1186,9 +1246,13 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 </div>
                             ) : null}
                         </div>
-                        <div>
+                        <div className='bookingNavButtons'>
+                            <Button variant="secondary" onClick={goToPreviousStep}>
+                                {t("modal_booking_previousstep")}
+                            </Button>
+
                             <Button variant='primary' onClick={goToNextStep}>
-                                {t("modal_booking_gotopay")}
+                                {t("modal_booking_nextstep")}
                             </Button>
                         </div>
                     </div>
