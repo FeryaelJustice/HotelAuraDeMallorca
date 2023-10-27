@@ -889,7 +889,8 @@ expressRouter.post('/booking', async (req, res) => {
     try {
         const data = req.body;
         const { booking, selectedServicesIDs, guests } = data;
-        const servicesIDs = Object.keys(selectedServicesIDs).map(Number);
+        // Filtrar services por los que estan a true solo
+        const servicesIDs = Object.keys(selectedServicesIDs).filter((key) => selectedServicesIDs[key]).map(Number);
 
         // Create or select guests
         const guestIds = await createOrSelectGuests(guests);
