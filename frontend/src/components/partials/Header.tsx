@@ -146,7 +146,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                         )} */}
                     </div>
 
-                    <div className="header-multilanguage">
+                    <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangForm">
                             <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
                                 {LANGUAGES.map(({ code, label }) => (
@@ -159,7 +159,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     </div>
                 </div>
             </nav>
-            <button className="menu-toggle" >
+            <button aria-label="toggle" className="menu-toggle" >
                 <FontAwesomeIcon icon={faBars} onClick={handleToggleMenu} />
             </button>
             {isMenuOpen && (
@@ -173,7 +173,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                     <NavLink to="/contact" className={({ isActive }) => {
                         return isActive ? 'is-active' : undefined
                     }} onClick={closeMenu}>{t("contact")}</NavLink>
-                    <a className="user-icon-phone">
+                    <div aria-label="user-icon-phone" className="user-icon-phone">
                         {userPhotoURL && cookies.token ? (
                             <div className="user-icon-container">
                                 <img id="user-icon" src={userPhotoURL} alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
@@ -196,9 +196,9 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
                                 <span></span>
                             </div>
                         )} */}
-                    </a>
+                    </div>
 
-                    <div className="header-multilanguage">
+                    <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangFormPhone">
                             <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
                                 {LANGUAGES.map(({ code, label }) => (
