@@ -8,6 +8,10 @@
 @import 'bootstrap/scss/bootstrap';
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
+body {
+    min-height: 100vh; // brave compatibility
+}
+
 #main{
     width: 100%;
     display: flex;

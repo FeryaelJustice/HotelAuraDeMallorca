@@ -1,2 +1,7 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
+
+body {
+    min-height: 100vh;
+    /* brave compatibility */
+}
