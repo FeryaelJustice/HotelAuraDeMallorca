@@ -33,10 +33,10 @@ class TranslationsController extends Controller
                 $literalObj->literal_text = $literal;
                 $literalObj->save();
                 $literalID = $literalObj->id;
-                dd($section->id, $literalID);
                 // Check if $section exists before inserting into the section_literal table
+
                 if ($section && $literalObj) {
-                    DB::table('section_literal')->insert(array('section_id' => $section->id, 'literal_id' => $literalID));
+                    DB::table('section_literal')->insert(['section_id' => $section->id, 'literal_id' => $literalID]);
                 }
             }
             return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
