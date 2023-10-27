@@ -235,20 +235,33 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                 break;
             case BookingSteps.StepChooseServices:
-                let totalServicesPrice = 0;
-                for (const [key, value] of Object.entries(selectedServicesIDs)) {
-                    // console.log(`${key}: ${value}`);
-                    if (value) {
-                        // Si es true, es que esta seleccionado
-                        const res = await serverAPI.get('/api/service/' + key)
-                        if (res) {
-                            totalServicesPrice += res.data.data[0].serv_price;
+                // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
+                let canBookBasedOnWeather = true;
+                weatherFiveDaysForecastList?.forEach(weatherForecast => {
+                    console.log(weatherForecast)
+                    console.log(startDate)
+                    if (startDate == weatherForecast.date && weatherForecast.state == "Rain") {
+                        canBookBasedOnWeather = false;
+                        return;
+                    }
+                })
+
+                if (canBookBasedOnWeather) {
+                    let totalServicesPrice = 0;
+                    for (const [key, value] of Object.entries(selectedServicesIDs)) {
+                        // console.log(`${key}: ${value}`);
+                        if (value) {
+                            // Si es true, es que esta seleccionado
+                            const res = await serverAPI.get('/api/service/' + key)
+                            if (res) {
+                                totalServicesPrice += res.data.data[0].serv_price;
+                            }
                         }
                     }
-                }
 
-                setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
-                setCurrentStep(BookingSteps.StepFillGuests);
+                    setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
+                    setCurrentStep(BookingSteps.StepFillGuests);
+                }
                 break;
             case BookingSteps.StepFillGuests:
                 // Asegurarse que corresponde el numero de niños y adultos con lo marcado ahora
@@ -940,9 +953,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         </div>
 
                         <div className='bookingNavButtons'>
-                            <Button variant="secondary" onClick={goToPreviousStep}>
-                                {t("modal_booking_previousstep")}
-                            </Button>
+                            {!cookies.token && (
+                                <Button variant="secondary" onClick={goToPreviousStep}>
+                                    {t("modal_booking_previousstep")}
+                                </Button>
+                            )}
 
                             <Button variant='primary' onClick={goToNextStep}>
                                 {t("modal_booking_nextstep")}
