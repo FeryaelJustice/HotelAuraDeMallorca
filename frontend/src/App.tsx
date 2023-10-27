@@ -12,6 +12,8 @@ import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
 import CookieConsent from "react-cookie-consent";
 
+import summerParty from './assets/music/summer-party.mp3'
+
 function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -20,6 +22,16 @@ function App() {
 
   useEffect(() => {
     document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', colorScheme)
+
+    // background music
+    const audio = new Audio(summerParty)
+    audio.loop = true;
+    audio.play();
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   }, [])
 
   // Color theme listener
