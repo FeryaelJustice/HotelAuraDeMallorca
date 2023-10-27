@@ -13,4 +13,10 @@ class SectionController extends Controller
         $sections = Section::orderBy("section_name")->get();
         return Response::json(['status' => 'success', 'data' => $sections], 200);
     }
+
+    public function getSection($id)
+    {
+        $section = Section::find($id);
+        return Response::json(['status' => 'success', $section], 200);
+    }
 }

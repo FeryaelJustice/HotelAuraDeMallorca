@@ -28,6 +28,7 @@ Route::prefix('languages')->group(function () {
 
 Route::prefix('pages')->group(function () {
     Route::get('', [\App\Http\Controllers\PageController::class, 'getPages']);
+    Route::get('/{id}', [\App\Http\Controllers\PageController::class, 'getPage']);
 });
 
 Route::prefix('sections')->group(function () {

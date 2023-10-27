@@ -25,7 +25,8 @@
                                 <input type="text" maxlength="200" id="pagesection" name="pagesection" v-model="section"
                                     list="sections" required>
                                 <datalist id="sections">
-                                    <option v-for="section in sections" :key="section.id" :value="section.section_name">
+                                    <option v-for="section in sections" :key="section.id"
+                                        :value="section.page_name + ' - ' + section.section_name">
                                     </option>
                                 </datalist>
                             </fieldset>
@@ -142,28 +143,38 @@ export default {
         }
     },
     mounted() {
-        axios.get(API_URL + '/languages').then(response => {
-            if (response.data) {
-                this.languages = response.data.data;
-            } else {
-                console.error("No data in response.");
-            }
-        }).catch(err => console.error(err))
+        const languagesPromise = axios.get(API_URL + '/languages');
+        const pagesPromise = axios.get(API_URL + '/pages');
+        const sectionsPromise = axios.get(API_URL + '/sections');
 
-        axios.get(API_URL + '/pages').then(response => {
-            if (response.data) {
-                this.pages = response.data.data;
-            } else {
-                console.error("No data in response.");
-            }
-        }).catch(err => console.error(err))
+        // Wait for all the requests to complete
+        Promise.all([languagesPromise, pagesPromise, sectionsPromise]).then(responses => {
+            // Get the data from the responses
+            const languages = responses[0].data.data;
+            const pages = responses[1].data.data;
+            const sections = responses[2].data.data;
+            console.log(pages)
+            console.log(sections)
 
-        axios.get(API_URL + '/sections').then(response => {
-            if (response.data) {
-                this.sections = response.data.data;
-            } else {
-                console.error("No data in response.");
+            // Iterate over the sections and check if they exist and have a length greater than 0
+            if (sections && sections.length > 0) {
+                for (const section of sections) {
+                    // Iterate over the pages and get the page.name
+                    if (pages && pages.length > 0) {
+                        for (const page of pages) {
+                            // Append the page.name to the section.app_page_id
+                            if (section.app_page_id == page.id) {
+                                section.page_name = page.app_page_name;
+                            }
+                        }
+                    }
+                }
             }
+
+            this.languages = languages;
+            this.pages = pages;
+            this.sections = sections;
+            console.log(sections)
         }).catch(err => console.error(err))
     }
 }
