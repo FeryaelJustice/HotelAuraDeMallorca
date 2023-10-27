@@ -16,7 +16,9 @@
                                 <input type="text" maxlength="100" id="pagename" name="pagename" v-model="page" list="pages"
                                     required>
                                 <datalist id="pages">
-                                    <option v-for="page in pages" :key="page.id" :value="page.app_page_name"></option>
+                                    <option v-for="page in pages" :key="page.id" :value="page.app_page_name">
+                                        <label>{{ page.app_page_name }}</label>
+                                    </option>
                                 </datalist>
                             </fieldset>
                             <fieldset>
@@ -25,8 +27,8 @@
                                 <input type="text" maxlength="200" id="pagesection" name="pagesection" v-model="section"
                                     list="sections" required>
                                 <datalist id="sections">
-                                    <option v-for="section in sections" :key="section.id"
-                                        :value="section.page_name + ' - ' + section.section_name">
+                                    <option v-for="section in sections" :key="section.id" :value="section.section_name">
+                                        <label>{{ section.page_name + ' - ' + section.section_name }}</label>
                                     </option>
                                 </datalist>
                             </fieldset>
@@ -122,24 +124,28 @@ export default {
         },
         onSubmit() {
             // console.log(this.page, this.section, this.literal_es, this.literal_en, this.literal_ca, this.literal_de)
-            let data = {
-                page: this.page,
-                section: this.section,
-                literals: {
-                    literal_es: this.literal_es,
-                    literal_en: this.literal_en,
-                    literal_ca: this.literal_ca,
-                    literal_de: this.literal_de
+            if (this.literal_es != '' && this.literal_en != '' && this.literal_ca != '' && this.literal_de != '') {
+                let data = {
+                    page: this.page,
+                    section: this.section,
+                    literals: {
+                        literal_es: this.literal_es,
+                        literal_en: this.literal_en,
+                        literal_ca: this.literal_ca,
+                        literal_de: this.literal_de
+                    }
                 }
+                axios.post(API_URL + '/translations/create', data).then(res => {
+                    alert(res.data.message)
+                }).catch(err => {
+                    console.error(err)
+                    alert('Ha ocurrido un error realizando la inserción')
+                }
+                )
+                this.resetForm();
+            } else {
+                alert('Debes rellenar todos los literales en todos los idiomas')
             }
-            axios.post(API_URL + '/translations/create', data).then(res => {
-                alert(res.data.message)
-            }).catch(err => {
-                console.error(err)
-                alert('Ha ocurrido un error realizando la inserción')
-            }
-            )
-            this.resetForm();
         }
     },
     mounted() {
