@@ -469,6 +469,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
                     const paymentTransResponse = await serverAPI.post('/api/paymentTransaction', paymentTransaction);
 
+                    setPaymentTransactionID(paymentTransactionID)
+
                     if (paymentTransResponse) {
                         // If everything went well, proceed to the next screen and empty data on the next screen
                         if (!cookies.token) {
