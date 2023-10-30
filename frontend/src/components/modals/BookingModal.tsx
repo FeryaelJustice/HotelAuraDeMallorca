@@ -71,7 +71,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         },
     });
     const [paymentTransactionID, setPaymentTransactionID] = useState<string>();
-    const [transactionIDIsSet, setTransactionIDIsSet] = useState<boolean>(false);
 
     // STRIPE FORM
     const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
@@ -116,8 +115,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             postToServer(data)
                 .then((clientSecret: any) => {
                     setPaymentTransactionID(clientSecret);
-                    setTransactionIDIsSet(true)
-                    pay();
+                    doPayment(clientSecret)
                 })
                 .catch((error) => {
                     console.error('Error in postToServer:', error);
@@ -309,27 +307,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 }
                 break;
             case BookingSteps.StepPaymentMethod:
-                // Primero pagar
-                try {
-                    if (transactionIDIsSet && paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
-                        // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
-                        if (!cookies.token) {
-                            try {
-                                createUser();
-                            } catch (err) {
-                                console.error(err);
-                            }
-                        } else {
-                            // Después realizar la reserva
-                            doBooking(userAllData?.id)
-                        }
-                    } else {
-                        alert('Error on payment, try again')
-                    }
-                } catch (error) {
-                    // Manejo de errores
-                    console.error('Error al realizar la reserva:', error);
-                }
+                // Migrado a usarlo directamente en un método en los propios forms de stripe, paypal o whatever
                 break;
             case BookingSteps.StepConfirmation:
                 resetBookingModal();
@@ -370,6 +348,30 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 break;
             default:
                 break;
+        }
+    }
+
+    async function doPayment(paymentTransactionID: string) {
+        // Primero pagar
+        try {
+            if (paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
+                // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
+                if (!cookies.token) {
+                    try {
+                        createUser();
+                    } catch (err) {
+                        console.error(err);
+                    }
+                } else {
+                    // Después realizar la reserva
+                    doBooking(userAllData?.id)
+                }
+            } else {
+                alert('Error on payment, try again')
+            }
+        } catch (error) {
+            // Manejo de errores
+            console.error('Error al realizar la reserva:', error);
         }
     }
 
@@ -860,11 +862,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const paymentMethodSelected = (paymentMethodID: any) => {
         setCheckedPaymentMethod(paymentMethodID);
     };
-
-    const pay = () => {
-        // console.log(paymentTransactionID)
-        goToNextStep();
-    }
 
     // RESET
     const resetBookingModal = () => {
