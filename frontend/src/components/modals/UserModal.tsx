@@ -67,7 +67,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
             getAllLoggedUserData().then(res => {
                 const userData = res.data;
-                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password_hash, verified: userData.user_verified })
+                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
                 // retrieve profile pic and put

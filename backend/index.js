@@ -146,7 +146,7 @@ expressRouter.post('/register', (req, res) => {
                 if (resultss.length > 0) {
                     return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
                 } else {
-                    let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password_hash, user_verified) VALUES (?, ?, ?, ?, ?)';
+                    let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
 
                     bcrypt.hash(data.password, salt, (err, hash) => {
                         let values = [data.name, data.surnames, data.email, hash, 0];
@@ -193,7 +193,7 @@ expressRouter.post('/login', (req, res) => {
                     return res.status(500).json({ status: "error", msg: "Error on connecting db" });
                 }
                 if (results.length > 0) {
-                    bcrypt.compare(data.password, results[0].user_password_hash, (error, response) => {
+                    bcrypt.compare(data.password, results[0].user_password, (error, response) => {
                         if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
                         if (response) {
                             // Check is verified
@@ -848,7 +848,7 @@ expressRouter.get('/paymentmethods', (req, res) => {
     });
 })
 
-expressRouter.post('/checkBookingAvalability', (req, res) => {
+expressRouter.post('/checkBookingAvailability', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error acquiring connection from pool:', err);
@@ -987,8 +987,8 @@ function insertGuests(guestsToInsert) {
                 return;
             }
 
-            const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult]);
-            const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult) VALUES ?';
+            const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
+            const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
             pool.query(query, [values], (err, result) => {
                 if (err) {
                     reject("Error creating guests");

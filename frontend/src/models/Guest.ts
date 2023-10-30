@@ -4,6 +4,7 @@ export class Guest {
   surnames: string | null = null;
   email: string | null = null;
   isAdult: boolean | null = null;
+  isSystemUser: boolean | null = null;
 
   constructor(guest?: Guest) {
     if (guest) {
@@ -12,6 +13,7 @@ export class Guest {
       this.surnames = guest.surnames;
       this.email = guest.email;
       this.isAdult = guest.isAdult;
+      this.isSystemUser = guest.isSystemUser;
     }
   }
 }

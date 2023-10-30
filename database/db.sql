@@ -9,7 +9,7 @@ CREATE TABLE app_user (
     user_name VARCHAR(255),
     user_surnames VARCHAR(255),
     user_email VARCHAR(255),
-    user_password_hash VARCHAR(255),
+    user_password VARCHAR(255),
     user_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(255),
     verification_token_expiry TIMESTAMP,
@@ -24,6 +24,7 @@ CREATE TABLE guest (
     guest_surnames VARCHAR(255),
     guest_email VARCHAR(255),
     isAdult CHAR(1) NOT NULL,
+    isSystemUser CHAR(1) NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -223,7 +224,7 @@ INSERT INTO
         user_name,
         user_surnames,
         user_email,
-        user_password_hash,
+        user_password,
         user_verified,
         verification_token,
         verification_token_expiry

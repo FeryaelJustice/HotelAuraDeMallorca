@@ -167,7 +167,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         name: res.user_name,
                         surnames: res.user_surnames,
                         email: res.user_email,
-                        password: res.user_password_hash,
+                        password: res.user_password,
                         verified: res.user_verified,
                     }))
                 }).catch(err => console.error(err));
@@ -333,74 +333,53 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     async function bookingProcess(paymentData: any) {
-        // Primero verificar fechas, segundo verificar usuario existe y despues ya hacer el payment y si funciona despues el booking
-        const bookingData = {
-            roomID: selectedRoomID,
-            start_date: startDate as Date,
-            end_date: endDate as Date,
-        }
-        // First, check if room is available and not used on that dates
-        serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
-            if (availabilityResponse.data && availabilityResponse.data.status == "success") {
-                // si la api devuelve la list available quiere decir que está ocupado y eso son los dias disponibles desde hoy
-                if (!availabilityResponse.data.available) {
+        try {
+            // Check room availability
+            const availabilityResponse = await serverAPI.post('/api/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
 
-                    // Check user exists
-                    // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
+            if (availabilityResponse.data && availabilityResponse.data.status === "success") {
+                if (!availabilityResponse.data.available) {
+                    // Check if the user exists
+                    let userID = userAllData?.id;
                     if (!cookies.token) {
-                        try {
-                            createUser();
-                        } catch (err) {
-                            console.error(err);
-                        }
+                        userID = await createUser();
+                    }
+
+                    // Process payment
+                    const clientSecret = await doPayment(paymentData);
+
+                    if (clientSecret && clientSecret !== undefined && clientSecret !== null && clientSecret !== '') {
+                        // Make the booking
+                        await doBooking(userID, clientSecret);
                     } else {
-                        // purchase the payment
-                        const postToServer = (paymentData: any) => {
-                            return new Promise((resolve, reject) => {
-                                serverAPI
-                                    .post('/api/purchase', { data: paymentData })
-                                    .then((response) => {
-                                        resolve(response.data.client_secret);
-                                    })
-                                    .catch((error) => {
-                                        reject(error);
-                                    });
-                            });
-                        };
-                        postToServer(paymentData)
-                            .then((clientSecret: any) => {
-                                setPaymentTransactionID(clientSecret);
-                                try {
-                                    if (clientSecret && clientSecret != undefined && clientSecret != null && clientSecret != '') {
-                                        doBooking(userAllData?.id, clientSecret)
-                                    } else {
-                                        alert('Error on payment, try again')
-                                    }
-                                } catch (error) {
-                                    // Manejo de errores
-                                    console.error('Error al realizar la reserva:', error);
-                                }
-                            })
-                            .catch((error) => {
-                                console.error('Error in postToServer:', error);
-                            });
+                        alert('Error on payment, try again');
                     }
                 } else {
-                    let list = '';
-                    availabilityResponse.data.available.forEach((day: Date) => {
-                        list += " / " + day.toString();;
-                    })
-                    alert("Cannot book this dates, they're occupied for this room availability! List of days available: " + list)
+                    const list = availabilityResponse.data.available.join(' / ');
+                    alert("Cannot book these dates; they're occupied. List of available dates: " + list);
                 }
             } else {
-                alert("No rooms available on that dates")
+                alert("No rooms available on those dates");
             }
-        }).catch((err) => {
-            console.error(err)
-            if (err.response && err.response.data) {
-                alert(err.response.data.msg)
+        } catch (error: any) {
+            console.error('Error during the booking process:', error);
+            if (error && error.response && error.response.data) {
+                alert(error.response.data.message)
             }
-        })
+            await cancelBooking();
+        } finally {
+            removeCookie('token');
+        }
+    }
+
+    async function doPayment(paymentData: any) {
+        try {
+            const response = await serverAPI.post('/api/purchase', { data: paymentData });
+            return response.data.client_secret;
+        } catch (error) {
+            console.error('Error processing payment:', error);
+            throw error;
+        }
     }
 
     async function cancelBooking() {
@@ -415,96 +394,15 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }
 
-    // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
-    function doBooking(user_id: any, paymentTransactionID: any) {
-        const booking = new Booking({
-            id: null,
-            userID: user_id,
-            planID: checkedPlan,
-            roomID: selectedRoomID,
-            startDate: startDate as Date,
-            endDate: endDate as Date,
-        });
-
-        const bookingData = {
-            booking,
-            selectedServicesIDs,
-            guests
-        }
-
-        const payment = new Payment({
-            id: null,
-            userID: user_id,
-            bookingID: booking.id,
-            amount: totalPriceToPay * 100, // Debido a cómo funciona stripe, si le envías 1 euro él cobra 0,01 euros.
-            date: new Date(),
-            paymentMethodID: checkedPaymentMethod
-        });
-
+    async function createUser() {
         try {
-            // Make the API call for booking, and there we will also insert the booking services and booking guests
-            serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
-                if (bookingResponse.data.status == "success") {
-                    // Make the API call for payment
-                    payment.bookingID = bookingResponse.data.insertId;
-                    serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                        if (paymentResponse) {
-                            let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
-                            serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
-                                if (paymentTransResponse) {
-                                    // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                    if (!cookies.token) {
-                                        // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
-                                        setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
-                                    }
-                                    setCurrentStep(BookingSteps.StepConfirmation);
-                                }
-                            }).catch(err => {
-                                console.error(err)
-                                if (err.response.data && err.response.data.msg) {
-                                    alert(err.response.data.msg)
-                                }
-                            })
-                        }
-                    }).catch(err => {
-                        console.error(err)
-                        if (err.response.data && err.response.data.msg) {
-                            alert(err.response.data.msg)
-                        }
-                    })
-                }
-            }).catch(err => {
-                console.error(err)
-                if (err.response.data && err.response.data.msg) {
-                    alert(err.response.data.msg)
-                }
-                cancelBooking();
-                onClose();
-                resetBookingModal();
-            })
-        } catch (error) {
-            console.error('Error al realizar la reserva:', error);
-        } finally {
-            removeCookie('token');
-        }
-    }
+            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
+            const res = await serverAPI.post('/api/register', userToCreate);
 
-    function createUser() {
-        const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
-        // si el id es null, es que es nuevo usuario y no esta logeado, por lo tanto crearlo en la base de datos antes de la reserva
-        serverAPI.post('/api/register', userToCreate).then(res => {
-            console.log('registered successfully' + res)
-            setCookie('token', res.data.cookieJWT)
+            setCookie('token', res.data.cookieJWT);
 
-            // After successful registration, send a request to generate and send a confirmation email
-            serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
-                .then(response => {
-                    console.log('Confirmation email sent successfully', response);
-                })
-                .catch(error => {
-                    console.error('Error sending confirmation email', error);
-                    setBookingFinalMessage(prev => prev + "Error sending confirmation email / ")
-                });
+            // Send confirmation email
+            await sendConfirmationEmail(res.data.insertId);
 
             const newUserAllData: User = {
                 id: res.data.insertId,
@@ -515,12 +413,76 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             // Update the state with the new userAllData
             setUserAllData(newUserAllData);
 
-        }).catch(err => {
-            console.error(err)
-            if (err.response.data && err.response.data.message) {
-                alert(err.response.data.message)
+            return res.data.insertId;
+        } catch (error) {
+            console.error('Error creating user:', error);
+            return null;
+        }
+    }
+
+    async function sendConfirmationEmail(userId: number) {
+        try {
+            const response = await serverAPI.get(`/api/user/sendConfirmationEmail/${userId}`);
+            console.log('Confirmation email sent successfully', response);
+        } catch (error) {
+            console.error('Error sending confirmation email:', error);
+            setBookingFinalMessage(prev => prev + "Error sending confirmation email / ");
+        }
+    }
+
+    // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
+    async function doBooking(user_id: any, paymentTransactionID: any) {
+        try {
+            const booking = new Booking({
+                id: null,
+                userID: user_id,
+                planID: checkedPlan,
+                roomID: selectedRoomID,
+                startDate: startDate as Date,
+                endDate: endDate as Date,
+            });
+
+            const bookingData = {
+                booking,
+                selectedServicesIDs,
+                guests
+            };
+
+            // Make the API call for booking, and there we will also insert the booking services and booking guests
+            const bookingResponse = await serverAPI.post('/api/booking', bookingData);
+
+            if (bookingResponse.data.status === "success") {
+                // Make the API call for payment
+                const payment = new Payment({
+                    id: null,
+                    userID: user_id,
+                    bookingID: bookingResponse.data.insertId,
+                    amount: totalPriceToPay * 100, // Due to how Stripe works, if you send 1 euro, it charges 0.01 euros.
+                    date: new Date(),
+                    paymentMethodID: checkedPaymentMethod
+                });
+
+                const paymentResponse = await serverAPI.post('/api/payment', payment);
+
+                if (paymentResponse) {
+                    const paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' });
+
+                    const paymentTransResponse = await serverAPI.post('/api/paymentTransaction', paymentTransaction);
+
+                    if (paymentTransResponse) {
+                        // If everything went well, proceed to the next screen and empty data on the next screen
+                        if (!cookies.token) {
+                            // If there are no cookies, it means that the user from the first screen has registered
+                            setBookingFinalMessage(prevMsg => prevMsg + 'Your user has been registered, and a confirmation email has been sent / ');
+                        }
+                        setCurrentStep(BookingSteps.StepConfirmation);
+                    }
+                }
             }
-        })
+        } catch (error) {
+            console.error('Error making the booking:', error);
+            throw error;
+        }
     }
 
     // Step Personal data Form
@@ -731,7 +693,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Step fill guests
     const [guests, setGuests] = useState<Guest[]>([
-        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false })
+        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
     ]);
     const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
     const [userWantsToBecomeGuest, setUserWantsToBecomeGuest] = useState(false);
@@ -740,7 +702,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const addGuest = () => {
         if (guests.length < 20) {
             // Maximum we allow 20 guests, 10 adults and 10 childs
-            setGuests([...guests, { id: null, name: '', surnames: '', email: '', isAdult: false }]);
+            setGuests([...guests, { id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false }]);
             setGuestsDataErrors([...guestsDataErrors, { nameError: '', surnamesError: '', emailError: '' }])
         } else {
             alert('The maximum is 20 guests')
@@ -829,12 +791,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             if (cookies && cookies.token) {
                 getAllLoggedUserData().then((data: any) => {
                     let user: any = data.data;
-                    const newUserAsGuest = new Guest({ id: user.id, name: user.user_name, surnames: user.user_surnames, email: user.user_email, isAdult: isUserGuestAdult })
+                    const newUserAsGuest = new Guest({ id: user.id, name: user.user_name, surnames: user.user_surnames, email: user.user_email, isAdult: isUserGuestAdult, isSystemUser: true })
                     setGuests([newUserAsGuest, ...guests]);
                     setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
                 }).catch(err => console.error(err));
             } else {
-                const newUserAsGuest = new Guest({ id: null, name: userPersonalData.name, surnames: userPersonalData.surnames, email: userPersonalData.email, isAdult: isUserGuestAdult })
+                const newUserAsGuest = new Guest({ id: null, name: userPersonalData.name, surnames: userPersonalData.surnames, email: userPersonalData.email, isAdult: isUserGuestAdult, isSystemUser: true })
                 setGuests([newUserAsGuest, ...guests]);
                 setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
             }
@@ -887,7 +849,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         setUserPersonalData({ name: '', surnames: '', email: '' });
         setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
         setGuests([
-            new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false })
+            new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
         ]);
         setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
         setCheckedPlan(1)
