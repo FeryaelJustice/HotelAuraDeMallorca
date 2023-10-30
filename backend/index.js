@@ -5,6 +5,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const mysql = require('mysql')
+const mariadb = require('mariadb')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 const moment = require('moment'); // for dates, library
@@ -23,7 +24,11 @@ var multerStorage = multer.diskStorage({
     }
 })
 const upload = multer({ storage: multerStorage })
+const os = require('os');
 // const morgan = require('morgan') // logger
+
+// Check OS
+const isWindows = os.platform() === 'win32';
 
 // INIT SERVER
 const app = express();
@@ -50,8 +55,8 @@ app.use(compression())
 var path = require('path');
 app.use(express.static(path.join(__dirname, 'public')))
 
-// MySQL
-const pool = mysql.createPool({
+// DATABASE
+const dbConfig = {
     host: process.env.DB_URL,
     user: 'root',
     password: '',
@@ -63,7 +68,10 @@ const pool = mysql.createPool({
     //queueLimit: 0,
     //enableKeepAlive: true,
     //keepAliveInitialDelay: 0
-})
+}
+
+// MySQL
+const pool = isWindows ? mysql.createPool(dbConfig) : mariadb.createPool({ ...dbConfig, connectionLimit: 150 })
 
 // JWT
 const jwt = require('jsonwebtoken')
