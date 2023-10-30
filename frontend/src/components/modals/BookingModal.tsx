@@ -396,7 +396,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     async function createUser() {
         try {
-            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234" };
+            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
             const res = await serverAPI.post('/api/register', userToCreate);
 
             setCookie('token', res.data.cookieJWT);

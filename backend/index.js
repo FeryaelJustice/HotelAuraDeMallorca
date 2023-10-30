@@ -169,6 +169,13 @@ expressRouter.post('/register', (req, res) => {
                                 }
                             })
 
+                            // Insert user role to user
+                            connection.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, data.roleID], (err) => {
+                                if (err) {
+                                    console.error(err)
+                                }
+                            });
+
                             return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
                         });
                     })
@@ -264,10 +271,36 @@ expressRouter.delete('/user/:id', verifyUser, (req, res) => {
         });
 })
 
+// get logged user ID by jwt
 expressRouter.post('/currentUser', verifyUser, (req, res) => {
     return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.id })
 })
 
+expressRouter.get('/getUserRole/:id', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            connection.query('SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?', [req.params.id], (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                if (results.length > 0) {
+                    return res.status(200).send({ status: "success", msg: "User role found", data: results[0] });
+                } else {
+                    return res.status(500).send({ status: "error", msg: "No user role exists with that user id" });
+                }
+            })
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
+// get current logged user data without jwt, only by id param
 expressRouter.get('/loggedUser/:id', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {

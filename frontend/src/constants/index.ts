@@ -10,3 +10,9 @@ export enum WeatherStates {
   RAIN = "Rain",
   CLEAR = "Clear",
 }
+
+export enum UserRoles {
+  ADMIN = "ADMIN",
+  EMPLOYEE = "EMPLOYEE",
+  CLIENT = "CLIENT",
+}

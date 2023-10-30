@@ -5,10 +5,11 @@ import Form from 'react-bootstrap/Form';
 import { useCookies } from 'react-cookie';
 import Alert from 'react-bootstrap/Alert';
 import ReCAPTCHA from "react-google-recaptcha";
-import { User } from './../../models/index'
-import './UserModal.css'
+import { User, Role } from './../../models/index';
 import { API_URL } from './../../services/consts';
 import serverAPI from './../../services/serverAPI';
+import { UserRoles } from '../../constants';
+import './UserModal.css'
 
 import { useTranslation } from "react-i18next";
 
@@ -39,7 +40,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             setCurrentUser(new User())
             setUserEdit({ name: '', surnames: '', token: '' });
             setUserLogin({ email: "", password: "" })
-            setUserRegister({ email: "", name: "", surnames: "", password: "", repeatpassword: "" })
+            setUserRegister({ email: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
         } else {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
         }
@@ -48,6 +49,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
     const [cookies, setCookie, removeCookie] = useCookies(['token']);
     const [currentUser, setCurrentUser] = useState(new User());
+    const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
 
@@ -114,6 +116,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 console.error(err)
             });
             if (getLoggedUserData) {
+                const userRole = await serverAPI.get('/api/getUserRole/' + currentUser.data.userID)
+                setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
                 return getLoggedUserData.data;
             } else {
                 removeCookie('token');
@@ -170,7 +174,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
-    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "", repeatpassword: "" });
+    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
 
     const handleRegisterChange = (event: any) => {
@@ -408,6 +412,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                     <h2>
                         {t("modal_user_editprofile_title")}
                     </h2>
+                    {(currentUserRole?.name == UserRoles.ADMIN || currentUserRole?.name == UserRoles.EMPLOYEE) && (
+                        <p>
+                            Eres {currentUserRole.name}
+                        </p>
+                    )}
                     <Form id='userEditProfileForm' onSubmit={handleSaveEdit}>
                         <div className='userEditDetails'>
                             <Form.Group className='mb-3' controlId='formImage'>

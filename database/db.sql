@@ -45,7 +45,8 @@ CREATE TABLE user_role (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (role_id) REFERENCES role(id)
+    FOREIGN KEY (role_id) REFERENCES role(id),
+    CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
 
 -- Create the table plan
@@ -295,12 +296,9 @@ VALUES
 INSERT INTO
     user_role (user_id, role_id)
 VALUES
-    (1, 2),
     (1, 3),
     (2, 1),
-    (3, 1),
-    (3, 2),
-    (3, 3);
+    (3, 2);
 
 -- Planes
 INSERT INTO
