@@ -52,23 +52,18 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 // MySQL
 const pool = mysql.createPool({
-    connectionLimit: 100,
     host: process.env.DB_URL,
     user: 'root',
     password: '',
     database: 'hotelaurademallorca',
-    before: async (connection) => {
-        connection.query = async function (sql, values) {
-            const formedSQL = connection.format(sql, values);
-            logFormedSQL(formedSQL);
-            return await connection._query(formedSQL);
-        };
-    }
+    connectionLimit: 200,
+    // MYSQL2 PARAMS
+    //waitForConnections: true,
+    // idleTimeout: 80000,
+    //queueLimit: 0,
+    //enableKeepAlive: true,
+    //keepAliveInitialDelay: 0
 })
-
-function logFormedSQL(sql) {
-    console.log('Formed SQL statement:', sql);
-}
 
 // JWT
 const jwt = require('jsonwebtoken')
@@ -618,6 +613,29 @@ const getUserById = (connection, userId) => {
     });
 };
 
+// Function to get user role by ID
+const getUserRoleById = (connection, userId) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const query = 'SELECT r.name FROM user_role ur INNER JOIN rol r ON r.id = ur.role_id WHERE ur.user_id = ?';
+            connection.query(query, [userId], (error, results) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    // Check if a user was found
+                    if (results && results.length > 0) {
+                        resolve(results[0]); // Assuming there is only one user with the given ID
+                    } else {
+                        resolve(null); // No user found with the given ID
+                    }
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
 // CONTACT FORM
 expressRouter.post('/sendContactForm', async (req, res) => {
     try {
@@ -920,7 +938,85 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
 
 })
 
-// BOOKING !!!
+// BOOKING
+expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+    })
+    try {
+        // Delete booking, only for admins
+        const bookingId = req.params.bookingID;
+        const userID = req.params.id;
+
+        getUserRoleById(connection, userID).then(userRole => {
+            if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
+                connection.beginTransaction(async (err) => {
+                    if (err) {
+                        connection.rollback();
+                        return;
+                    }
+                    connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
+                        if (err) {
+                            connection.rollback();
+                            return;
+                        }
+
+                        connection.commit((err) => {
+                            if (err) {
+                                connection.rollback();
+                            }
+                        });
+                    })
+                });
+            }
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
+})
+
+expressRouter.post('/booking', verifyUser, (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+    })
+    try {
+        // Update booking (only for admins)
+        const userID = req.params.id;
+        const booking = req.body;
+
+        getUserById(connection, userID).then(userRes => {
+            if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
+                connection.beginTransaction(async (err) => {
+                    if (err) {
+                        connection.rollback();
+                        return;
+                    }
+                    connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate], (err) => {
+                        if (err) {
+                            connection.rollback();
+                            return;
+                        }
+
+                        connection.commit((err) => {
+                            if (err) {
+                                connection.rollback();
+                            }
+                        });
+                    })
+                });
+            }
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
+})
+
 expressRouter.post('/booking', async (req, res) => {
     try {
         const data = req.body;
