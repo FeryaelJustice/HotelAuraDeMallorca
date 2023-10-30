@@ -292,6 +292,33 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
     });
 })
 
+expressRouter.post('/checkUserExistsByEmail', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            let data = req.body;
+            let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+            let checkValues = [data.email]
+            connection.query(checkSQL, checkValues, (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                if (results.length > 0) {
+                    return res.status(200).send({ status: "success", msg: "User found" });
+                } else {
+                    return res.status(500).send({ status: "error", msg: "No user exists with that email" });
+                }
+            })
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
 expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {
@@ -821,46 +848,6 @@ expressRouter.get('/paymentmethods', (req, res) => {
     });
 })
 
-// Check booking availability
-function calculateAvailableRanges(occupiedRanges, start, end) {
-    console.log(occupiedRanges)
-    const sortedRanges = [...occupiedRanges].sort((a, b) => new Date(a.start) - new Date(b.start));
-    console.log(sortedRanges)
-
-    const availableRanges = [];
-    let currentStart = new Date(start);
-    let currentEnd = new Date(start);
-
-    for (const range of sortedRanges) {
-        const rangeStart = new Date(range.start);
-        const rangeEnd = new Date(range.end);
-
-        if (currentEnd < rangeStart) {
-            // If there is a gap between the current end and the next range's start, add an available range.
-            availableRanges.push({
-                start: currentEnd,
-                end: rangeStart,
-            });
-            currentStart = rangeStart;
-            currentEnd = rangeEnd;
-        } else {
-            // If there's an overlap, adjust the current end to cover the range.
-            currentEnd = new Date(Math.max(currentEnd, rangeEnd));
-        }
-    }
-
-    if (currentEnd < end) {
-        availableRanges.push({
-            start: currentEnd,
-            end: new Date(end),
-        });
-    }
-
-    console.log(availableRanges)
-
-    return availableRanges;
-}
-
 expressRouter.post('/checkBookingAvalability', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {
@@ -869,50 +856,65 @@ expressRouter.post('/checkBookingAvalability', (req, res) => {
         }
 
         try {
-            const { roomID, startDate, endDate } = req.body.booking;
-            const sql = 'SELECT booking_start_date, booking_end_date FROM booking WHERE room_id = ?';
+            const { roomID, start_date, end_date } = req.body;
+            const startDate = new Date(start_date).toISOString().slice(0, 11).replace('T', ' ')
+            const endDate = new Date(end_date).toISOString().slice(0, 11).replace('T', ' ')
+            const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r LEFT JOIN booking b ON r.id = b.room_id AND ((b.booking_start_date BETWEEN ? AND ?) OR (b.booking_end_date BETWEEN ? AND ?) OR (b.booking_start_date <= ? AND b.booking_end_date >= ?)) WHERE r.id = ?';
 
-            connection.query(sql, [roomID, endDate, startDate], (err, results) => {
+            connection.query(sql, [startDate, endDate, startDate, endDate, startDate, endDate, roomID], (err, results) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json({ status: "error", msg: "Error on connecting db" });
                 }
 
                 if (results && results.length > 0) {
-                    const occupiedRanges = [];
-                    results.forEach((booking) => {
-                        occupiedRanges.push({
-                            start: booking.booking_start_date,
-                            end: booking.booking_end_date,
-                        });
-                    });
+                    // Esto significa que está ocupada, sino estará a null
+                    if (results[0].booking_start_date) {
+                        // Buscar fechas disponibles
+                        const roomAvailabilityStart = results[0].room_availability_start;
+                        const roomAvailabilityEnd = results[0].room_availability_end;
 
-                    const availabilityStart = startDate;
-                    const availabilityEnd = endDate;
+                        const availableDates = [];
+                        const today = new Date();
 
-                    if (occupiedRanges.length === 0) {
-                        return res.status(200).json({
-                            status: "success",
-                            msg: "OK, no rooms occupied.",
-                            occupied: [],
-                            available: [{ start: availabilityStart, end: availabilityEnd }],
-                        });
+                        for (let currentDate = new Date(roomAvailabilityStart); currentDate <= roomAvailabilityEnd; currentDate.setDate(currentDate.getDate() + 1)) {
+                            let isDateOccupied = false; // buscando si esta ocupado en las fechas disponibles del room con las del book ya reservado
+
+                            for (const row of results) {
+                                const bookingStartDate = new Date(row.booking_start_date);
+                                const bookingEndDate = new Date(row.booking_end_date);
+                                if (currentDate >= bookingStartDate && currentDate <= bookingEndDate) {
+                                    isDateOccupied = true;
+                                    break; // No need to check further, the date is occupied
+                                }
+                            }
+
+                            if (!isDateOccupied && currentDate >= today && currentDate >= results[0].booking_start_date) {
+                                availableDates.push(currentDate.toISOString().split('T')[0]);
+                            }
+                        }
+
+                        if (availableDates.length === 0) {
+                            return res.status(200).json({
+                                status: "success",
+                                msg: "No rooms available, they're occupied."
+                            });
+                        } else {
+                            return res.status(200).json({
+                                status: "success",
+                                msg: "OK, rooms occupied but with available dates.",
+                                available: availableDates
+                            });
+                        }
                     } else {
-                        // Calculate available ranges by subtracting occupied ranges
-                        const availableRanges = calculateAvailableRanges(occupiedRanges, startDate, endDate);
-                        return res.status(200).json({
-                            status: "success",
-                            msg: "OK, rooms occupied but with available ranges of dates.",
-                            occupied: occupiedRanges,
-                            available: availableRanges,
-                        });
+                        return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
                     }
                 } else {
                     return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
                 }
             });
         } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
+            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
         }
     })
 

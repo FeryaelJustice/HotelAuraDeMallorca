@@ -94,32 +94,13 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             }
 
             // Create the PaymentIntent and obtain clientSecret from your server endpoint
-            let data = {
+            const paymentData = {
                 amount: totalPriceToPay,
                 currency: stripeOptions.currency,
                 plan: plan
             }
 
-            const postToServer = (data: any) => {
-                return new Promise((resolve, reject) => {
-                    serverAPI
-                        .post('/api/purchase', { data })
-                        .then((response) => {
-                            resolve(response.data.client_secret);
-                        })
-                        .catch((error) => {
-                            reject(error);
-                        });
-                });
-            };
-            postToServer(data)
-                .then((clientSecret: any) => {
-                    setPaymentTransactionID(clientSecret);
-                    doPayment(clientSecret)
-                })
-                .catch((error) => {
-                    console.error('Error in postToServer:', error);
-                });
+            bookingProcess(paymentData);
         };
 
         return (
@@ -351,28 +332,75 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }
 
-    async function doPayment(paymentTransactionID: string) {
-        // Primero pagar
-        try {
-            if (paymentTransactionID && paymentTransactionID != undefined && paymentTransactionID != null && paymentTransactionID != '') {
-                // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
-                if (!cookies.token) {
-                    try {
-                        createUser();
-                    } catch (err) {
-                        console.error(err);
+    async function bookingProcess(paymentData: any) {
+        // Primero verificar fechas, segundo verificar usuario existe y despues ya hacer el payment y si funciona despues el booking
+        const bookingData = {
+            roomID: selectedRoomID,
+            start_date: startDate as Date,
+            end_date: endDate as Date,
+        }
+        // First, check if room is available and not used on that dates
+        serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
+            if (availabilityResponse.data && availabilityResponse.data.status == "success") {
+                // si la api devuelve la list available quiere decir que está ocupado y eso son los dias disponibles desde hoy
+                if (!availabilityResponse.data.available) {
+
+                    // Check user exists
+                    // Si no esta logeado, crear usuario con default password y lo seteamos al user global de este modal con todos los datos
+                    if (!cookies.token) {
+                        try {
+                            createUser();
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    } else {
+                        // purchase the payment
+                        const postToServer = (paymentData: any) => {
+                            return new Promise((resolve, reject) => {
+                                serverAPI
+                                    .post('/api/purchase', { data: paymentData })
+                                    .then((response) => {
+                                        resolve(response.data.client_secret);
+                                    })
+                                    .catch((error) => {
+                                        reject(error);
+                                    });
+                            });
+                        };
+                        postToServer(paymentData)
+                            .then((clientSecret: any) => {
+                                setPaymentTransactionID(clientSecret);
+                                try {
+                                    if (clientSecret && clientSecret != undefined && clientSecret != null && clientSecret != '') {
+                                        doBooking(userAllData?.id, clientSecret)
+                                    } else {
+                                        alert('Error on payment, try again')
+                                    }
+                                } catch (error) {
+                                    // Manejo de errores
+                                    console.error('Error al realizar la reserva:', error);
+                                }
+                            })
+                            .catch((error) => {
+                                console.error('Error in postToServer:', error);
+                            });
                     }
                 } else {
-                    // Después realizar la reserva
-                    doBooking(userAllData?.id)
+                    let list = '';
+                    availabilityResponse.data.available.forEach((day: Date) => {
+                        list += " / " + day.toString();;
+                    })
+                    alert("Cannot book this dates, they're occupied for this room availability! List of days available: " + list)
                 }
             } else {
-                alert('Error on payment, try again')
+                alert("No rooms available on that dates")
             }
-        } catch (error) {
-            // Manejo de errores
-            console.error('Error al realizar la reserva:', error);
-        }
+        }).catch((err) => {
+            console.error(err)
+            if (err.response && err.response.data) {
+                alert(err.response.data.msg)
+            }
+        })
     }
 
     async function cancelBooking() {
@@ -388,7 +416,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
-    function doBooking(user_id: any) {
+    function doBooking(user_id: any, paymentTransactionID: any) {
         const booking = new Booking({
             id: null,
             userID: user_id,
@@ -414,50 +442,40 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         });
 
         try {
-            // First, check if room is available and not used on that dates
-            serverAPI.post('/api/checkBookingAvalability', bookingData).then(availabilityResponse => {
-                console.log(availabilityResponse.data)
-
-                // Make the API call for booking, and there we will also insert the booking services and booking guests
-                serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
-                    if (bookingResponse.data.status == "success") {
-                        // Make the API call for payment
-                        payment.bookingID = bookingResponse.data.insertId;
-                        serverAPI.post('/api/payment', payment).then(paymentResponse => {
-                            if (paymentResponse) {
-                                let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
-                                serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
-                                    if (paymentTransResponse) {
-                                        // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
-                                        if (!cookies.token) {
-                                            // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
-                                            setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
-                                        }
-                                        setCurrentStep(BookingSteps.StepConfirmation);
+            // Make the API call for booking, and there we will also insert the booking services and booking guests
+            serverAPI.post('/api/booking', bookingData).then(bookingResponse => {
+                if (bookingResponse.data.status == "success") {
+                    // Make the API call for payment
+                    payment.bookingID = bookingResponse.data.insertId;
+                    serverAPI.post('/api/payment', payment).then(paymentResponse => {
+                        if (paymentResponse) {
+                            let paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' })
+                            serverAPI.post('/api/paymentTransaction', paymentTransaction).then(paymentTransResponse => {
+                                if (paymentTransResponse) {
+                                    // Si todo ha ido correcto, pasar al next screen y Empty data on next screen
+                                    if (!cookies.token) {
+                                        // Si no tiene cookies, quiere decir que se registró el usuario de la primera pantalla
+                                        setBookingFinalMessage(prevMsg => prevMsg + 'Se ha registrado tu usuario y enviado un correo de confirmación de cuenta / ')
                                     }
-                                }).catch(err => {
-                                    console.error(err)
-                                    if (err.response.data && err.response.data.msg) {
-                                        alert(err.response.data.msg)
-                                    }
-                                })
-                            }
-                        }).catch(err => {
-                            console.error(err)
-                            if (err.response.data && err.response.data.msg) {
-                                alert(err.response.data.msg)
-                            }
-                        })
-                    }
-                }).catch(err => {
-                    console.error(err)
-                    if (err.response.data && err.response.data.msg) {
-                        alert(err.response.data.msg)
-                    }
-                })
-            }).catch((err) => {
+                                    setCurrentStep(BookingSteps.StepConfirmation);
+                                }
+                            }).catch(err => {
+                                console.error(err)
+                                if (err.response.data && err.response.data.msg) {
+                                    alert(err.response.data.msg)
+                                }
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err)
+                        if (err.response.data && err.response.data.msg) {
+                            alert(err.response.data.msg)
+                        }
+                    })
+                }
+            }).catch(err => {
                 console.error(err)
-                if (err.response && err.response.data) {
+                if (err.response.data && err.response.data.msg) {
                     alert(err.response.data.msg)
                 }
                 cancelBooking();
@@ -497,15 +515,11 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             // Update the state with the new userAllData
             setUserAllData(newUserAllData);
 
-            doBooking(res.data.insertId)
-
         }).catch(err => {
             console.error(err)
             if (err.response.data && err.response.data.message) {
                 alert(err.response.data.message)
             }
-            onClose();
-            resetBookingModal();
         })
     }
 
@@ -1290,9 +1304,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 {t("modal_booking_previousstep")}
                             </Button>
 
-                            <Button variant='primary' onClick={goToNextStep}>
+                            {/* <Button variant='primary' onClick={goToNextStep}>
                                 {t("modal_booking_nextstep")}
-                            </Button>
+                            </Button> */}
                         </div>
                     </div>
                 )
