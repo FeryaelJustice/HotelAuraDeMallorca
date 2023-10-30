@@ -6,17 +6,19 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { useCookies } from 'react-cookie';
 import serverAPI from './../../services/serverAPI';
-// Multilanguage
-import { LANGUAGES } from "../../constants";
+// Multilanguage and roles
+import { LANGUAGES, UserRoles } from "./../../constants";
+import { Role } from './../../models/index';
 import { useTranslation } from "react-i18next";
 
 interface HeaderProps {
     colorScheme: string,
     onOpenBookingModal: () => void;
     onOpenUserModal: () => void;
+    currentUserRole: Role,
 }
 
-export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: HeaderProps) => {
+export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, currentUserRole }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
     const [cookies] = useCookies(['token']);
@@ -24,6 +26,8 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
 
     const { i18n, t } = useTranslation();
     const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
+
+    console.log(currentUserRole)
 
     const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const lang_code = e.target.value;
@@ -117,6 +121,21 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal }: Hea
 
                     return classNames;
                 }}>{t("contact")}</NavLink>
+                {(currentUserRole.name == UserRoles.ADMIN || currentUserRole.name == UserRoles.EMPLOYEE) && (
+                    <NavLink to="/admin" className={({ isActive }) => {
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
+                    }}>Admin</NavLink>
+                )}
                 <div id="nav-actions">
                     <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>{t("book")}</Button>
                     <div className="user-icon">
