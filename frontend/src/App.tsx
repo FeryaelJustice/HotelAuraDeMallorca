@@ -28,10 +28,17 @@ function App() {
   const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const playAudio = () => {
+  const toggleAudio = () => {
     if (audioRef.current) {
-      audioRef.current.play();
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.volume = 0.25;
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
     }
   };
 
@@ -106,7 +113,7 @@ function App() {
 
             <CookieConsent>This website uses cookies to enhance the user experience.</CookieConsent>
             <div>
-              <button onClick={playAudio}>Play background music</button>
+              <button onClick={toggleAudio}>{isPlaying ? 'Pause Audio' : 'Play Audio'}</button>
               <audio ref={audioRef} src={summerParty} />
             </div>
           </main>
