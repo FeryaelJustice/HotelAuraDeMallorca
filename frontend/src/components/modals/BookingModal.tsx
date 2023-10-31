@@ -13,7 +13,7 @@ import { useCookies } from 'react-cookie';
 import { isEmptyOrSpaces, validateEmail } from './../../utils';
 import './BookingModal.css'
 import { API_URL } from './../../services/consts';
-import { WeatherStates } from '../../constants';
+import { WeatherStates } from './../../constants';
 import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
 
@@ -449,7 +449,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             };
 
             // Make the API call for booking, and there we will also insert the booking services and booking guests
-            const bookingResponse = await serverAPI.post('/api/booking', bookingData);
+            const bookingResponse = await serverAPI.post('/api/createBooking', bookingData);
 
             if (bookingResponse.data.status === "success") {
                 // Make the API call for payment

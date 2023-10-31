@@ -44,8 +44,8 @@ CREATE TABLE user_role (
     role_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (role_id) REFERENCES role(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
     CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
 
@@ -93,9 +93,9 @@ CREATE TABLE booking (
     booking_end_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (plan_id) REFERENCES plan(id),
-    FOREIGN KEY (room_id) REFERENCES room(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
+    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE
 );
 
 -- Create the table booking_service
@@ -105,8 +105,8 @@ CREATE TABLE booking_service (
     service_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (service_id) REFERENCES service(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE CASCADE
 );
 
 -- Create the table booking_guests
@@ -116,8 +116,8 @@ CREATE TABLE booking_guest (
     guest_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (guest_id) REFERENCES guest(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
+    FOREIGN KEY (guest_id) REFERENCES guest(id) ON DELETE CASCADE
 );
 
 -- Create the table weather
@@ -147,9 +147,9 @@ CREATE TABLE payment (
     payment_method_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
+    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id) ON DELETE CASCADE
 );
 
 -- Create the table payment_transaction (link payments to real transactions from payment platforms)
@@ -174,8 +174,8 @@ CREATE TABLE user_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE service_media (
@@ -184,8 +184,8 @@ CREATE TABLE service_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (service_id) REFERENCES service(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE room_media (
@@ -194,8 +194,8 @@ CREATE TABLE room_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (room_id) REFERENCES room(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE plan_media (
@@ -204,8 +204,8 @@ CREATE TABLE plan_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (plan_id) REFERENCES plan(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 -- RESTRICTIONS

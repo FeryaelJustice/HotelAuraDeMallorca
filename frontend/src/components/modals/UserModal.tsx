@@ -57,7 +57,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if (cookies.token) {
             // retrieve profile pic and put
             serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
-                setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
+                setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
             })
         }
     }, [])
@@ -72,7 +72,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             }).catch(err => console.error(err))
             // retrieve profile pic and put
             serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
-                setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
+                setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
             })
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)

@@ -657,7 +657,7 @@ const getUserById = (connection, userId) => {
 const getUserRoleById = (connection, userId) => {
     return new Promise((resolve, reject) => {
         try {
-            const query = 'SELECT r.name FROM user_role ur INNER JOIN rol r ON r.id = ur.role_id WHERE ur.user_id = ?';
+            const query = 'SELECT r.name FROM user_role ur INNER JOIN role r ON r.id = ur.role_id WHERE ur.user_id = ?';
             connection.query(query, [userId], (error, results) => {
                 if (error) {
                     reject(error);
@@ -675,6 +675,26 @@ const getUserRoleById = (connection, userId) => {
         }
     });
 };
+
+expressRouter.get('/usersID', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            connection.query('SELECT id FROM app_user', (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                return res.status(200).json({ status: "success", msg: "successful", data: results });
+            });
+        } catch (error) {
+            res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
 
 // CONTACT FORM
 expressRouter.post('/sendContactForm', async (req, res) => {
@@ -747,6 +767,26 @@ expressRouter.get('/room/:id', (req, res) => {
     });
 })
 
+expressRouter.get('/roomsID', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            connection.query('SELECT id FROM room', (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                return res.status(200).json({ status: "success", msg: "successful", data: results });
+            });
+        } catch (error) {
+            res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
 // PLANS
 expressRouter.get('/plans', (req, res) => {
     pool.getConnection((err, connection) => {
@@ -767,6 +807,26 @@ expressRouter.get('/plans', (req, res) => {
                     return res.status(500).send({ status: "error", msg: "No plans found" });
                 }
             })
+        } catch (error) {
+            res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
+expressRouter.get('/plansID', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            connection.query('SELECT id FROM plan', (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                return res.status(200).json({ status: "success", msg: "successful", data: results });
+            });
         } catch (error) {
             res.status(500).send({ status: "error", error: "Internal server error" });
         }
@@ -979,7 +1039,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
 })
 
 // BOOKING
-expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
+expressRouter.delete('/booking/:bookingID', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error acquiring connection from pool:', err);
@@ -988,29 +1048,26 @@ expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
         try {
             // Delete booking, only for admins
             const bookingId = req.params.bookingID;
-            const userID = req.params.id;
 
-            getUserRoleById(connection, userID).then(userRole => {
-                if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                    connection.beginTransaction(async (err) => {
+            connection.beginTransaction(async (err) => {
+                if (err) {
+                    connection.rollback();
+                    return res.status(500).send({ status: "error", error: "Internal server error" });
+                }
+                connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
+                    console.log(err)
+                    if (err) {
+                        connection.rollback();
+                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                    }
+
+                    connection.commit((err) => {
                         if (err) {
                             connection.rollback();
-                            return;
                         }
-                        connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
-                            if (err) {
-                                connection.rollback();
-                                return;
-                            }
-
-                            connection.commit((err) => {
-                                if (err) {
-                                    connection.rollback();
-                                }
-                            });
-                        })
+                        return res.status(200).send({ status: "success", msg: "Successfully deleted!" });
                     });
-                }
+                })
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
@@ -1026,30 +1083,33 @@ expressRouter.post('/booking', verifyUser, (req, res) => {
         }
         try {
             // Update booking (only for admins)
-            const userID = req.params.id;
+            const userID = req.id;
             const booking = req.body;
 
-            getUserById(connection, userID).then(userRes => {
+            getUserRoleById(connection, userID).then(userRole => {
                 if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
                     connection.beginTransaction(async (err) => {
                         if (err) {
                             connection.rollback();
-                            return;
+                            return res.status(500).send({ status: "error", error: "Internal server error" });
                         }
-                        connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate], (err) => {
+                        connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate, booking.id], (err) => {
                             if (err) {
                                 connection.rollback();
-                                return;
+                                return res.status(500).send({ status: "error", error: "Internal server error" });
                             }
 
                             connection.commit((err) => {
                                 if (err) {
                                     connection.rollback();
                                 }
+                                return res.status(200).send({ status: "success", msg: "Successfully updated!" });
                             });
                         })
                     });
                 }
+            }).catch(err => {
+                return res.status(500).send({ status: "error", error: "Internal server error: " + err });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
@@ -1057,7 +1117,7 @@ expressRouter.post('/booking', verifyUser, (req, res) => {
     })
 })
 
-expressRouter.post('/booking', async (req, res) => {
+expressRouter.post('/createBooking', async (req, res) => {
     try {
         const data = req.body;
         const { booking, selectedServicesIDs, guests } = data;
@@ -1211,6 +1271,26 @@ function insertBookingGuests(connection, bookingId, guestIds) {
         throw error; // Optionally, rethrow the error for further handling
     }
 }
+
+expressRouter.get('/bookings', verifyUser, (req, res) => {
+    pool.getConnection((err, connection) => {
+        try {
+            if (err) {
+                console.error('Error acquiring connection from pool:', err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            connection.query('SELECT * FROM booking', (err, results) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                }
+                return res.status(200).send({ status: "success", msg: "successful", data: results });
+            })
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+    });
+})
 
 // PAYMENT
 expressRouter.post('/payment', (req, res) => {
