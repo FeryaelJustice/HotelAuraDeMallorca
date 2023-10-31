@@ -12,6 +12,7 @@ import { UserRoles } from '../../constants';
 import './UserModal.css'
 
 import { useTranslation } from "react-i18next";
+import QRCode from 'qrcode.react';
 
 interface UserModalProps {
     show: boolean,
@@ -173,6 +174,34 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     const [registerValidated, setRegisterValidated] = useState(false);
     const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
+    // QR
+    const [formWantsQRRegister, setFormWantsQRRegister] = useState(false);
+    const qrData = {
+        user_name: 'usuario',
+        user_surnames: 'usuario',
+        user_password: '1234',
+        user_verified: 0,
+        verification_token: null,
+        verification_token_expiry: null,
+        user_email: userRegister.email,
+    };
+    const handleFormWantsQRRegister = (e: any) => {
+        setFormWantsQRRegister(!formWantsQRRegister);
+        console.log(e)
+    }
+    const [imagePicQR, setImagePicQR] = useState('')
+    const [imagePicQRPreview, setImagePicQRPreview] = useState<string | ArrayBuffer | null>()
+
+    const handlePicQRChange = (e: any) => {
+        const file = e.target.files[0];
+        setImagePicQR(file);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImagePicQRPreview(reader.result);
+        }
+        reader.readAsDataURL(file)
+    }
 
     const handleRegisterChange = (event: any) => {
         setUserRegister({ ...userRegister, [event.target.name]: event.target.value });
@@ -182,40 +211,49 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         event.preventDefault();
         event.stopPropagation();
 
-        let form = event.currentTarget;
-        setRegisterValidated(form.checkValidity());
-        if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
-            if (userRegister.password === userRegister.repeatpassword) {
-                // api call
-                serverAPI.post('/api/register', userRegister).then(res => {
-                    // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
-                    // setCookie('token', res.data.cookieJWT)
-                    console.log('registered successfully' + res)
+        if (!formWantsQRRegister) {
+            let form = event.currentTarget;
+            setRegisterValidated(form.checkValidity());
+            if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
+                if (userRegister.password === userRegister.repeatpassword) {
+                    // api call
+                    serverAPI.post('/api/register', userRegister).then(res => {
+                        // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
+                        // setCookie('token', res.data.cookieJWT)
+                        console.log('registered successfully' + res)
 
-                    // After successful registration, send a request to generate and send a confirmation email
-                    serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
-                        .then(response => {
-                            alert('An email has been sent to your mail to verify your account!')
-                            console.log('Confirmation email sent successfully', response);
-                            resetUserModal();
-                            onClose();
-                        })
-                        .catch(error => {
-                            console.error('Error sending confirmation email', error);
-                            if (error.response.data) {
-                                alert(error.response.data.msg)
-                            }
-                        });
-                }).catch(err => {
-                    console.error(err)
-                    if (err.response.data && err.response.data.message) {
-                        alert(err.response.data.message)
-                    }
-                })
-            } else {
-                alert("Passwords don't match!")
-                setRegisterValidated(false)
+                        // After successful registration, send a request to generate and send a confirmation email
+                        serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                            .then(response => {
+                                alert('An email has been sent to your mail to verify your account!')
+                                console.log('Confirmation email sent successfully', response);
+                                resetUserModal();
+                                onClose();
+                            })
+                            .catch(error => {
+                                console.error('Error sending confirmation email', error);
+                                if (error.response.data) {
+                                    alert(error.response.data.msg)
+                                }
+                            });
+                    }).catch(err => {
+                        console.error(err)
+                        if (err.response.data && err.response.data.message) {
+                            alert(err.response.data.message)
+                        }
+                    })
+                } else {
+                    alert("Passwords don't match!")
+                    setRegisterValidated(false)
+                }
             }
+        } else {
+            const formData = new FormData();
+            formData.append("qr", imagePicQR);
+
+            serverAPI.post('/api/registerWithQR', formData).then(res => {
+                console.log(res)
+            }).catch(err => console.error(err))
         }
     }
 
@@ -358,28 +396,53 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="formName">
-                            <Form.Label>{t("modal_user_register_name_label")}</Form.Label>
-                            <Form.Control type="text" name='name' placeholder={t("modal_user_register_name_placeholder")} onChange={handleRegisterChange} />
-                            <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
-                        </Form.Group>
+                        {!formWantsQRRegister ? (
+                            <div>
+                                <Form.Group className="mb-3" controlId="formName">
+                                    <Form.Label>{t("modal_user_register_name_label")}</Form.Label>
+                                    <Form.Control type="text" name='name' placeholder={t("modal_user_register_name_placeholder")} onChange={handleRegisterChange} />
+                                    <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
+                                </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="formSurnames">
-                            <Form.Label>{t("modal_user_register_surnames_label")}</Form.Label>
-                            <Form.Control type="text" name='surnames' placeholder={t("modal_user_register_surnames_placeholder")} onChange={handleRegisterChange} />
-                            <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
-                        </Form.Group>
+                                <Form.Group className="mb-3" controlId="formSurnames">
+                                    <Form.Label>{t("modal_user_register_surnames_label")}</Form.Label>
+                                    <Form.Control type="text" name='surnames' placeholder={t("modal_user_register_surnames_placeholder")} onChange={handleRegisterChange} />
+                                    <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
+                                </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="formPassword">
-                            <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
-                            <Form.Control type="password" name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
-                            <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
-                        </Form.Group>
+                                <Form.Group className="mb-3" controlId="formPassword">
+                                    <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
+                                    <Form.Control type="password" name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
+                                    <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
+                                </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="formRepeatPassword">
-                            <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
-                            <Form.Control type="password" name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
-                            <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
+                                <Form.Group className="mb-3" controlId="formRepeatPassword">
+                                    <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
+                                    <Form.Control type="password" name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
+                                    <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
+                                </Form.Group>
+                            </div>
+                        ) : (
+                            <div>
+                                <Form.Group className='mb-3' controlId='formImageQR'>
+                                    <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={200} height={200} alt='image picture QR' />
+                                    <br />
+                                    <br />
+                                    <Form.Label htmlFor=''>Upload your QR</Form.Label>
+                                    <Form.Control type='file' accept='image/*' name='qrPreview' id="qrPreview" onChange={handlePicQRChange} />
+                                </Form.Group>
+                                <QRCode value={JSON.stringify(qrData)} size={128} />
+                            </div>
+                        )}
+
+                        <Form.Group className='mb-3' controlId='formWantsQRRegister'>
+                            <Form.Check
+                                type="checkbox"
+                                label={t("modal_user_register_wantsToRegisterWithQR")}
+                                name="formWantsQRRegister"
+                                checked={formWantsQRRegister}
+                                onChange={(e) => handleFormWantsQRRegister(e)}
+                            />
                         </Form.Group>
 
                         {import.meta.env.MODE != 'development' && (<div className='captcha'>

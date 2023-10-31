@@ -44,6 +44,7 @@
     "modal_user_register_password_placeholder": "Introduïu la vostra contrasenya",
     "modal_user_register_repeatpassword_label": "Repetiu la contrasenya",
     "modal_user_register_repeatpassword_placeholder": "Introduïu la vostra contrasenya de nou",
+    "modal_user_register_wantsToRegisterWithQR": "Vol registrar-se amb el seu QR? Es registrarà amb el email que posi i la password a 1234. Aquest QR només el podràs fer servir pujant-lo en aquest formulari.",
     "modal_user_register_send": "Registrar-se",
     "modal_user_editprofile_title": "Edita el perfil",
     "modal_user_editprofile_send": "Desa",

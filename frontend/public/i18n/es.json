@@ -44,6 +44,7 @@
     "modal_user_register_password_placeholder": "Ingrese su contraseña",
     "modal_user_register_repeatpassword_label": "Repetir Contraseña",
     "modal_user_register_repeatpassword_placeholder": "Ingrese de nuevo su contraseña",
+    "modal_user_register_wantsToRegisterWithQR": "¿Quiere registrarse con su QR? Se registrará con el email que ponga y la password a 1234. Este QR solo lo podrás utilzar subiéndolo en este formulario.",
     "modal_user_register_send": "Registrarse",
     "modal_user_editprofile_title": "Editar perfil",
     "modal_user_editprofile_send": "Guardar",
