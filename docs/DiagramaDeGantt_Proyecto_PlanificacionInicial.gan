@@ -12,7 +12,7 @@
         <option id="taskLabelRight" value="advancement"/>
         <option id="filter.completedTasks" value="false"/>
         <timeline>
-            <![CDATA[2,0]]>
+            <![CDATA[0,2]]>
         </timeline>
     </view>
     <view id="resource-table">
@@ -71,16 +71,16 @@ Entrevistar a los representantes del hotel para obtener información adicional.]
             <task id="24" name="Desarrollo: Sistema multiidioma" color="#8cb6ce" meeting="false" start="2023-10-11" duration="25" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
             <task id="30" name="Finalización del Desarrollo" color="#8cb6ce" meeting="true" start="2023-11-14" duration="0" complete="0" thirdDate="2023-10-11" thirdDate-constraint="0" expand="true"/>
         </task>
-        <task id="19" name="Fase 3: Pruebas (testing)" color="#8cb6ce" meeting="false" start="2023-11-15" duration="29" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="0" expand="true">
+        <task id="19" name="Fase 3: Pruebas (testing)" color="#8cb6ce" meeting="false" start="2023-11-15" duration="9" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="0" expand="true">
             <depend id="20" type="2" difference="0" hardness="Strong"/>
             <task id="26" name="Pruebas de funcionalidad" color="#8cb6ce" meeting="false" start="2023-11-15" duration="4" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
             <task id="27" name="Pruebas de rendimiento" color="#8cb6ce" meeting="false" start="2023-11-20" duration="3" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
-            <task id="28" name="Pruebas de seguridad" color="#8cb6ce" meeting="false" start="2023-12-22" duration="2" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
-            <task id="31" name="Finalización del Testing" color="#8cb6ce" meeting="true" start="2023-12-25" duration="0" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+            <task id="28" name="Pruebas de seguridad" color="#8cb6ce" meeting="false" start="2023-11-22" duration="4" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
+            <task id="31" name="Finalización del Testing" color="#8cb6ce" meeting="true" start="2023-11-27" duration="0" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true"/>
         </task>
-        <task id="20" name="Fase 4: Implantación" color="#8cb6ce" meeting="false" start="2023-12-26" duration="4" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="2" expand="true">
-            <task id="29" name="Despliegue en Hosting o Local" color="#8cb6ce" meeting="false" start="2023-12-26" duration="4" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
-            <task id="32" name="Finalización del Despliegue" color="#8cb6ce" meeting="true" start="2023-12-29" duration="0" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
+        <task id="20" name="Fase 4: Implantación" color="#8cb6ce" meeting="false" start="2023-11-28" duration="4" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" priority="2" expand="true">
+            <task id="29" name="Despliegue en Hosting o Local" color="#8cb6ce" meeting="false" start="2023-11-28" duration="4" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
+            <task id="32" name="Finalización del Despliegue" color="#8cb6ce" meeting="true" start="2023-12-01" duration="0" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true"/>
         </task>
     </tasks>
     <resources>
