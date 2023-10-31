@@ -93,7 +93,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const deleteAccount = () => {
         // Delete account
-        serverAPI.delete('/api/user/' + currentUser.id, {
+        serverAPI.delete('/api/user', {
             headers: {
                 Authorization: cookies.token
             }
@@ -109,14 +109,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await serverAPI.post('/api/currentUser', cookies);
-        if (currentUser) {
-            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + currentUser.data.userID).catch(err => {
+        const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+        if (loggedUserID) {
+            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
             if (getLoggedUserData) {
-                const userRole = await serverAPI.get('/api/getUserRole/' + currentUser.data.userID)
+                const userRole = await serverAPI.get('/api/getUserRole/' + loggedUserID.data.userID)
                 setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
                 return getLoggedUserData.data;
             } else {

@@ -1,6 +1,6 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
@@ -27,22 +27,27 @@ function App() {
   const [cookies, _, removeCookie] = useCookies(['token']);
   const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.play();
+    }
+  };
+
   useEffect(() => {
     document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', colorScheme)
 
     // background music
-    const audio = new Audio(summerParty)
-    audio.loop = true;
-    audio.play();
-
-    // user
-    if (cookies.token) {
-      getAllLoggedUserData()
+    if (audioRef.current) {
+      audioRef.current.loop = true;
     }
 
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
   }, [])
 
@@ -100,6 +105,10 @@ function App() {
             <UserModal show={isUserModalOpen} onClose={closeUserModal} />
 
             <CookieConsent>This website uses cookies to enhance the user experience.</CookieConsent>
+            <div>
+              <button onClick={playAudio}>Play background music</button>
+              <audio ref={audioRef} src={summerParty} />
+            </div>
           </main>
           <Footer />
         </div>
@@ -109,14 +118,14 @@ function App() {
 
   // Get JWT user data
   async function getAllLoggedUserData(): Promise<any> {
-    const currentUser = await serverAPI.post('/api/currentUser', cookies);
-    if (currentUser) {
-      const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + currentUser.data.userID).catch(err => {
+    const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+    if (loggedUserID) {
+      const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
         removeCookie('token')
         console.error(err)
       });
       if (getLoggedUserData) {
-        const userRole = await serverAPI.get('/api/getUserRole/' + currentUser.data.userID)
+        const userRole = await serverAPI.get('/api/getUserRole/' + loggedUserID.data.userID)
         setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
         return getLoggedUserData.data;
       } else {

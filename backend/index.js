@@ -9,22 +9,22 @@ const mariadb = require('mariadb')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 const moment = require('moment'); // for dates, library
-require('dotenv').config();
-const dateFormat = 'YYYY-MM-DD'
-const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY)
+const dateFormat = 'YYYY-MM-DD';
 const nodemailer = require("nodemailer");
 const fileExtensionRegex = /\.[^.]+$/;
 const multer = require('multer');
-var multerStorage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'public/media/img/')
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .jpg
+        cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .webp
     }
 })
 const upload = multer({ storage: multerStorage })
 const os = require('os');
+require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 // const morgan = require('morgan') // logger
 
 // Check OS
@@ -52,6 +52,8 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(compression())
 // app.use(morgan('combined'))
+
+// Serve public media
 var path = require('path');
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -61,7 +63,7 @@ const dbConfig = {
     user: 'root',
     password: '',
     database: 'hotelaurademallorca',
-    connectionLimit: 200,
+    connectionLimit: 300,
     // MYSQL2 PARAMS
     //waitForConnections: true,
     // idleTimeout: 80000,
@@ -69,8 +71,6 @@ const dbConfig = {
     //enableKeepAlive: true,
     //keepAliveInitialDelay: 0
 }
-
-// MySQL
 const pool = isWindows ? mysql.createPool(dbConfig) : mariadb.createPool({ ...dbConfig, connectionLimit: 150 })
 
 // JWT
@@ -103,7 +103,7 @@ const verifyUser = (req, res, next) => {
     }
 }
 
-// Hashing
+// Hashing for passwords
 const salt = 10; // password hashing
 
 // MAILS
@@ -131,7 +131,6 @@ transporter.verify((error, success) => {
 app.use('/api/', expressRouter)
 
 // USER
-// Protected route adding verifyUser middleware
 expressRouter.post('/register', (req, res) => {
     pool.getConnection((err, connection) => {
         if (err) {
@@ -255,7 +254,7 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
     });
 })
 
-expressRouter.delete('/user/:id', verifyUser, (req, res) => {
+expressRouter.delete('/user', verifyUser, (req, res) => {
     const userID = req.id;
     deleteBookingByUserID()
         .then(() => deletePaymentByUserID(userID))
@@ -272,7 +271,7 @@ expressRouter.delete('/user/:id', verifyUser, (req, res) => {
 })
 
 // get logged user ID by jwt
-expressRouter.post('/currentUser', verifyUser, (req, res) => {
+expressRouter.post('/getLoggedUserID', verifyUser, (req, res) => {
     return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.id })
 })
 
@@ -986,37 +985,37 @@ expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
             console.error('Error acquiring connection from pool:', err);
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
-    })
-    try {
-        // Delete booking, only for admins
-        const bookingId = req.params.bookingID;
-        const userID = req.params.id;
+        try {
+            // Delete booking, only for admins
+            const bookingId = req.params.bookingID;
+            const userID = req.params.id;
 
-        getUserRoleById(connection, userID).then(userRole => {
-            if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                connection.beginTransaction(async (err) => {
-                    if (err) {
-                        connection.rollback();
-                        return;
-                    }
-                    connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
+            getUserRoleById(connection, userID).then(userRole => {
+                if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
+                    connection.beginTransaction(async (err) => {
                         if (err) {
                             connection.rollback();
                             return;
                         }
-
-                        connection.commit((err) => {
+                        connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
                             if (err) {
                                 connection.rollback();
+                                return;
                             }
-                        });
-                    })
-                });
-            }
-        });
-    } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-    }
+
+                            connection.commit((err) => {
+                                if (err) {
+                                    connection.rollback();
+                                }
+                            });
+                        })
+                    });
+                }
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        }
+    })
 })
 
 expressRouter.post('/booking', verifyUser, (req, res) => {
@@ -1025,37 +1024,37 @@ expressRouter.post('/booking', verifyUser, (req, res) => {
             console.error('Error acquiring connection from pool:', err);
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
-    })
-    try {
-        // Update booking (only for admins)
-        const userID = req.params.id;
-        const booking = req.body;
+        try {
+            // Update booking (only for admins)
+            const userID = req.params.id;
+            const booking = req.body;
 
-        getUserById(connection, userID).then(userRes => {
-            if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                connection.beginTransaction(async (err) => {
-                    if (err) {
-                        connection.rollback();
-                        return;
-                    }
-                    connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate], (err) => {
+            getUserById(connection, userID).then(userRes => {
+                if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
+                    connection.beginTransaction(async (err) => {
                         if (err) {
                             connection.rollback();
                             return;
                         }
-
-                        connection.commit((err) => {
+                        connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate], (err) => {
                             if (err) {
                                 connection.rollback();
+                                return;
                             }
-                        });
-                    })
-                });
-            }
-        });
-    } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-    }
+
+                            connection.commit((err) => {
+                                if (err) {
+                                    connection.rollback();
+                                }
+                            });
+                        })
+                    });
+                }
+            });
+        } catch (error) {
+            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        }
+    })
 })
 
 expressRouter.post('/booking', async (req, res) => {
@@ -1330,7 +1329,7 @@ expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
     });
 })
 
-// DELETES
+// DELETES FUNCTIONS
 // By user ID
 function deleteUserByUserID(userID) {
     return new Promise((resolve, reject) => {

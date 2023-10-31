@@ -124,9 +124,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const currentUser = await serverAPI.post('/api/currentUser', cookies);
-        if (currentUser) {
-            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + currentUser.data.userID).catch(err => {
+        const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+        if (loggedUserID) {
+            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
@@ -384,7 +384,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     async function cancelBooking() {
         await serverAPI.post('/api/cancel-payment', { client_secret: paymentTransactionID })
-        const deleteUser = await serverAPI.delete('/api/user/' + userAllData?.id, {
+        const deleteUser = await serverAPI.delete('/api/user', {
             headers: {
                 Authorization: cookies.token
             }

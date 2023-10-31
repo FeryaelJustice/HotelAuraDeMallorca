@@ -27,8 +27,6 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     const { i18n, t } = useTranslation();
     const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
 
-    console.log(currentUserRole)
-
     const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const lang_code = e.target.value;
         i18n.changeLanguage(lang_code);
