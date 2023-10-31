@@ -335,6 +335,7 @@ button:focus-visible {
 
 .servicesPageTitle {
   width: fit-content;
+  padding-top: 30px;
 }
 
 .contactPage {
