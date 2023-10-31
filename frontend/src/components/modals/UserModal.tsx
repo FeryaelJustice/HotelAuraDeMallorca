@@ -187,6 +187,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     };
     const handleFormWantsQRRegister = (e: any) => {
         setFormWantsQRRegister(!formWantsQRRegister);
+        console.log(e)
     }
     const [imagePicQR, setImagePicQR] = useState<string | ArrayBuffer | null>()
     const [imagePicQRPreview, setImagePicQRPreview] = useState<string | ArrayBuffer | null>()
