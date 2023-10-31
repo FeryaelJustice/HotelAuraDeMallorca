@@ -26,6 +26,26 @@ const os = require('os');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 // const morgan = require('morgan') // logger
+// QR
+const jsQR = require('jsqr');
+const Jimp = require('jimp');
+
+const decodeBase64Image = async (req, res, next) => {
+    const base64ImageString = req.body.imagePicQR;
+    const buffer = Buffer.from(base64ImageString.substring(22), 'base64');
+
+    const decodedImage = await Jimp.read(buffer);
+    // Get the image dimensions and pixel data
+    const width = decodedImage.getWidth();
+    const height = decodedImage.getHeight();
+    const pixelData = decodedImage.bitmap.data;
+
+    req.imageData = { width, height, pixelData };
+    req.imageWidth = width;
+    req.imageHeight = height;
+
+    next();
+};
 
 // Check OS
 const isWindows = os.platform() === 'win32';
@@ -138,9 +158,9 @@ expressRouter.post('/register', (req, res) => {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         try {
-            let data = req.body;
-            let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-            let checkValues = [data.email]
+            const data = req.body;
+            const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+            const checkValues = [data.email]
             connection.query(checkSQL, checkValues, (err, resultss) => {
                 if (err) {
                     return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
@@ -184,6 +204,78 @@ expressRouter.post('/register', (req, res) => {
             return res.status(500).send({ status: "error", error: "Internal server error" });
         }
     })
+})
+
+expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
+    pool.getConnection(async (err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {                    // Decode the QR code from the binary data
+            const qrCodeData = jsQR(req.imageData.pixelData, req.imageWidth, req.imageHeight);
+
+            if (qrCodeData) {
+                // Extracted data from the QR code
+                const extractedData = JSON.parse(qrCodeData.data);
+
+                const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+                const checkValues = [extractedData.user_email]
+                connection.query(checkSQL, checkValues, (err, resultss) => {
+                    if (err) {
+                        return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
+                    }
+                    if (resultss.length > 0) {
+                        return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+                    } else {
+                        const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified, verification_token, verification_token_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                        bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
+                            const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified, extractedData.verification_token, extractedData.verification_token_expiry];
+                            connection.query(query, values, (err, result) => {
+                                if (err) {
+                                    console.error(error);
+                                    return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
+                                }
+                                if (result) {
+                                    let userID = result.insertId;
+                                    let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+
+                                    // Insert default picture to user
+                                    connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    })
+
+                                    // Insert user role to user (client by default: 1)
+                                    connection.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    });
+
+                                    sendConfirmationEmail(connection, userID).then(json => {
+
+                                        return res.status(200).json({ json, cookieJWT: jwtToken, insertId: userID });
+                                        return res.status(200).send(json);
+                                    }).catch(jsonError => {
+                                        return res.status(500).send(jsonError);
+                                    })
+
+                                } else {
+                                    return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
+                                }
+                            })
+                        });
+                    }
+                })
+            } else {
+                res.status(400).json({ message: 'No QR code found in the image' });
+            }
+        } catch (error) {
+            res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
 })
 
 expressRouter.post('/login', (req, res) => {
@@ -466,41 +558,52 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
         }
         try {
             const userId = req.params.id;
-            // Generate a random confirmation token
-            const confirmationToken = generateRandomToken();
 
-            // Set the expiry date to 1 hour from now
-            const verificationTokenExpiry = new Date();
-            verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 1);
-
-            // Update the user record with the confirmation token and expiry
-            await updateUserVerificationData(connection, userId, confirmationToken, verificationTokenExpiry);
-
-            // Form the verification URL
-            const verificationUrl = `${process.env.FRONT_URL}/userVerification/${confirmationToken}`;
-
-            getUserById(connection, userId).then(async userRes => {
-                // Send the email
-                const info = await transporter.sendMail({
-                    from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'",
-                    to: userRes.user_email, // Replace with the actual user's email
-                    subject: 'Email Confirmation', // Subject line
-                    html: `<html><body>Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a></body></html>`, // HTML body
-                });
-
-                console.log(info)
-                console.log("Message sent: %s", info.messageId);
-
-                return res.status(200).send({ status: 'success', msg: 'Email confirmation sent!' });
-            }).catch(err => {
-                console.error(err);
-                return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+            sendConfirmationEmail(connection, userId).then(json => {
+                return res.status(200).send(json);
+            }).catch(jsonError => {
+                return res.status(500).send(jsonError);
             })
         } catch (error) {
             return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
         }
     });
 })
+
+async function sendConfirmationEmail(connection, userId) {
+    return new Promise(async (resolve, reject) => {
+        // Generate a random confirmation token
+        const confirmationToken = generateRandomToken();
+
+        // Set the expiry date to 1 hour from now
+        const verificationTokenExpiry = new Date();
+        verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 1);
+
+        // Update the user record with the confirmation token and expiry
+        await updateUserVerificationData(connection, userId, confirmationToken, verificationTokenExpiry);
+
+        // Form the verification URL
+        const verificationUrl = `${process.env.FRONT_URL}/userVerification/${confirmationToken}`;
+
+        getUserById(connection, userId).then(async userRes => {
+            // Send the email
+            const info = await transporter.sendMail({
+                from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'",
+                to: userRes.user_email, // Replace with the actual user's email
+                subject: 'Email Confirmation', // Subject line
+                html: `<html><body>Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a></body></html>`, // HTML body
+            });
+
+            console.log(info)
+            console.log("Message sent: %s", info.messageId);
+
+            resolve({ status: 'success', msg: 'Email confirmation sent!' });
+        }).catch(err => {
+            console.error(err);
+            reject({ status: 'error', msg: "Email couldn't be sent!" })
+        })
+    });
+}
 
 // Function to generate a random token
 function generateRandomToken() {

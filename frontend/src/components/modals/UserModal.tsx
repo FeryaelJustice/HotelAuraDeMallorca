@@ -187,18 +187,17 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     };
     const handleFormWantsQRRegister = (e: any) => {
         setFormWantsQRRegister(!formWantsQRRegister);
-        console.log(e)
     }
-    const [imagePicQR, setImagePicQR] = useState('')
+    const [imagePicQR, setImagePicQR] = useState<string | ArrayBuffer | null>()
     const [imagePicQRPreview, setImagePicQRPreview] = useState<string | ArrayBuffer | null>()
 
     const handlePicQRChange = (e: any) => {
         const file = e.target.files[0];
-        setImagePicQR(file);
 
         const reader = new FileReader();
         reader.onload = () => {
             setImagePicQRPreview(reader.result);
+            setImagePicQR(reader.result)
         }
         reader.readAsDataURL(file)
     }
@@ -248,10 +247,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 }
             }
         } else {
-            const formData = new FormData();
-            formData.append("qr", imagePicQR);
-
-            serverAPI.post('/api/registerWithQR', formData).then(res => {
+            serverAPI.post('/api/registerWithQR', { imagePicQR }).then(res => {
                 console.log(res)
             }).catch(err => console.error(err))
         }
@@ -424,7 +420,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                             </div>
                         ) : (
                             <div>
-                                <Form.Group className='mb-3' controlId='formImageQR'>
+                                <Form.Group className='mb-3'>
                                     <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={200} height={200} alt='image picture QR' />
                                     <br />
                                     <br />
