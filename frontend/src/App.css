@@ -508,6 +508,16 @@ button:focus-visible {
   }
 }
 
+@media screen and (max-width: 400px) {
+  .logo {
+    width: 220px;
+  }
+
+  .logo img {
+    width: 220px;
+  }
+}
+
 @media screen and (max-width: 380px) {
   .main {
     margin-top: 21%;
