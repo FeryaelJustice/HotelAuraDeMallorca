@@ -567,7 +567,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
             });
             setWeatherFiveDaysForecastList(fiveDaysListObj)
-        }).catch(err => console.error(err))
+        }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
     }, [])
 
     const selectPlan = (planID: any) => {

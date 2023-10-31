@@ -34,17 +34,6 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     };
 
     useEffect(() => {
-        if (cookies.token) {
-            serverAPI.post('/api/userLogoByToken', { token: cookies.token }).then((response: any) => {
-                if (response && response.data && response.data.status != "error") {
-                    let picURL = API_URL + "/" + response.data.photoURL;
-                    setUserPhotoURL(picURL)
-                }
-            }).catch((err: any) => console.error(err))
-        }
-    }, [cookies])
-
-    useEffect(() => {
         // Set the default language to the one detected by i18next
         setSelectedLanguage(i18n.language);
         // Timer
@@ -52,14 +41,25 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
             if (cookies.token) {
                 // retrieve profile pic and put each 20 seconds
                 serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
-                    setUserPhotoURL(process.env.API_URL + "/" + res.data.fileURL.url);
+                    setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
                 })
             }
-        }, 20000)
+        }, 10000)
         return () => {
             clearInterval(timerProfilePic)
         }
     }, [])
+
+    useEffect(() => {
+        if (cookies.token) {
+            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then((response: any) => {
+                if (response && response.data && response.data.status != "error") {
+                    let picURL = API_URL + "/" + response.data.fileURL.url;
+                    setUserPhotoURL(picURL)
+                }
+            }).catch((err: any) => console.error(err))
+        }
+    }, [cookies])
 
     // imagenes responsive: style="width:100%; aspect-ratio: (aspect ratio que se ve en network, abrir imagen y en preview abajo, en formato por ejemplo 16/9);"
     const handleToggleMenu = () => {

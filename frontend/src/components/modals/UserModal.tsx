@@ -55,12 +55,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     useEffect(() => {
         if (cookies.token) {
-            getAllLoggedUserData().then(res => {
-                const userData = res.data;
-                // retrieve profile pic and put
-                serverAPI.get('/api/getUserImg', { params: { userID: userData.id } }).then(res => {
-                    setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
-                })
+            // retrieve profile pic and put
+            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
             })
         }
     }, [])
@@ -72,11 +69,11 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
-                // retrieve profile pic and put
-                serverAPI.get('/api/getUserImg', { params: { userID: userData.id } }).then(res => {
-                    setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
-                })
             }).catch(err => console.error(err))
+            // retrieve profile pic and put
+            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                setImagePicPreview(process.env.API_URL + "/" + res.data.fileURL.url);
+            })
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)
         }
@@ -262,18 +259,15 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 formData.append("image", imagePic);
                 formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '')
 
-                serverAPI.post('/api/uploadUserImg', formData).then(res => {
-                    console.log(res)
-
+                serverAPI.post('/api/uploadUserImg', formData).then(_ => {
                     // retrieve profile pic and put
-                    serverAPI.get('/api/getUserImg', { params: { userID: currentUser.id } }).then(res => {
+                    serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
                         const reader = new FileReader();
                         reader.onload = () => {
                             setImagePicPreview(reader.result);
                         }
                         reader.readAsDataURL(res.data.fileURL.url)
                     })
-
                 })
                 alert(res.data.msg)
                 resetUserModal();

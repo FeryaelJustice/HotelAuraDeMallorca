@@ -1299,36 +1299,6 @@ expressRouter.get('/cancel', (req, res) => {
     return res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
 })
 
-// MEDIAS
-expressRouter.post('/userLogoByToken', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let userID = req.id;
-            connection.query('SELECT media_id FROM user_media WHERE user_id = ' + userID, (error, results) => {
-                if (error) {
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                if (results && results.length > 0) {
-                    connection.query('SELECT url, type FROM media WHERE id = ' + results[0].media_id, (error, results) => {
-                        if (error) {
-                            return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                        }
-                        return res.status(200).json({ status: "success", msg: 'get user photo correct', type: results[0].type, photoURL: results[0].url })
-                    });
-                } else {
-                    return res.status(200).send({ status: "error", error: 'No user logo' });;
-                }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-    });
-})
-
 // DELETES FUNCTIONS
 // By user ID
 function deleteUserByUserID(userID) {
