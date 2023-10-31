@@ -325,12 +325,8 @@ button:focus-visible {
 }
 
 .servicesPageContent {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
-  justify-content: center;
-  align-items: center;
   z-index: 2;
   position: absolute;
   top: 0;
@@ -348,7 +344,7 @@ button:focus-visible {
   height: 100%;
   justify-content: center;
   align-items: center;
-  padding-top: 9%;
+  padding-top: 6%;
   padding-left: 16%;
   padding-right: 16%;
 }
@@ -440,6 +436,12 @@ button:focus-visible {
 @media screen and (max-width: 960px) {
   .main {
     margin-top: 7.4%;
+  }
+}
+
+@media screen and (max-width: 902px) {
+  .footer {
+    height: initial;
   }
 }
 
