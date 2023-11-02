@@ -25,6 +25,11 @@ i18n
     },
     backend: {
       loadPath: `${getCurrentHost}/i18n/{{lng}}.json`,
+      crossDomain: true,
+      requestOptions: {
+        mode: "cors",
+        cache: "default",
+      },
     },
   });
 
