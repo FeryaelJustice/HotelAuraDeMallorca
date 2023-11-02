@@ -127,3 +127,6 @@ y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_
 
 Para testear weather API: crear acceso directo del chrome y poner:
 ```"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\chromeTemp```
+
+Para cambiar la root password de mysql en XAMPP:
+```ir al panel de control -> shell -> mysqladmin -u root password```

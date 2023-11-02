@@ -80,8 +80,8 @@ app.use(express.static(path.join(__dirname, 'public')))
 // DATABASE
 const dbConfig = {
     host: process.env.DB_URL,
-    user: 'root',
-    password: '',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     database: 'hotelaurademallorca',
     connectionLimit: 300,
     connectTimeout: 30000,
