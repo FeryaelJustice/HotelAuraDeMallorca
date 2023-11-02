@@ -4,7 +4,8 @@ const expressRouter = express.Router()
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
-const mysql = require('mysql2')
+const mysql = require('mysql')
+const util = require('util');
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 const moment = require('moment'); // for dates, library
@@ -477,6 +478,42 @@ expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
 })
 
 expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) => {
+    /* MYSQL 2 */
+    /*
+    const userID = req.body.userID;
+
+    // Define an async function to handle database operations
+    const handleDatabaseOperations = async () => {
+        try {
+            const results = await query('SELECT media_id FROM user_media WHERE user_id = ?', [userID]);
+
+            for (const result of results) {
+                await query('DELETE FROM media WHERE id = ?', [result.media_id]);
+            }
+
+            await query('DELETE FROM user_media WHERE user_id = ?', [userID]);
+
+            const result = await query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename]);
+
+            const newMediaID = result[0].insertId;
+
+            await query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID]);
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    // Wrap the database operations in a try-catch block
+    try {
+        await handleDatabaseOperations();
+        res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+        console.error('Database error:', error);
+    }
+    */
+
+    /* MYSQL 1 */
     const userID = req.body.userID;
     // Delete all existing media and user_media associated with the user.
     const deleteMediaAndUserMediaPromise = new Promise((resolve, reject) => {
