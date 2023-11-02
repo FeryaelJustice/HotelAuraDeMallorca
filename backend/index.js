@@ -86,6 +86,7 @@ const dbConfig = {
     connectionLimit: 300,
     connectTimeout: 30000,
     port: process.env.DB_PORT,
+    timezone: process.env.DB_TIMEZONE,
     // MYSQL2 PARAMS
     //waitForConnections: true,
     // idleTimeout: 80000,
@@ -144,7 +145,7 @@ transporter.verify((error, success) => {
     if (error) {
         console.log(error);
     } else {
-        console.log("Server is ready to take our messages: " + success);
+        console.log("Is server ready to send emails? " + success + ".");
     }
 })
 
