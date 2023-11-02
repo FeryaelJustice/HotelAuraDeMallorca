@@ -82,9 +82,10 @@ const dbConfig = {
     host: process.env.DB_URL,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: 'hotelaurademallorca',
+    database: process.env.DB_NAME,
     connectionLimit: 300,
     connectTimeout: 30000,
+    port: process.env.PORT,
     // MYSQL2 PARAMS
     //waitForConnections: true,
     // idleTimeout: 80000,
