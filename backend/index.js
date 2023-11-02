@@ -84,6 +84,7 @@ const dbConfig = {
     password: '',
     database: 'hotelaurademallorca',
     connectionLimit: 300,
+    connectTimeout: 30000,
     // MYSQL2 PARAMS
     //waitForConnections: true,
     // idleTimeout: 80000,
