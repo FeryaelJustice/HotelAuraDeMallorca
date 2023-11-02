@@ -5,7 +5,6 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const mysql = require('mysql2')
-const mariadb = require('mariadb')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 const moment = require('moment'); // for dates, library
@@ -94,7 +93,7 @@ const dbConfig = {
     //enableKeepAlive: true,
     //keepAliveInitialDelay: 0
 }
-const pool = isWindows ? mysql.createPool(dbConfig) : mariadb.createPool({ ...dbConfig, connectionLimit: 150 })
+const pool = isWindows ? mysql.createPool(dbConfig) : mysql.createPool({ ...dbConfig, connectionLimit: 150 })
 
 // JWT
 const jwt = require('jsonwebtoken')
