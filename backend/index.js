@@ -85,7 +85,7 @@ const dbConfig = {
     database: process.env.DB_NAME,
     connectionLimit: 300,
     connectTimeout: 30000,
-    port: process.env.PORT,
+    port: process.env.DB_PORT,
     // MYSQL2 PARAMS
     //waitForConnections: true,
     // idleTimeout: 80000,
