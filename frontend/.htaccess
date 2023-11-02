@@ -18,3 +18,10 @@
     RewriteRule ^(.*)$ /index.html [NC,L,QSA]
 
 </IfModule>
+<IfModule mod_headers.c>
+
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "origin, x-requested-with, content-type"
+    
+</IfModule>

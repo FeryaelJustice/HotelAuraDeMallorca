@@ -1,0 +1,24 @@
+/etc/apache2/sites-available/hotelaurademallorca.conf
+
+<VirtualHost *:443>
+    ServerName hotelaurademallorca.com
+    DocumentRoot /var/www/html
+    <Directory /var/www/html>
+        Options -Indexes -FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
+    SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key
+
+    # Configure the backend
+    ProxyPass /backend http://localhost:3000
+    ProxyPassReverse /backend http://localhost:3000
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+No olvidarse de hacer los chown y chmod 755 a la carpeta /var/www
