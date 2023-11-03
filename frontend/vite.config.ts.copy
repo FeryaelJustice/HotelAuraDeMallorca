@@ -24,5 +24,13 @@ export default defineConfig(({ mode }) => {
         "@": "./",
       },
     },
+    build: {
+      assetsInlineLimit: Infinity,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
   };
 });

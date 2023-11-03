@@ -29,9 +29,7 @@
       var preloadLink = document.createElement('link');
       preloadLink.rel = 'preload';
       preloadLink.as = 'image';
-      preloadLink.href = import.meta.env.MODE === 'production'
-        ? import.meta.globEager('./dist/assets/images/pexels-maria-orlova-garden.*.webp')[0]
-        : './src/assets/images/pexels-maria-orlova-garden.webp';
+      preloadLink.href = './src/assets/images/pexels-maria-orlova-garden-<hash>.webp';
       document.head.appendChild(preloadLink);
     }
   </script>
