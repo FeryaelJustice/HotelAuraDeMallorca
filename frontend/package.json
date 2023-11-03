@@ -5,6 +5,7 @@
   "type": "module",
   "author": "Fernando GS",
   "license": "ISC",
+  "proxy": "http://localhost:3000",
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host",
