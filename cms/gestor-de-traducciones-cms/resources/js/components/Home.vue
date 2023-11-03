@@ -237,15 +237,28 @@ export default {
 </script>
 <style lang="scss" scoped>
 .card {
-    min-height: 80vh;
+    height: 100%;
+    width: 100%;
+    margin-bottom: 6%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-header {
+    width: 100%;
+    text-align: center;
 }
 
 .card-body {
+    padding: 0;
+    margin: 0;
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: center;
 
     h2 {
         width: 100%;

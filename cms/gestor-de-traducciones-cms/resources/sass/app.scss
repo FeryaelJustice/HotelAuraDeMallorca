@@ -5,27 +5,20 @@
 @import 'variables';
 
 // Bootstrap
-@import 'bootstrap/scss/bootstrap';
+@import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
 body {
-    min-height: 100vh; // brave compatibility
+    min-height: 100vh;
+    /* brave compatibility */
 }
 
 #main{
     width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.container {
-    margin:0;
-    padding: 0;
-    width: 100%;
 }
 
 #nav{
+    padding-top: 10px;
     padding-left: 20px;
     button{
         margin-right: 20px;
@@ -34,6 +27,10 @@ body {
 
 #vuenav a{
     padding-left: 8px;
+}
+
+.container {
+    width: 100%;
 }
 
 .main-footer{

@@ -89,8 +89,8 @@
 
         <!-- FOOTER -->
         <footer class="main-footer">
-            <div class="d-none d-sm-inline mr-1">
-                <strong>{{ Carbon\Carbon::now()->format('d/m/Y H:i') }} </strong>
+            <div class="d-none d-sm-inline">
+                <em>{{ Carbon\Carbon::now()->format('d/m/Y H:i') }} </em>
             </div>
             <strong> &copy; Copyright 2023 - Gestor de Traducciones.</strong>
         </footer>

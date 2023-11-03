@@ -32,6 +32,7 @@
     "dependencies": {
         "dotenv": "^16.3.1",
         "vue-loader": "^17.3.0",
-        "vue-router": "^4.2.5"
+        "vue-router": "^4.2.5",
+        "vue3-easy-data-table": "^1.5.47"
     }
 }
