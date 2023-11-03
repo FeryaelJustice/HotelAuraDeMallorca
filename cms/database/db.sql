@@ -57,7 +57,8 @@ CREATE TABLE section (
 -- Create the table literal
 CREATE TABLE literal (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    literal_text TEXT,
+    code VARCHAR(255) NOT NULL UNIQUE,
+    content TEXT,
     updated_at TIMESTAMP,
     created_at TIMESTAMP
 );
@@ -254,19 +255,22 @@ VALUES
 
 -- INSERTS en la tabla literal
 INSERT INTO
-    literal (literal_text, updated_at, created_at)
+    literal (code, content, updated_at, created_at)
 VALUES
     (
+        'titleHeader',
         'Welcome to our website.',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
     ),
     (
+        'footerInfo',
         'Learn more about us.',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
     ),
     (
+        'contactInfo',
         'Contact us for inquiries.',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
