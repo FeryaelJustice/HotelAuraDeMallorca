@@ -139,7 +139,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     function extractFormattedDate(date: any) {
-
         const inputDateString = date;
         const inputDate = new Date(inputDateString);
 
@@ -153,7 +152,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         return formattedDate;
     }
 
+    // Only once, on initialization
     useEffect(() => {
+        // User data
         if (cookies.token) {
             // Si ya esta logeado, no pedir los datos personales
             setCurrentStep(BookingSteps.StepPlan)
@@ -177,6 +178,101 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         } else {
             setUserAllData(new User())
         }
+
+        // Services
+        serverAPI.get('/api/services').then(res => {
+            let servicess = res.data.data;
+            let retrievedServices: Service[] = [];
+            servicess.forEach((service: any) => {
+                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: null }))
+            })
+            setServices(retrievedServices)
+
+            // Create an array of key-value pairs for selectedServicesIDs
+            const keyValuePairArray = retrievedServices.map(service => ({
+                [service.id ? service.id : (Math.random() * (retrievedServices.length - 0))]: false
+            }));
+            // Merge the array of key-value pairs into a single object
+            const selectedServicesObject = Object.assign({}, ...keyValuePairArray);
+            // Update the state with the object
+            setSelectedServicesIDs(selectedServicesObject);
+
+            // Get and set services images
+            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
+                const responseData = res.data.data;
+
+                // Update the imageURL property of matching services
+                setServices((prevServices) => {
+                    return prevServices.map((service) => {
+                        const matchingData = responseData.find((data: any) => data.serviceID === service.id);
+                        if (matchingData) {
+                            return { ...service, imageURL: API_URL + "/" + matchingData.mediaURL };
+                        }
+                        return service; // No match found, return the original service
+                    });
+                });
+
+            }).catch(err => { console.error(err) });
+        }).catch
+            (err => console.error(err))
+
+        // Rooms
+        serverAPI.get('/api/rooms').then(res => {
+            let rooms = res.data.data;
+            let retrievedRooms: Room[] = [];
+            rooms.forEach((room: any) => {
+                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end) }))
+            })
+            setRooms(retrievedRooms)
+        }).catch
+            (err => console.error(err))
+
+        // Plans
+        serverAPI.get('/api/plans').then(res => {
+            let plans = res.data.data;
+            let retrievedPlans: Plan[] = [];
+            plans.forEach((plan: any) => {
+                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price }))
+            })
+            setPlans(retrievedPlans)
+            setStripeOptions({
+                mode: 'payment',
+                amount: 200,
+                currency: 'eur',
+                // Fully customizable with appearance API.
+                appearance: {
+                    /*...*/
+                },
+            })
+        }).catch
+            (err => console.error(err))
+
+        // Payment methods
+        serverAPI.get('/api/paymentmethods').then(res => {
+            let paymentMethodss = res.data.data;
+            let retrievedPaymentMethods: PaymentMethod[] = [];
+            paymentMethodss.forEach((pm: any) => {
+                retrievedPaymentMethods.push(new PaymentMethod({ id: pm.id, name: pm.payment_method_name.toLowerCase() }))
+            })
+            setPaymentMethods(retrievedPaymentMethods)
+        }).catch
+            (err => console.error(err))
+
+        // Weather information (5 days)
+        const params = {
+            lat: 39.58130105,
+            lon: 2.709183392285786,
+        };
+        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
+            const forecastFiveDaysList = res.data.list;
+            const fiveDaysListObj: Weather[] = [];
+            forecastFiveDaysList.forEach((forecastDay: any) => {
+                const day = new Date(forecastDay.dt_txt)
+                // day.setHours(0, 0, 0, 0)
+                fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
+            });
+            setWeatherFiveDaysForecastList(fiveDaysListObj)
+        }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
     }, [cookies])
 
     // Logica de navegacion por el modal
@@ -533,43 +629,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [plans, setPlans] = useState<Plan[]>([])
     const [checkedPlan, setCheckedPlan] = useState<number | null>(1);
 
-    useEffect(() => {
-        serverAPI.get('/api/plans').then(res => {
-            let plans = res.data.data;
-            let retrievedPlans: Plan[] = [];
-            plans.forEach((plan: any) => {
-                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price }))
-            })
-            setPlans(retrievedPlans)
-            setStripeOptions({
-                mode: 'payment',
-                amount: 200,
-                currency: 'eur',
-                // Fully customizable with appearance API.
-                appearance: {
-                    /*...*/
-                },
-            })
-        }).catch
-            (err => console.error(err))
-
-        // Weather information (5 days)
-        const params = {
-            lat: 39.58130105,
-            lon: 2.709183392285786,
-        };
-        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-            const forecastFiveDaysList = res.data.list;
-            const fiveDaysListObj: Weather[] = [];
-            forecastFiveDaysList.forEach((forecastDay: any) => {
-                const day = new Date(forecastDay.dt_txt)
-                // day.setHours(0, 0, 0, 0)
-                fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
-            });
-            setWeatherFiveDaysForecastList(fiveDaysListObj)
-        }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
-    }, [])
-
     const selectPlan = (planID: any) => {
         setCheckedPlan(planID);
     };
@@ -584,40 +643,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
 
     const handleStartDateChange = (newStartDate: Value) => {
-        // const params = {
-        //     lat: 39.58130105,
-        //     lon: 2.709183392285786,
-        // };
-        // weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-        //     console.log(res)
-        // }).catch(err => console.error(err))
         onChangeStartDate(newStartDate);
     }
 
     const handleEndDateChange = (newEndDate: Value) => {
-        // const params = {
-        //     lat: 39.58130105,
-        //     lon: 2.709183392285786,
-        // };
-        // weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-        //     console.log(res)
-        // }).catch(err => console.error(err))
         onChangeEndDate(newEndDate);
     }
-
-
-    // Get rooms
-    useEffect(() => {
-        serverAPI.get('/api/rooms').then(res => {
-            let rooms = res.data.data;
-            let retrievedRooms: Room[] = [];
-            rooms.forEach((room: any) => {
-                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end) }))
-            })
-            setRooms(retrievedRooms)
-        }).catch
-            (err => console.error(err))
-    }, []) // only once
 
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
@@ -646,44 +677,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Step choose services
     const [services, setServices] = useState<Service[]>([])
     const [selectedServicesIDs, setSelectedServicesIDs] = useState<{ [key: string]: boolean }>({});
-
-    useEffect(() => {
-        serverAPI.get('/api/services').then(res => {
-            let servicess = res.data.data;
-            let retrievedServices: Service[] = [];
-            servicess.forEach((service: any) => {
-                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: null }))
-            })
-            setServices(retrievedServices)
-
-            // Create an array of key-value pairs for selectedServicesIDs
-            const keyValuePairArray = retrievedServices.map(service => ({
-                [service.id ? service.id : (Math.random() * (retrievedServices.length - 0))]: false
-            }));
-            // Merge the array of key-value pairs into a single object
-            const selectedServicesObject = Object.assign({}, ...keyValuePairArray);
-            // Update the state with the object
-            setSelectedServicesIDs(selectedServicesObject);
-
-            // Get and set services images
-            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
-                const responseData = res.data.data;
-
-                // Update the imageURL property of matching services
-                setServices((prevServices) => {
-                    return prevServices.map((service) => {
-                        const matchingData = responseData.find((data: any) => data.serviceID === service.id);
-                        if (matchingData) {
-                            return { ...service, imageURL: API_URL + "/" + matchingData.mediaURL };
-                        }
-                        return service; // No match found, return the original service
-                    });
-                });
-
-            }).catch(err => { console.error(err) });
-        }).catch
-            (err => console.error(err))
-    }, []);
 
     const serviceSelected = (serviceID: any) => {
         if (selectedServicesIDs[serviceID]) {
@@ -788,6 +781,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     };
 
+    // On change user wants to become a guest
     useEffect(() => {
         if (userWantsToBecomeGuest) {
             if (cookies && cookies.token) {
@@ -810,6 +804,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
     }, [userWantsToBecomeGuest]);
 
+    // On change user wants to become guest is an adult checkbox
     useEffect(() => {
         setGuests(prevGuests => {
             return prevGuests.map((guest, index) => {
@@ -824,18 +819,6 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     // Step choose payment method and pay
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
     const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<number | null>(1);
-
-    useEffect(() => {
-        serverAPI.get('/api/paymentmethods').then(res => {
-            let paymentMethodss = res.data.data;
-            let retrievedPaymentMethods: PaymentMethod[] = [];
-            paymentMethodss.forEach((pm: any) => {
-                retrievedPaymentMethods.push(new PaymentMethod({ id: pm.id, name: pm.payment_method_name.toLowerCase() }))
-            })
-            setPaymentMethods(retrievedPaymentMethods)
-        }).catch
-            (err => console.error(err))
-    }, []);
 
     const paymentMethodSelected = (paymentMethodID: any) => {
         setCheckedPaymentMethod(paymentMethodID);
@@ -862,9 +845,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         setFilteredRooms([])
     }
 
-    // Step confirmation
-
-    // When close, reset
+    // When close, reset modal data
     useEffect(() => {
         if (!show && !cookies.token) {
             resetBookingModal();
