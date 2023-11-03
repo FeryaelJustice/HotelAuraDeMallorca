@@ -6,9 +6,8 @@
                     <div class="card-header">Formulario de gestor de traducciones para tu web</div>
 
                     <div class="card-body">
-                        <h2>Administra tus traducciones</h2>
-                        <span><em>Tienes que poner los nombres de la página y seccion exactamente igual a como los utilizas
-                                en el código de tu web.</em></span>
+                        <h2>Inserta tus traducciones</h2>
+                        <span><em>No debes poner un código de literal que esté ya en la base de datos.</em></span>
                         <form action="" id="form" @submit.prevent="onSubmit">
                             <fieldset>
                                 <legend>Página</legend>
