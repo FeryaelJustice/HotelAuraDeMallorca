@@ -39,6 +39,7 @@
                     <ul class="navbar-nav me-auto" id="vuenav">
                         <router-link to="/">Home</router-link>
                         <router-link to="/about">About</router-link>
+                        <router-link to="/pages">Pages</router-link>
                     </ul>
 
                     <!-- Right Side Of Navbar -->
