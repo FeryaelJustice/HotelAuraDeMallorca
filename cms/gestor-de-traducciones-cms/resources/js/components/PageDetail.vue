@@ -3,9 +3,10 @@
         <div class="row justify-content-center">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header">Pages</div>
+                    <div class="card-header">Page</div>
 
                     <div class="card-body">
+                        <p>Page ID: {{ this.$route.params.id }}</p>
                         <EasyDataTable :headers="headers" :items="items" buttons-pagination show-index
                             @click-row="rowSelected" />
                     </div>
@@ -21,18 +22,18 @@ import type { Header, Item, ClickRowArgument } from "vue3-easy-data-table";
 
 const headers: Header[] = [
     { text: "ID", value: "id" },
-    { text: "PAGE NAME", value: "app_page_name" }
+    { text: "SECTION NAME", value: "section_name" }
 ];
 
 const items: Item[] = [
-    { id: "Stephen Curry", app_page_name: "GSW" },
-    { id: "Lebron James", app_page_name: "LAL" },
-    { id: "Kevin Durant", app_page_name: "BKN" },
-    { id: "Giannis Antetokounmpo", app_page_name: "MIL" },
+    { id: "Stephen Curry", section_name: "GSW" },
+    { id: "Lebron James", section_name: "LAL" },
+    { id: "Kevin Durant", section_name: "BKN" },
+    { id: "Giannis Antetokounmpo", section_name: "MIL" },
 ];
 
 export default {
-    name: 'pages',
+    name: 'page/:id',
     components: {
         RouterLink,
     },
@@ -46,11 +47,13 @@ export default {
         rowSelected(item: ClickRowArgument) {
             console.log(item)
             const id = item.id;
-            this.$router.push(`/pages/${id}`)
+            this.$router.push(`/sections/${id}`)
         }
     },
     mounted() {
-        // console.log('Pages mounted.')
+        // console.log('Pages mounted.') 
+        const pageId = this.$route.params.id;
+        console.log('Page ID:', pageId);
     }
 }
 </script>
