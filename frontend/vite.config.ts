@@ -38,6 +38,23 @@ export default defineConfig(({ mode }) => {
           target: env.FRONT_URL, // Change to the appropriate URL
           changeOrigin: true,
         },
+        "/i18n": {
+          target: env.FRONT_URL, // Replace with your backend server URL
+          changeOrigin: true,
+          onProxyReq(proxyReq) {
+            // Add CORS headers to the proxy request
+            proxyReq.setHeader("Origin", env.FRONT_URL); // Replace with your frontend URL
+            proxyReq.setHeader("Access-Control-Allow-Origin", env.FRONT_URL); // Replace with your frontend URL
+            proxyReq.setHeader(
+              "Access-Control-Allow-Methods",
+              "GET, POST, OPTIONS, PUT, DELETE"
+            );
+            proxyReq.setHeader(
+              "Access-Control-Allow-Headers",
+              "origin, x-requested-with, content-type"
+            );
+          },
+        },
       },
     },
   };
