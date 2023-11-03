@@ -10,6 +10,7 @@ import serverAPI from './../../services/serverAPI';
 import { LANGUAGES, UserRoles } from "./../../constants";
 import { Role } from './../../models/index';
 import { useTranslation } from "react-i18next";
+import { EventEmitter, Events } from "./../../events/events";
 
 interface HeaderProps {
     colorScheme: string,
@@ -27,6 +28,15 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     const { i18n, t } = useTranslation();
     const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
 
+    EventEmitter.subscribe(Events.CHANGE_PROFILE_PIC, (_) => {
+        if (cookies.token) {
+            // retrieve profile pic and put each 20 seconds
+            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
+            })
+        }
+    })
+
     const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const lang_code = e.target.value;
         i18n.changeLanguage(lang_code);
@@ -36,7 +46,9 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     useEffect(() => {
         // Set the default language to the one detected by i18next
         setSelectedLanguage(i18n.language);
-        // Timer
+
+        /*
+        // Timer profile pic
         let timerProfilePic = setInterval(() => {
             if (cookies.token) {
                 // retrieve profile pic and put each 20 seconds
@@ -48,6 +60,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         return () => {
             clearInterval(timerProfilePic)
         }
+        */
     }, [])
 
     useEffect(() => {

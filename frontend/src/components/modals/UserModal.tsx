@@ -13,6 +13,7 @@ import './UserModal.css'
 
 import { useTranslation } from "react-i18next";
 import QRCode from 'qrcode.react';
+import { EventEmitter, Events } from "./../../events/events";
 
 interface UserModalProps {
     show: boolean,
@@ -303,6 +304,9 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                         }
                         reader.readAsDataURL(res.data.fileURL.url)
                     })
+
+                    // Emit event
+                    EventEmitter.dispatch(Events.CHANGE_PROFILE_PIC, null);
                 })
                 alert(res.data.msg)
                 resetUserModal();
