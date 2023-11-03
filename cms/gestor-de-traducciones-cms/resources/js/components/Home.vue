@@ -12,25 +12,21 @@
                         <form action="" id="form" @submit.prevent="onSubmit">
                             <fieldset>
                                 <legend>Página</legend>
-                                <label for="pagename">Nombre de la página</label>
-                                <input type="text" maxlength="100" id="pagename" name="pagename" v-model="page" list="pages"
-                                    required>
-                                <datalist id="pages">
-                                    <option v-for="page in pages" :key="page.id" :value="page.app_page_name">
-                                        <label>{{ page.app_page_name }}</label>
+                                <label for="pageSelect">Página</label>
+                                <select v-model="selectedPageId" id="pageSelect" name="pageSelect" required>
+                                    <option v-for="page in pages" :key="page.id" :value="page.id">
+                                        {{ page.app_page_name }}
                                     </option>
-                                </datalist>
+                                </select>
                             </fieldset>
                             <fieldset>
                                 <legend>Sección</legend>
-                                <label for="pagesection">Sección de la página</label>
-                                <input type="text" maxlength="200" id="pagesection" name="pagesection" v-model="section"
-                                    list="sections" required>
-                                <datalist id="sections">
-                                    <option v-for="section in sections" :key="section.id" :value="section.section_name">
-                                        <label>{{ section.page_name + ' - ' + section.section_name }}</label>
+                                <label for="sectionSelect">Sección de la página</label>
+                                <select v-model="selectedSectionId" id="sectionSelect" name="sectionSelect" required>
+                                    <option v-for="section in filteredSections" :key="section.id" :value="section.id">
+                                        {{ section.page_name + ' - ' + section.section_name }}
                                     </option>
-                                </datalist>
+                                </select>
                             </fieldset>
                             <fieldset v-if="languages && languages[0]">
                                 <legend>Traducciones</legend>
@@ -38,7 +34,8 @@
                                     <div class="myRow">
                                         <div v-for="language in languages" :key="language.lang_code">
                                             <button type="button" class="btn btn-dark btn-space"
-                                                @click="changeLanguageFields(language.lang_code)">{{
+                                                @click="changeLanguageFields(language.lang_code)"
+                                                :class="{ 'btn-selected': language.lang_code === currentLanguage }">{{
                                                     language.lang_name }}</button>
                                         </div>
                                     </div>
@@ -46,33 +43,23 @@
                                 <div class="language-selection" v-for="language in languages" :key="language.lang_code">
                                     <transition name="fade">
                                         <div v-if="language.lang_code == currentLanguage">
-                                            <div v-if="language.lang_code === 'es'">
-                                                <br>
-                                                <span>ESPAÑOL - </span>
-                                                <label for="literal_es"></label>
-                                                <input type="textarea" maxlength="100000" id="literal_es" name="literal_es"
-                                                    v-model="literal_es" required>
-                                            </div>
-                                            <div v-else-if="language.lang_code === 'en'">
-                                                <br>
-                                                <span>ENGLISH - </span>
-                                                <label for="literal_en"></label>
-                                                <input type="textarea" maxlength="100000" id="literal_en" name="literal_en"
-                                                    v-model="literal_en" required>
-                                            </div>
-                                            <div v-else-if="language.lang_code === 'ca'">
-                                                <br>
-                                                <span>CATALAN - </span>
-                                                <label for="literal_ca"></label>
-                                                <input type="textarea" maxlength="100000" id="literal_ca" name="literal_ca"
-                                                    v-model="literal_ca" required>
-                                            </div>
-                                            <div v-else-if="language.lang_code === 'de'">
-                                                <br>
-                                                <span>GERMAN - </span>
-                                                <label for="literal_de"></label>
-                                                <input type="textarea" maxlength="100000" id="literal_de" name="literal_de"
-                                                    v-model="literal_de" required>
+                                            <br>
+                                            <div class="literal">
+                                                <span>{{ language.lang_name }}</span>
+                                                <label :for="'literal' + language.lang_code + '_code'">Introduce el código
+                                                    del literal</label>
+                                                <input type="text" class="text" maxlength="1000"
+                                                    :id="'literal_' + language.lang_code + '_code'"
+                                                    :name="'literal_' + language.lang_code + '_code'"
+                                                    v-model="literals['literal_' + language.lang_code].code" required>
+                                                <label :for="'literal_' + language.lang_code + '_content'">Introduce el
+                                                    contenido del literal</label>
+                                                <textarea class="textarea"
+                                                    :id="'literal_' + language.lang_code + '_content'"
+                                                    :name="'literal_' + language.lang_code + '_content'"
+                                                    v-model="literals['literal_' + language.lang_code].content"
+                                                    @keypress.enter="handleTextAreaEnter('literal_' + language.lang_code + '_code', $event)"
+                                                    required></textarea>
                                             </div>
                                         </div>
                                     </transition>
@@ -91,58 +78,106 @@
 
 <script>
 import axios from "axios";
-import { LanguagesEnum } from "./../util/enums";
 const API_URL = "/api";
+
 export default {
     name: 'home',
     data() {
         return {
             currentLanguage: 'es',
-            LanguagesEnum,
             languages: [],
             pages: [],
             sections: [],
-            page: '',
-            section: '',
-            literal_es: '',
-            literal_en: '',
-            literal_ca: '',
-            literal_de: '',
+            selectedPageId: null,
+            selectedSectionId: null,
+            literals: {}
+        }
+    },
+    computed: {
+        filteredSections() {
+            // Filter the sections based on the selectedPageId
+            return this.sections.filter(section => section.app_page_id === this.selectedPageId);
+        },
+    },
+    watch: {
+        selectedPageId(newValue) {
+            // Find the first section that matches the new page selection
+            const firstSection = this.filteredSections.find(section => section.app_page_id === newValue);
+
+            // Update the selectedSectionId with the first section's ID
+            if (firstSection) {
+                this.selectedSectionId = firstSection.id;
+            }
         }
     },
     methods: {
         changeLanguageFields(lang) {
             this.currentLanguage = lang;
         },
-        resetForm() {
-            this.page = '';
-            this.section = '';
-            this.literal_es = '';
-            this.literal_en = '';
-            this.literal_ca = '';
-            this.literal_de = '';
+        handleTextAreaEnter(modelName, event) {
+            if (event.keyCode === 13) {
+                event.preventDefault(); // Prevent form submission
+
+                // Get the corresponding v-model property and textarea element
+                const model = this[modelName];
+                const textarea = event.target;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+
+                // Insert a newline character ('\n') at the current cursor position
+                this[modelName] =
+                    model.substring(0, start) + '\n' + model.substring(end);
+
+                // Move the cursor to the position just after the inserted newline
+                const newCursorPosition = start + 1;
+                textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+            }
+        },
+        checkForm() {
+            if (this.page == '') {
+                return false;
+            }
+            if (this.section == '') {
+                return false;
+            }
+            if (!this.literals) {
+                return false;
+            } else {
+                for (const languageKey of Object.keys(this.literals)) {
+                    if (languageKey == '') {
+                        return false;
+                    }
+                    const languageObject = this.literals[languageKey];
+                    for (const propertyName of Object.keys(languageObject)) {
+                        const propertyValue = languageObject[propertyName];
+                        // Do something with the property name and value
+                        if (propertyName == '' || propertyValue == '') {
+                            return false;
+                        }
+                        // console.log(`Language: ${languageKey}, Property: ${propertyName}, Value: ${propertyValue}`);
+                    }
+                }
+            }
+            return true;
         },
         onSubmit() {
             // console.log(this.page, this.section, this.literal_es, this.literal_en, this.literal_ca, this.literal_de)
-            if (this.literal_es != '' && this.literal_en != '' && this.literal_ca != '' && this.literal_de != '') {
+            if (this.checkForm()) {
                 let data = {
-                    page: this.page,
-                    section: this.section,
-                    literals: {
-                        literal_es: this.literal_es,
-                        literal_en: this.literal_en,
-                        literal_ca: this.literal_ca,
-                        literal_de: this.literal_de
-                    }
+                    page: this.selectedPageId,
+                    section: this.selectedSectionId,
+                    literals: this.literals
                 }
+                console.log(data)
                 axios.post(API_URL + '/translations/create', data).then(res => {
                     alert(res.data.message)
                 }).catch(err => {
-                    console.error(err)
-                    alert('Ha ocurrido un error realizando la inserción')
+                    if (err && err.response && err.response.data) {
+                        alert('Ha ocurrido un error realizando la inserción: ' + err.response.data.message)
+                    }
                 }
                 )
-                this.resetForm();
+                // this.resetForm();
             } else {
                 alert('Debes rellenar todos los literales en todos los idiomas')
             }
@@ -178,6 +213,25 @@ export default {
             this.languages = languages;
             this.pages = pages;
             this.sections = sections;
+
+            // Generate the literals object based on the available languages
+            const literals = {};
+            for (const language of languages) {
+                const langCode = language.lang_code;
+                literals[`literal_${langCode}`] = {
+                    code: '',
+                    content: '',
+                };
+            }
+            this.literals = literals;
+
+            // Default form values
+            if (this.pages.length > 0) {
+                this.selectedPageId = this.pages[0].id;
+            }
+            if (this.filteredSections.length > 0) {
+                this.selectedSectionId = this.filteredSections[0].id;
+            }
         }).catch(err => console.error(err))
     }
 }
@@ -226,6 +280,16 @@ export default {
     }
 }
 
+.literal {
+    display: flex;
+    flex-direction: column;
+
+    .textarea {
+        width: 600px;
+        height: 200px;
+    }
+}
+
 fieldset {
     display: flex;
     flex-direction: column;
@@ -236,6 +300,10 @@ fieldset {
         float: none;
         text-align: center;
     }
+}
+
+.btn-selected {
+    background-color: blue;
 }
 
 #submit {

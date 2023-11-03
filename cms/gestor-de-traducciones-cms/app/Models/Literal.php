@@ -11,6 +11,7 @@ class Literal extends Model
     protected $table = 'literal';
     protected $primaryKey = 'id';
     protected $fillable = [
-        'literal_text',
+        'code',
+        'content',
     ];
 }
