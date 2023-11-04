@@ -133,3 +133,5 @@ Para cambiar la root password de mysql en XAMPP:
 
 En el .env de frontend, poner la IP de la maquina virtual en vez de localhost, ya que sino no lo pillará bien.
 Y en el .env de backend, el FRONT_URL: poner el dominio.com si es produccion, localhost:puertovite si es en dev (127.0.0.1 porque no lo pilla el front bien, usar el 127 solo para temas de back, no para front, para eso siempre localhost o el dominio).
+
+NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
