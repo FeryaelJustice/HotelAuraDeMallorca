@@ -135,3 +135,27 @@ En el .env de frontend, poner la IP de la maquina virtual en vez de localhost, y
 Y en el .env de backend, el FRONT_URL: poner el dominio.com si es produccion, localhost:puertovite si es en dev (127.0.0.1 porque no lo pilla el front bien, usar el 127 solo para temas de back, no para front, para eso siempre localhost o el dominio).
 
 NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
+
+ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo.
+
+SIN HTTPS el .htaccess así funciona:
+
+```sh
+<IfModule mod_rewrite.c>
+    Options -MultiViews
+    RewriteEngine On
+    RewriteBase /
+    RewriteRule ^index\.html$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-l
+    RewriteRule . /index.html [L]
+</IfModule>
+<IfModule mod_headers.c>
+
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "origin, x-requested-with, content-type"
+
+</IfModule>
+```

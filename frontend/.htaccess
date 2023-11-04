@@ -9,8 +9,7 @@
     RewriteRule . /index.html [L]
 
     RewriteCond %{HTTPS} off
-    RewriteCond %{REQUEST_URI} ^.$
-    RewriteRule ^(.*)$ https://"hotelaurademallorca.com"/ [NC,L,R=301]
+    RewriteRule ^(.*)$ https://hotelaurademallorca.com/$1 [NC,L,R=301]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -30,5 +29,5 @@
     Header set Access-Control-Allow-Origin "*"
     Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
     Header set Access-Control-Allow-Headers "origin, x-requested-with, content-type"
-    
+
 </IfModule>

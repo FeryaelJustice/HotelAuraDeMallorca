@@ -1,8 +1,11 @@
 /etc/apache2/sites-available/hotelaurademallorca.conf
 
 <VirtualHost *:443>
+    ServerAdmin admin@hotelaurademallorca.com
     ServerName hotelaurademallorca.com
+    ServerALias www.hotelaurademallorca.com
     DocumentRoot /var/www/html
+
     <Directory /var/www/html>
         AllowOverride All
         Require all granted
@@ -13,8 +16,8 @@
     SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key
 
     # Configure the backend
-    ProxyPass /backend http://localhost:3000
-    ProxyPassReverse /backend http://localhost:3000
+    ProxyPass /backend http://127.0.0.1:3000
+    ProxyPassReverse /backend http://127.0.0.1:3000
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined

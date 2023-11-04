@@ -1,7 +1,9 @@
-/etc/apache2/sites-available/hotelaurademallorca-http.conf               
+/etc/apache2/sites-available/hotelaurademallorca-http.conf
 
 <VirtualHost *:80>
+    ServerAdmin admin@hotelaurademallorca.com
     ServerName hotelaurademallorca.com
+    ServerALias www.hotelaurademallorca.com
     DocumentRoot /var/www/html
 
     # Redirect to HTTPS
