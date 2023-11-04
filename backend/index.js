@@ -5,8 +5,6 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const mysql = require('mysql')
-const mysql2 = require('mysql2')
-const mysql2Promise = require('mysql2/promise')
 const cookieParser = require('cookie-parser')
 const compression = require('compression')
 const moment = require('moment'); // for dates, library
@@ -23,7 +21,6 @@ const multerStorage = multer.diskStorage({
     }
 })
 const upload = multer({ storage: multerStorage })
-const os = require('os');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 // const morgan = require('morgan') // logger
@@ -32,6 +29,10 @@ const jsQR = require('jsqr');
 const Jimp = require('jimp');
 // AXIOS (for captcha and stuff verifications)
 const axios = require("axios");
+// const os = require('os');
+
+// Check OS (if db connector changed or other uses)
+// const isWindows = os.platform() === 'win32';
 
 const decodeBase64Image = async (req, res, next) => {
     const base64ImageString = req.body.imagePicQR;
@@ -49,9 +50,6 @@ const decodeBase64Image = async (req, res, next) => {
 
     next();
 };
-
-// Check OS
-const isWindows = os.platform() === 'win32';
 
 // INIT SERVER
 const app = express();
@@ -98,18 +96,8 @@ const dbConfig = {
     //keepAliveInitialDelay: 0
 }
 
-// const pool = isWindows ? mysql.createPool(dbConfig) : mariadb.createPool({ ...dbConfig, connectionLimit: 150 })
-const pool = isWindows ? mysql.createPool(dbConfig) : mysql2.createPool({ ...dbConfig, connectionLimit: 150 })
-const mysql2PromiseConnection = mysql2Promise.createConnection(dbConfig) // For compatibility to promise calls, create the mysql2 connection compatible with promise
-function getSOCompatiblePoolOrPromiseBasedConnection() {
-    if (isWindows) {
-        return pool;
-    } else {
-        return mysql2PromiseConnection;
-    }
-}
-// Get the compatible pool or connection to use for promise-based endpoints ONLY (THE ONES NOT USING pool.getConnection() and directly querying)
-const soCompatiblePoolOrPromiseBasedConnection = getSOCompatiblePoolOrPromiseBasedConnection();
+// const pool = isWindows ? mysql.createPool(dbConfig) : mysql2.createPool(dbConfig)
+const pool = mysql.createPool(dbConfig)
 
 // JWT
 const jwt = require('jsonwebtoken')
@@ -497,22 +485,27 @@ expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) =>
     // Delete all existing media and user_media associated with the user.
     const deleteMediaAndUserMediaPromise = new Promise((resolve, reject) => {
         try {
-            soCompatiblePoolOrPromiseBasedConnection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], async (error, results) => {
-                if (error) {
-                    return reject(error);
+            pool.getConnection(async (err, connection) => {
+                if (err) {
+                    return reject(err);
                 }
-
-                try {
-                    for (const result of results) {
-                        await soCompatiblePoolOrPromiseBasedConnection.query('DELETE FROM media WHERE id = ?', [result.media_id]);
+                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], async (error, results) => {
+                    if (error) {
+                        return reject(error);
                     }
 
-                    await soCompatiblePoolOrPromiseBasedConnection.query('DELETE FROM user_media WHERE user_id = ?', [userID]);
+                    try {
+                        for (const result of results) {
+                            await connection.query('DELETE FROM media WHERE id = ?', [result.media_id]);
+                        }
 
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
+                        await connection.query('DELETE FROM user_media WHERE user_id = ?', [userID]);
+
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
             });
         } catch (error) {
             reject(error);
@@ -522,19 +515,24 @@ expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) =>
     // Insert the new media and user_media records.
     const insertMediaAndUserMediaPromise = new Promise((resolve, reject) => {
         try {
-            soCompatiblePoolOrPromiseBasedConnection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], async (err, result) => {
+            pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(err);
+                    return reject(error);
                 }
+                connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], async (err, result) => {
+                    if (err) {
+                        return reject(err);
+                    }
 
-                try {
-                    const newMediaID = result.insertId;
-                    await soCompatiblePoolOrPromiseBasedConnection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID]);
+                    try {
+                        const newMediaID = result.insertId;
+                        await connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID]);
 
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
             });
         } catch (error) {
             reject(error);
@@ -1260,14 +1258,18 @@ function selectGuestIds(existingGuestIds) {
                 resolve([]);
                 return;
             }
-
-            const query = 'SELECT id FROM guest WHERE id IN (?)';
-            soCompatiblePoolOrPromiseBasedConnection.query(query, [existingGuestIds], (err, results) => {
+            pool.getConnection(async (err, connection) => {
                 if (err) {
-                    reject("Error selecting guests");
-                } else {
-                    resolve(results.map(result => result.id));
+                    return reject(error);
                 }
+                const query = 'SELECT id FROM guest WHERE id IN (?)';
+                connection.query(query, [existingGuestIds], (err, results) => {
+                    if (err) {
+                        reject("Error selecting guests");
+                    } else {
+                        resolve(results.map(result => result.id));
+                    }
+                });
             });
         } catch (error) {
             reject(error);
@@ -1283,15 +1285,20 @@ function insertGuests(guestsToInsert) {
                 return;
             }
 
-            const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
-            const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
-            soCompatiblePoolOrPromiseBasedConnection.query(query, [values], (err, result) => {
+            pool.getConnection(async (err, connection) => {
                 if (err) {
-                    reject("Error creating guests");
-                } else {
-                    const insertedIds = Array(guestsToInsert.length).fill(result.insertId);
-                    resolve(insertedIds);
+                    return reject(error);
                 }
+                const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
+                const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
+                connection.query(query, [values], (err, result) => {
+                    if (err) {
+                        reject("Error creating guests");
+                    } else {
+                        const insertedIds = Array(guestsToInsert.length).fill(result.insertId);
+                        resolve(insertedIds);
+                    }
+                });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -1512,12 +1519,17 @@ function deleteBookingByUserID(userID) {
             const sql = 'DELETE FROM booking WHERE user_id = ?';
             const values = [userID];
 
-            soCompatiblePoolOrPromiseBasedConnection.query(sql, values, (err) => {
+            pool.getConnection(async (err, connection) => {
                 if (err) {
-                    reject(err);
-                } else {
-                    resolve();
+                    return reject(error);
                 }
+                connection.query(sql, values, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
         } catch (error) {
             reject(error);
@@ -1531,12 +1543,17 @@ function deletePaymentByUserID(userID) {
             const sql = 'DELETE FROM payment WHERE user_id = ?';
             const values = [userID];
 
-            soCompatiblePoolOrPromiseBasedConnection.query(sql, values, (err) => {
+            pool.getConnection(async (err, connection) => {
                 if (err) {
-                    reject(err);
-                } else {
-                    resolve();
+                    return reject(error);
                 }
+                connection.query(sql, values, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -1550,13 +1567,18 @@ function deleteUserRoleByUserID(userID) {
             const sql = 'DELETE FROM user_role WHERE user_id = ?';
             const values = [userID];
 
-            soCompatiblePoolOrPromiseBasedConnection.query(sql, values, (err) => {
+            pool.getConnection(async (err, connection) => {
+                if (err) {
+                    return reject(error);
+                }
+            connection.query(sql, values, (err) => {
                 if (err) {
                     reject(err);
                 } else {
                     resolve();
                 }
             });
+        })
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
@@ -1569,13 +1591,18 @@ function deleteUserMediaByUserID(userID) {
             const sql = 'DELETE FROM user_media WHERE user_id = ?';
             const values = [userID];
 
-            soCompatiblePoolOrPromiseBasedConnection.query(sql, values, (err) => {
+            pool.getConnection(async (err, connection) => {
+                if (err) {
+                    return reject(error);
+                }
+            connection.query(sql, values, (err) => {
                 if (err) {
                     reject(err);
                 } else {
                     resolve();
                 }
             });
+        });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
