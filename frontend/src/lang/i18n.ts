@@ -6,10 +6,7 @@ import { LANGUAGES } from "../constants";
 
 const languageCodes: string[] = LANGUAGES.map((language) => language.code);
 
-const getCurrentHost =
-  import.meta.env.MODE === "development"
-    ? process.env.TRANSLATIONS_DATA_URL + ":5173"
-    : process.env.TRANSLATIONS_DATA_URL;
+const getCurrentHost = process.env.TRANSLATIONS_DATA_URL
 /*import.meta.env.MODE === "development"
     ? process.env.DEV_FRONT_URL
     : process.env.FRONT_URL;
