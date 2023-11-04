@@ -30,6 +30,8 @@ const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 // QR
 const jsQR = require('jsqr');
 const Jimp = require('jimp');
+// AXIOS (for captcha and stuff verifications)
+const axios = require("axios");
 
 const decodeBase64Image = async (req, res, next) => {
     const base64ImageString = req.body.imagePicQR;
@@ -1579,6 +1581,36 @@ function deleteUserMediaByUserID(userID) {
         }
     });
 }
+
+// Google ReCAPTCHA
+// Verify site
+expressRouter.post('/captchaSiteVerify', async (req, res) => {
+    try {
+        const { secret, response } = req.body;
+        const reCaptchaURLEndpoint = 'https://www.google.com/recaptcha/api/siteverify';
+        const verificationResponse = await axios.post(
+            reCaptchaURLEndpoint,
+            null,
+            {
+                params: {
+                    secret,
+                    response,
+                },
+            }
+        );
+
+        if (verificationResponse.data.success) {
+            // reCAPTCHA verification successful
+            res.status(200).json({ success: true });
+        } else {
+            // reCAPTCHA verification failed
+            res.status(400).json({ success: false });
+        }
+    } catch (error) {
+        console.error("reCAPTCHA verification error:", error);
+        res.status(500).json({ success: false });
+    }
+})
 
 // Listen SERVER (RUN)
 const port = process.env.PORT || 3000

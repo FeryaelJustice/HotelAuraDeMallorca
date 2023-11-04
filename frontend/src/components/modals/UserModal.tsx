@@ -161,7 +161,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await serverAPI.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        const isHuman = await serverAPI.post('/api/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaLoginValid(true)
@@ -264,7 +264,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await serverAPI.post('https://www.google.com/recaptcha/api/siteverify', body, { headers: headers })
+        const isHuman = await serverAPI.post('/api/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaRegisterValid(true)

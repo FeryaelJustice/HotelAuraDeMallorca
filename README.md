@@ -130,3 +130,5 @@ Para testear weather API: crear acceso directo del chrome y poner:
 
 Para cambiar la root password de mysql en XAMPP:
 ```ir al panel de control -> shell -> mysqladmin -u root password```
+
+En el .env de frontend, poner la IP de la maquina virtual en vez de localhost, ya que sino no lo pillará bien.
