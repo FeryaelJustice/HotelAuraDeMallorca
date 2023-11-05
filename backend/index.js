@@ -1409,7 +1409,11 @@ expressRouter.post('/payment', (req, res) => {
             }
             const data = req.body;
             let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
-            let values = [data.userID, data.bookingID, data.amount, data.date, data.paymentMethodID];
+            // Create a Date object from the original string
+            const dateObject = new Date(data.date);
+            // Format the date as 'YYYY-MM-DD'
+            const formattedDate = dateObject.toISOString().split('T')[0];
+            let values = [data.userID, data.bookingID, data.amount, formattedDate, data.paymentMethodID];
             connection.query(sql, values, (error, result) => {
                 if (error) {
                     console.error(error);
@@ -1571,14 +1575,14 @@ function deleteUserRoleByUserID(userID) {
                 if (err) {
                     return reject(error);
                 }
-            connection.query(sql, values, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        })
+                connection.query(sql, values, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            })
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
@@ -1595,14 +1599,14 @@ function deleteUserMediaByUserID(userID) {
                 if (err) {
                     return reject(error);
                 }
-            connection.query(sql, values, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
+                connection.query(sql, values, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
-        });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
