@@ -150,6 +150,9 @@ ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo.
 
 SIN HTTPS el .htaccess así funciona:
 
+IMPORTANTE: SI SE PONE EL PROXYPASS EN EL VIRTUALHOST como /api -> en el .env del frontend, poner el API_URL = (vacio) -> dejarlo vacio, no poner './' ni nada, ya que el código añade un API_URL + /api SIEMPRE porque está configurado para que el API_URL sea una IP, no ruta, si no se pone el proxypass como /api, poner en el API_URL el contenido (ejemplo: virtualhost-> /backend, poner en el API_URL: API_URL = /backend), PERO ESTO FUNCIONA SOLO PARA DENTRO DE LA VM, VISITANDO DESDE WINDOWS PILLA EL LOCALHOST DE WINDOWS LA API.ç
+LLAMADAS -> URL DE FRONT: https / URL DE BACKEND: http
+
 ```sh
 <IfModule mod_rewrite.c>
     Options -MultiViews
