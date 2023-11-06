@@ -136,6 +136,16 @@ Y en el .env de backend, el FRONT_URL: poner el dominio.com si es produccion, lo
 
 NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
 
+###### Instalación en Linux
+
+```sudo apt install php libapache2-mod-php php-cli php-fpm php-json php-pdo php-mysql php-zip php-gd  php-mbstring php-curl php-xml php-pear php-bcmath```
+
+```sudo a2enmod php8.*```
+
+```sudo apt install phpmyadmin```
+
+```sudo apt install net-tools```
+
 ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo.
 
 SIN HTTPS el .htaccess así funciona:
