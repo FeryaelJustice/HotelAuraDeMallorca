@@ -157,6 +157,7 @@ transporter.verify((error, success) => {
 
 // ROUTES (SERVER APP)
 // if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
+// DONT USE IF WE SERVE IT IN PROXYPASS OF APACHE APPENDING /api to the IP of BACKEND
 app.use('/api/', expressRouter)
 
 // USER

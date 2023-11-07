@@ -4,7 +4,7 @@
     ServerAdmin admin@hotelaurademallorca.com
     ServerName hotelaurademallorca.com
     ServerALias www.hotelaurademallorca.com
-    DocumentRoot /var/www/html
+    DocumentRoot /var/www/html/hotelaurademallorca
 
     <Directory /var/www/html>
         AllowOverride All
@@ -14,10 +14,6 @@
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
     SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key
-
-    # Configure the backend
-    ProxyPass /backend http://127.0.0.1:3000
-    ProxyPassReverse /backend http://127.0.0.1:3000
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined

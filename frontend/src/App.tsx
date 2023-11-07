@@ -125,14 +125,14 @@ function App() {
 
   // Get JWT user data
   async function getAllLoggedUserData(): Promise<any> {
-    const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+    const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
     if (loggedUserID) {
-      const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
+      const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
         removeCookie('token')
         console.error(err)
       });
       if (getLoggedUserData) {
-        const userRole = await serverAPI.get('/api/getUserRole/' + loggedUserID.data.userID)
+        const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
         setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
         return getLoggedUserData.data;
       } else {

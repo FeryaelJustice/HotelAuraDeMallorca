@@ -31,7 +31,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     EventEmitter.subscribe(Events.CHANGE_PROFILE_PIC, (_) => {
         if (cookies.token) {
             // retrieve profile pic and put each 20 seconds
-            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
             })
         }
@@ -52,7 +52,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         let timerProfilePic = setInterval(() => {
             if (cookies.token) {
                 // retrieve profile pic and put each 20 seconds
-                serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                     setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
                 })
             }
@@ -65,7 +65,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
     useEffect(() => {
         if (cookies.token) {
-            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then((response: any) => {
+            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then((response: any) => {
                 if (response && response.data && response.data.status != "error") {
                     let picURL = API_URL + "/" + response.data.fileURL.url;
                     setUserPhotoURL(picURL)

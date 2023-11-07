@@ -4,7 +4,7 @@
     ServerAdmin admin@hotelaurademallorca.com
     ServerName hotelaurademallorca.com
     ServerALias www.hotelaurademallorca.com
-    DocumentRoot /var/www/html
+    DocumentRoot /var/www/html/hotelaurademallorca
 
     # Redirect to HTTPS
     Redirect permanent / https://hotelaurademallorca.com/

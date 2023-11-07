@@ -14,7 +14,7 @@ export const Services = () => {
     const [services, setServices] = useState<Service[]>([])
 
     useEffect(() => {
-        serverAPI.get('/api/services').then(res => {
+        serverAPI.get('/services').then(res => {
             let servicess = res.data.data;
             let retrievedServices: Service[] = [];
             servicess.forEach((service: any) => {
@@ -23,7 +23,7 @@ export const Services = () => {
             setServices(retrievedServices)
 
             // Get and set services images
-            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
+            serverAPI.post('/servicesImages', { services: servicess }).then(res => {
                 const responseData = res.data.data;
 
                 // Update the imageURL property of matching services

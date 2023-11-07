@@ -6,7 +6,7 @@ import Button from 'react-bootstrap/Button';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import serverAPI from './../services/serverAPI';
-import { API_URL } from './../services/consts';
+// import { API_URL } from './../services/consts';
 import { Booking } from '../models';
 
 // Calendar properties
@@ -40,7 +40,7 @@ export const Admin = () => {
         if (!cookies.token) {
             navigate("/")
         }
-        serverAPI.get('/api/bookings', { headers: { 'Authorization': cookies.token } }).then(res => {
+        serverAPI.get('/bookings', { headers: { 'Authorization': cookies.token } }).then(res => {
             console.log(res.data.data)
             let bookingsRes: Booking[] = [];
             res.data.data.forEach((booking: any) => {
@@ -63,21 +63,21 @@ export const Admin = () => {
 
     async function getFieldsData() {
         // User ids
-        const userIDS = await serverAPI.get('/api/usersID');
+        const userIDS = await serverAPI.get('/usersID');
         let userids: number[] = []
         userIDS.data.data.forEach((userID: any) => {
             userids.push(userID.id)
         })
         setUserIDs(userids)
         // Plan ids
-        const planIDS = await serverAPI.get('/api/plansID');
+        const planIDS = await serverAPI.get('/plansID');
         let planids: number[] = []
         planIDS.data.data.forEach((planID: any) => {
             planids.push(planID.id)
         })
         setPlanIDs(planids)
         // Room ids
-        const roomIDS = await serverAPI.get('/api/roomsID');
+        const roomIDS = await serverAPI.get('/roomsID');
         let roomids: number[] = []
         roomIDS.data.data.forEach((roomID: any) => {
             roomids.push(roomID.id)
@@ -117,13 +117,13 @@ export const Admin = () => {
             startDate: selectedBookingStartDate,
             endDate: selectedBookingEndDate
         }
-        serverAPI.post(API_URL + '/api/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
+        serverAPI.post('/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
         }).catch(err => console.error(err))
     }
 
     const deleteBooking = () => {
-        serverAPI.delete(API_URL + '/api/booking/' + selectedBookingId).then(res => {
+        serverAPI.delete('/booking/' + selectedBookingId).then(res => {
             alert(res.data.msg)
             clearData()
             navigate("/")

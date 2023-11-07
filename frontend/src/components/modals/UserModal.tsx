@@ -58,7 +58,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
     useEffect(() => {
         if (cookies.token) {
             // retrieve profile pic and put
-            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
             })
         }
@@ -73,7 +73,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
             }).catch(err => console.error(err))
             // retrieve profile pic and put
-            serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
             })
         } else {
@@ -92,7 +92,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     const deleteAccount = () => {
         // Delete account
-        serverAPI.delete('/api/user', {
+        serverAPI.delete('/user', {
             headers: {
                 Authorization: cookies.token
             }
@@ -108,14 +108,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
         if (loggedUserID) {
-            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
             if (getLoggedUserData) {
-                const userRole = await serverAPI.get('/api/getUserRole/' + loggedUserID.data.userID)
+                const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
                 setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
                 return getLoggedUserData.data;
             } else {
@@ -140,7 +140,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
-            serverAPI.post('/api/login', userLogin).then(res => {
+            serverAPI.post('/login', userLogin).then(res => {
                 setCookie('token', res.data.cookieJWT)
                 console.log("logged successfully" + res)
             }).catch(err => {
@@ -161,7 +161,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await serverAPI.post('/api/captchaSiteVerify', body, { headers: headers })
+        const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaLoginValid(true)
@@ -218,13 +218,13 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
                 if (userRegister.password === userRegister.repeatpassword) {
                     // api call
-                    serverAPI.post('/api/register', userRegister).then(res => {
+                    serverAPI.post('/register', userRegister).then(res => {
                         // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
                         // setCookie('token', res.data.cookieJWT)
                         console.log('registered successfully' + res)
 
                         // After successful registration, send a request to generate and send a confirmation email
-                        serverAPI.get(API_URL + `/api/user/sendConfirmationEmail/${res.data.insertId}`)
+                        serverAPI.get(`/user/sendConfirmationEmail/${res.data.insertId}`)
                             .then(response => {
                                 alert('An email has been sent to your mail to verify your account!')
                                 console.log('Confirmation email sent successfully', response);
@@ -249,7 +249,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
                 }
             }
         } else {
-            serverAPI.post('/api/registerWithQR', { imagePicQR }).then(res => {
+            serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
                 console.log(res)
             }).catch(err => console.error(err))
         }
@@ -264,7 +264,7 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         // Verify captcha to backend
-        const isHuman = await serverAPI.post('/api/captchaSiteVerify', body, { headers: headers })
+        const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
             console.log('captcha verified successfully')
             setCaptchaRegisterValid(true)
@@ -290,14 +290,14 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         if (userEdit.name != "" && userEdit.surnames != "" && form.checkValidity()) {
-            serverAPI.post('/api/edituser', userEdit).then(res => {
+            serverAPI.post('/edituser', userEdit).then(res => {
                 const formData = new FormData();
                 formData.append("image", imagePic);
                 formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '')
 
-                serverAPI.post('/api/uploadUserImg', formData).then(_ => {
+                serverAPI.post('/uploadUserImg', formData).then(_ => {
                     // retrieve profile pic and put
-                    serverAPI.post('/api/getUserImgByToken', { token: cookies.token }).then(res => {
+                    serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                         const reader = new FileReader();
                         reader.onload = () => {
                             setImagePicPreview(reader.result);

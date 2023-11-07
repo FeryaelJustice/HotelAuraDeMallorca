@@ -124,9 +124,9 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const loggedUserID = await serverAPI.post('/api/getLoggedUserID', { token: cookies.token });
+        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
         if (loggedUserID) {
-            const getLoggedUserData = await serverAPI.get('/api/loggedUser/' + loggedUserID.data.userID).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
@@ -180,7 +180,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
         }
 
         // Services
-        serverAPI.get('/api/services').then(res => {
+        serverAPI.get('/services').then(res => {
             let servicess = res.data.data;
             let retrievedServices: Service[] = [];
             servicess.forEach((service: any) => {
@@ -198,7 +198,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             setSelectedServicesIDs(selectedServicesObject);
 
             // Get and set services images
-            serverAPI.post('/api/servicesImages', { services: servicess }).then(res => {
+            serverAPI.post('/servicesImages', { services: servicess }).then(res => {
                 const responseData = res.data.data;
 
                 // Update the imageURL property of matching services
@@ -217,7 +217,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             (err => console.error(err))
 
         // Rooms
-        serverAPI.get('/api/rooms').then(res => {
+        serverAPI.get('/rooms').then(res => {
             let rooms = res.data.data;
             let retrievedRooms: Room[] = [];
             rooms.forEach((room: any) => {
@@ -228,7 +228,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             (err => console.error(err))
 
         // Plans
-        serverAPI.get('/api/plans').then(res => {
+        serverAPI.get('/plans').then(res => {
             let plans = res.data.data;
             let retrievedPlans: Plan[] = [];
             plans.forEach((plan: any) => {
@@ -248,7 +248,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             (err => console.error(err))
 
         // Payment methods
-        serverAPI.get('/api/paymentmethods').then(res => {
+        serverAPI.get('/paymentmethods').then(res => {
             let paymentMethodss = res.data.data;
             let retrievedPaymentMethods: PaymentMethod[] = [];
             paymentMethodss.forEach((pm: any) => {
@@ -318,7 +318,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepChooseRoom:
-                serverAPI.get('/api/room/' + selectedRoomID).then(res => {
+                serverAPI.get('/room/' + selectedRoomID).then(res => {
                     setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
                 }).catch(err => console.error(err))
 
@@ -350,7 +350,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                         // console.log(`${key}: ${value}`);
                         if (value) {
                             // Si es true, es que esta seleccionado
-                            const res = await serverAPI.get('/api/service/' + key)
+                            const res = await serverAPI.get('/service/' + key)
                             if (res) {
                                 totalServicesPrice += res.data.data[0].serv_price;
                             }
@@ -431,7 +431,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     async function bookingProcess(paymentData: any) {
         try {
             // Check room availability
-            const availabilityResponse = await serverAPI.post('/api/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
+            const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
 
             if (availabilityResponse.data && availabilityResponse.data.status === "success") {
                 if (!availabilityResponse.data.available) {
@@ -470,7 +470,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     async function doPayment(paymentData: any) {
         try {
-            const response = await serverAPI.post('/api/purchase', { data: paymentData });
+            const response = await serverAPI.post('/purchase', { data: paymentData });
             return response.data.client_secret;
         } catch (error) {
             console.error('Error processing payment:', error);
@@ -479,8 +479,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     }
 
     async function cancelBooking() {
-        await serverAPI.post('/api/cancel-payment', { client_secret: paymentTransactionID })
-        const deleteUser = await serverAPI.delete('/api/user', {
+        await serverAPI.post('/cancel-payment', { client_secret: paymentTransactionID })
+        const deleteUser = await serverAPI.delete('/user', {
             headers: {
                 Authorization: cookies.token
             }
@@ -493,7 +493,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
     async function createUser() {
         try {
             const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
-            const res = await serverAPI.post('/api/register', userToCreate);
+            const res = await serverAPI.post('/register', userToCreate);
 
             setCookie('token', res.data.cookieJWT);
 
@@ -518,7 +518,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
 
     async function sendConfirmationEmail(userId: number) {
         try {
-            const response = await serverAPI.get(`/api/user/sendConfirmationEmail/${userId}`);
+            const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`);
             console.log('Confirmation email sent successfully', response);
         } catch (error) {
             console.error('Error sending confirmation email:', error);
@@ -545,7 +545,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
             };
 
             // Make the API call for booking, and there we will also insert the booking services and booking guests
-            const bookingResponse = await serverAPI.post('/api/createBooking', bookingData);
+            const bookingResponse = await serverAPI.post('/createBooking', bookingData);
 
             if (bookingResponse.data.status === "success") {
                 // Make the API call for payment
@@ -558,12 +558,12 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     paymentMethodID: checkedPaymentMethod
                 });
 
-                const paymentResponse = await serverAPI.post('/api/payment', payment);
+                const paymentResponse = await serverAPI.post('/payment', payment);
 
                 if (paymentResponse) {
                     const paymentTransaction = new PaymentTransaction({ id: null, payment_id: paymentResponse.data.insertId, transaction_id: paymentTransactionID ? paymentTransactionID : '' });
 
-                    const paymentTransResponse = await serverAPI.post('/api/paymentTransaction', paymentTransaction);
+                    const paymentTransResponse = await serverAPI.post('/paymentTransaction', paymentTransaction);
 
                     setPaymentTransactionID(paymentTransactionID)
 
