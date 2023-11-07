@@ -480,28 +480,34 @@ expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
     });
 })
 
-expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) => {
+expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
     const userID = req.body.userID;
     // Delete all existing media and user_media associated with the user.
-    const deleteMediaAndUserMediaPromise = new Promise((resolve, reject) => {
+    const deleteMediaPromise = new Promise((resolve, reject) => {
         try {
-            pool.getConnection(async (err, connection) => {
+            pool.getConnection((err, connection) => {
                 if (err) {
                     return reject(err);
                 }
-                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], async (error, results) => {
+                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
                     if (error) {
                         return reject(error);
                     }
 
                     try {
-                        for (const result of results) {
-                            await connection.query('DELETE FROM media WHERE id = ?', [result.media_id]);
+                        if (results && results != []) {
+                            for (const result of results) {
+                                connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
+                                    if (error) {
+                                        reject(err);
+                                    }
+                                });
+                            }
+
+                            resolve();
+                        } else {
+                            reject();
                         }
-
-                        await connection.query('DELETE FROM user_media WHERE user_id = ?', [userID]);
-
-                        resolve();
                     } catch (error) {
                         reject(error);
                     }
@@ -512,23 +518,44 @@ expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) =>
         }
     });
 
+    const deleteUserMediaPromise = deleteMediaPromise.then(() => {
+        return new Promise((resolve, reject) => {
+            pool.getConnection((err, connection) => {
+                if (err) {
+                    return reject(err);
+                }
+                connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve();
+                });
+            });
+        });
+    }).catch(_ => {
+        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} existing in db and couln't be replaced with your new image` });
+    });
+
     // Insert the new media and user_media records.
     const insertMediaAndUserMediaPromise = new Promise((resolve, reject) => {
         try {
-            pool.getConnection(async (err, connection) => {
+            pool.getConnection((err, connection) => {
                 if (err) {
                     return reject(error);
                 }
-                connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], async (err, result) => {
+                connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], (err, result) => {
                     if (err) {
                         return reject(err);
                     }
 
                     try {
                         const newMediaID = result.insertId;
-                        await connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID]);
-
-                        resolve();
+                        connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID], (error) => {
+                            if (error) {
+                                return reject(err);
+                            }
+                            resolve();
+                        });
                     } catch (error) {
                         reject(error);
                     }
@@ -537,12 +564,16 @@ expressRouter.post('/uploadUserImg', upload.single('image'), async (req, res) =>
         } catch (error) {
             reject(error);
         }
+    }).catch(_ => {
+        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} existing in db successfully deleted but couldn't be inserted` });
     });
 
     // Wait for both promises to resolve before sending a response to the client.
-    await Promise.all([deleteMediaAndUserMediaPromise, insertMediaAndUserMediaPromise]);
-
-    return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
+    Promise.all([deleteUserMediaPromise, insertMediaAndUserMediaPromise]).then(() => {
+        return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
+    }).catch(() => {
+        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} for the user couldn't be inserted` });
+    });
 });
 
 expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
