@@ -1681,21 +1681,22 @@ expressRouter.post('/captchaSiteVerify', async (req, res) => {
 // Listen SERVER (RUN)
 const appPort = process.env.APP_PORT || 3000
 
-app.listen(appPort, () => {
-    console.log(`Hotel Aura de Mallorca SERVER listening on port ${appPort}`)
-})
+// Only uncomment HTTPS parts on VM with apache https configured
 
+// HTTPS
 // const serverOptions = {
-// key: fs.readFileSync('test/fixtures/keys/agent2-key.pem'),
-// cert: fs.readFileSync('test/fixtures/keys/agent2-cert.cert')
+//     key: fs.readFileSync('test/fixtures/keys/agent2-key.pem'),
+//     cert: fs.readFileSync('test/fixtures/keys/agent2-cert.cert')
 // }
 
-// if (appPort == 80) {
-//     http.createServer(app).listen(appPort)
-// } else if (appPort == 443) {
-//     https.createServer(serverOptions, app).listen(appPort)
-// } else {
-//     app.listen(appPort, () => {
-//         console.log(`Hotel Aura de Mallorca SERVER listening on port ${appPort}`)
-//     })
-// }
+if (appPort == 80) {
+    http.createServer(app).listen(appPort)
+
+    // HTTPS
+    // } else if (appPort == 443) {
+    // https.createServer(serverOptions, app).listen(appPort)
+} else {
+    app.listen(appPort, () => {
+        console.log(`Hotel Aura de Mallorca SERVER listening on port ${appPort}`)
+    })
+}
