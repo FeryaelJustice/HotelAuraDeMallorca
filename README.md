@@ -159,13 +159,19 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo apt install openssh-server```
 
+  ```sudo systemctl enable ssh```
+
   ```sudo apt install nodejs npm```
 
   ```sudo apt install mariadb-server mariadb-client -y```
 
+  ```sudo systemctl enable mysql```
+
   ```sudo mysql_secure_installation``` (poner la password a 1234 y darle a que sí a eliminar root externo y dbs de test y todo lo que dice)
 
   ```sudo apt install apache2 -y```
+
+  ```sudo systemctl enable apache2```
 
   ```sudo apt -y install php php-common```
 
