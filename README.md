@@ -181,8 +181,6 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo a2enmod php8.*```
 
-  ```sudo apt install phpmyadmin```
-
   ```sudo apt install net-tools```
 
   ```sudo apt install openssl -y```
@@ -219,6 +217,52 @@ IMPORTANTE: EL PROXYPASS DEFINE QUE SI LLAMO A EL DOMINIO DEL VIRTUAL HOST + lo 
 Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/api (que puedo hacer con axios en el front) en la maquina destino donde esta el frontend servido en producción a redirigir la petición axios al localhost de esa máquina al puerto 3000 + /api endpoint donde escucha mi nodejs express.
 
 * Configuración de la web
+
+  * Pre-config:
+
+    ```sudo mysql < /usr/share/phpmyadmin/sql/create_tables.sql```
+
+    ```sudo mariadb```
+
+    ```GRANT SELECT, INSERT, UPDATE, DELETE ON phpmyadmin 'pma'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+
+    ```GRANT SELECT, INSERT, UPDATE, DELETE ON *.* 'admin'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+
+    ```GRANT SELECT, INSERT, UPDATE, DELETE ON *.* 'fer'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+
+    ```FLUSH PRIVILEGES;```
+
+    ```EXIT;```
+
+    ```wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz```
+
+    ```sudo tar xvf phpMyAdmin-latest-all-languages.tar.gz```
+
+    ```sudo mv phpMyAdmin-*-all-languages/ /var/www/html/phpmyadmin```
+
+    ```cd /var/www/html```
+
+    ```sudo cp /usr/share/phpmyadmin/config.sample.inc.php /usr/share/phpmyadmin/config.inc.php```
+
+    ```sudo mkdir /var/www/html/phpmyadmin/tmp```
+
+    ```openssl rand -base64 32``` (copy the value given)
+
+    ```sudo nano /var/www/html/phpmyadmin/config.inc.php```
+
+    Copy the value of pwgen into $cfg['blowfish_secret']
+
+    Uncomment all the lines of the sections: *User used to manipulate with storage* and *Storage database and tables* and one last line to this last mentioned section with: ```$cfg['TempDir'] = '/var/lib/phpmyadmin/tmp';```
+
+    ```sudo chown -R www-data:www-data /var/www/html/phpmyadmin```
+
+    ```sudo nano /etc/apache2/conf-available/phpmyadmin.conf```: put the content of phpmyadmin-virtualhost
+
+    ```sudo a2enconf phpmyadmin.conf```
+
+    ```sudo systemctl restart apache2```
+
+  * Config de la app:
 
   1. Recibir el código fuente completo con git o con FTP.
   2. Borrar los node_modules de las carpetas frontend y backend por tema permisos con ```sudo rm -r nombrecarpeta/```.

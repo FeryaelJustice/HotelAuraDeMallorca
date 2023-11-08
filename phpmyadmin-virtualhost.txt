@@ -1,0 +1,18 @@
+Alias /phpmyadmin /var/www/html/phpmyadmin
+
+<Directory /var/www/html/phpmyadmin/>
+   AddDefaultCharset UTF-8
+   <IfModule mod_authz_core.c>
+          <RequireAny>
+      Require all granted
+     </RequireAny>
+   </IfModule>
+</Directory>
+
+<Directory /var/www/html/phpmyadmin/setup/>
+   <IfModule mod_authz_core.c>
+     <RequireAny>
+       Require all granted
+     </RequireAny>
+   </IfModule>
+</Directory>
