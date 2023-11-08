@@ -15,7 +15,6 @@
         Require all granted
     </Directory>
 
-
     ProxyPass /api http://localhost:3000/api
     ProxyPassReverse /api http://localhost:3000/api
 

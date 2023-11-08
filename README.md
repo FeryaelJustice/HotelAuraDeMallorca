@@ -262,6 +262,9 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
     ```sudo systemctl restart apache2```
 
+  * ACTIVAR SSL antes de config de la app (que se configura para https):
+  Seguir el tutorial de: https://wiki.debian.org/Self-Signed_Certificate
+
   * Config de la app:
 
   1. Recibir el código fuente completo con git o con FTP.
