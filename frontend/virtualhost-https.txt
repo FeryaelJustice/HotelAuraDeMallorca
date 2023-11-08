@@ -11,6 +11,9 @@
         Require all granted
     </Directory>
 
+    ProxyPass /api http://localhost:3000/api
+    ProxyPassReverse /api http://localhost:3000/api
+    
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
     SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key

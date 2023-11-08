@@ -6,7 +6,7 @@
 
 En React y Express JS.
 Web de un hotel con servicios extra para complejidad de implementar
-api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no, además de que tenga un sección dentro de la web sugerida por "Homerti" de un gestor de traducciones EXTERNO EN OTRO DOMINIO Y HOSTING que consumirá la propia página como otras seleccionadas.
+api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no.
 
 Optional feature: crear una seccion de comunidad.
 
@@ -14,7 +14,7 @@ Optional feature: crear una seccion de comunidad.
 
 #### Modals
 
-Los modales serán ventanas "pop-up" para hacer la web más cómoda y sin tantas secciones, habrá modales de login, register y edit profile.
+Los modales serán ventanas "pop-up" para hacer la web más cómoda y sin tantas secciones, habrá modales user management (login, register and edit profile) y de booking.
 
 #### Secciones
 
@@ -33,42 +33,39 @@ habrá la posibilidad de reservar directamente cada servicio.
 
 ##### Reservar (Reservas botón)
 
-* Página de reservas, aquí estará la funcionalidad principal de la web:
-  * Primero, habrá dos botones para elegir si ver tus reservas ya hechas o hacer una nueva reserva (cada una será un modal).
-  * Seleccionar fechas de check-in y check-out (aquí se comprobará si está disponible por el servicio de detección meteorológica).
-  * Decidir el plan (si VIP o Basic).
+* Modal de reservas abierta por el botón, aquí estará la funcionalidad principal de la web:
   * Datos personales (si está logeado se autorellena y no se puede modificar).
-  * Datos de facturación (billing, y lo mismo que con los personales en cuanto al sistema de sesiones).
-  * Forma de pago.
+  * Decidir el plan (si VIP o Basic).
+  * Seleccionar fechas de check-in y check-out (aquí se comprobará si está disponible por el servicio de detección meteorológica).
+  * Seleccionar servicios (opcional).
+  * Rellenar los guests de la reserva (puede incluirse al que hace la reserva del primer paso de datos personales o no).
+  * Forma de pago (y pagar con Stripe o similares).
   * Página de confirmación de reserva (reserva realizada)
 
-##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO HACER FRONT Y BACK EN OTRO PROYECTO, está en la carpeta (./cms/))
+##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO EL FRONT Y BACK ESTÁ EN OTRO PROYECTO, está en la carpeta (./cms/))
 
 * Un gestor de traducciones que traducirá las descripciones y
 otros campos que se generarán estableciendo unos nombres de keys
 para posterior uso de api, json o importacion de base de datos
 en la aplicacion en la que se utilizará. Se hace en Vue y laravel.
 
-  Constará de un frontend en React (integrado con el mismo de la web, ya que es una sección) donde haremos la interfaz web
-en donde se introducirán las traducciones manualmente, así
+Constará de un frontend en Vue metido en el Laravel donde haremos la interfaz web y donde se introducirán las traducciones manualmente, así
 dinámicamente las apps cliente de este gestor irán recuperando,
-las nuevas traducciones. En cuanto al backend (mismo que el de la web también), guardará estas traducciones
-del frontend en su base de datos para así poder utilizarla en la app
-cliente como hemos mencionado.
+las nuevas traducciones. En cuanto al backend Laravel, guardará estas traducciones del frontend en su base de datos para así poder utilizarla en la app cliente como hemos mencionado.
 
-  En cuanto a la BDD, estarán: "pagina", "idioma", "pagina-idioma", "seccion" y "literales" (que son las traducciones) y cada literal tendra asociado una seccion que a su vez
-tendra asociado con fk una pagina, y ademas asociado un idioma,
-y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_2, footer_3..."
+En cuanto a la BDD, estarán: "users", "pagina", "idioma", "pagina-idioma", "seccion", "literales" (que son las traducciones) y "seccion-literal". Cada literal tendrá asociado una sección que a su vez esa sección
+tendra asociado con fk una pagina, además de una sección padre (si la tiene) con un campo section_parent (si es null es que no tiene padre, sino tiene la id de la sección padre), y además las páginas tendrán asociados idiomas,
+y cada literal code tendrá el formato de por ejemplo: "title_1,title_2...footer_1,footer_2, footer_3..."
 
-  Tablas: paginas (se refiere a que web se asocia, ej: vacalia, homerti...), secciones, literales, idiomas, usuarios.
+Tablas: pagina (se refiere a que web se asocia, ej: vacalia, homerti...), seccion, literal, idioma, usuario.
 
-  Por ejemplo, le pides a la API:
-  /api/paginawebID/seccionDeLaPaginaID
-  ->
-  /api/4/239 -> devuelve:
+Por ejemplo, le pides a la API:
+/api/paginawebID/seccionDeLaPaginaID
+->
+/api/4/239 -> devuelve:
 
   [{
-  "literal_key": "footer_21",
+  "literal_code": "footer_21",
   "values": {
    "en": "__*",
    "es": "__*",
@@ -77,7 +74,7 @@ y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_
   }
  },
  {
-  "literal_key": "footer_57",
+  "literal_code": "footer_57",
   "values": {
    "en": "__*",
    "es": "__*",
@@ -87,12 +84,11 @@ y tendran el formato de llave de por ejemplo "title_1,title_2...footer_1,footer_
  }
 ]
 
-  /api/paginawebID/seccionDeLaPaginaID/literalKeyID
+/api/literalCode
 ->
-/api/4/239/footer_34 -> devuelve:
+/api/footer_34 -> devuelve:
 
   {
-  "literal_key": "footer_23",
   "values": {
    "en": "__*",
    "es": "__*",
@@ -131,8 +127,18 @@ Para testear weather API: crear acceso directo del chrome y poner:
 Para cambiar la root password de mysql en XAMPP:
 ```ir al panel de control -> shell -> mysqladmin -u root password```
 
-En el .env de frontend, poner la IP de la maquina virtual en vez de localhost, ya que sino no lo pillará bien.
-Y en el .env de backend, el FRONT_URL: poner el dominio.com si es produccion, localhost:puertovite si es en dev (127.0.0.1 porque no lo pilla el front bien, usar el 127 solo para temas de back, no para front, para eso siempre localhost o el dominio).
+ENVIRONMENT VARIABLES:
+
+* Frontend (.env):
+  * FRONT_URL = dominio de la web CON HTTP ya que se redirigirá automáticamente (ej: http ://aurademallorca.com). Sin el espacio.
+  * TRANSLATIONS_DATA_URL = ./
+  * API_URL = dominio de la web CON HTTPS (ej: https ://aurademallorca.com). Sin el espacio.
+* Backend (.env):
+  * API_URL = dominio de la web CON HTTPS + /api (ej: https ://aurademallorca.com/api). Sin el espacio.
+  * FRONT_URL = dominio de la web CON HTTP ya que se redirigirá automáticamente (ej: http ://aurademallorca.com). Sin el espacio.
+  * CORS_ORIGIN_FRONT_URL = dominio de la web SIN HTTP ya que se sólo es para identificacion del dominio del cors, no del protocolo
+  (ej: aurademallorca.com).
+  * DB_URL ='127.0.0.1', referente a localhost, si falla poner este.
 
 NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
 
@@ -146,29 +152,8 @@ NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en 
 
 ```sudo apt install net-tools```
 
-ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo.
+ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo, y
+```sudo a2enmod proxy / sudo a2enmod proxy_http```
 
-SIN HTTPS el .htaccess así funciona:
-
-IMPORTANTE: SI SE PONE EL PROXYPASS EN EL VIRTUALHOST como /api -> en el .env del frontend, poner el API_URL = (vacio) -> dejarlo vacio, no poner './' ni nada, ya que el código añade un API_URL + /api SIEMPRE porque está configurado para que el API_URL sea una IP, no ruta, si no se pone el proxypass como /api, poner en el API_URL el contenido (ejemplo: virtualhost-> /backend, poner en el API_URL: API_URL = /backend), PERO ESTO FUNCIONA SOLO PARA DENTRO DE LA VM, VISITANDO DESDE WINDOWS PILLA EL LOCALHOST DE WINDOWS LA API.ç
-LLAMADAS -> URL DE FRONT: https / URL DE BACKEND: http
-
-```sh
-<IfModule mod_rewrite.c>
-    Options -MultiViews
-    RewriteEngine On
-    RewriteBase /
-    RewriteRule ^index\.html$ - [L]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-l
-    RewriteRule . /index.html [L]
-</IfModule>
-<IfModule mod_headers.c>
-
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
-    Header set Access-Control-Allow-Headers "origin, x-requested-with, content-type"
-
-</IfModule>
-```
+IMPORTANTE: EL PROXYPASS DEFINE QUE SI LLAMO A EL DOMINIO DEL VIRTUAL HOST + lo que haya en el proxy pass, me redirige a otra IP o Dominio con un puerto que yo quiera. Ejemplo: ProxyPass /api http ://localhost:3000/api.
+Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/api (que puedo hacer con axios en el front) en la maquina destino donde esta el frontend servido en producción a redirigir la petición axios al localhost de esa máquina al puerto 3000 + /api endpoint donde escucha mi nodejs express.
