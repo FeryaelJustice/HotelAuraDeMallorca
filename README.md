@@ -165,7 +165,7 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo apt install mariadb-server mariadb-client -y```
 
-  ```sudo systemctl enable mysql```
+  ```sudo systemctl enable mariadb```
 
   ```sudo mysql_secure_installation``` (poner la password a 1234 y darle a que sí a eliminar root externo y dbs de test y todo lo que dice)
 
