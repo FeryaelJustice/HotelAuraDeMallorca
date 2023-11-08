@@ -124,8 +124,13 @@ Por ejemplo, le pides a la API:
 Para testear weather API: crear acceso directo del chrome y poner:
 ```"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\chromeTemp```
 
-Para cambiar la root password de mysql en XAMPP:
-```ir al panel de control -> shell -> mysqladmin -u root password```
+### Configuración e instalación
+
+#### Configuración
+
+Debemos cambiar el root password de mysql en XAMPP (si es windows, sino, después de instalar mariadb entraremos con ```sudo mysql o sudo mariadb``` y hacemos el ```CREATE USER 'x'@localhost IDENTIFIED BY 'password';``` y después hacer el ```GRANT ALL PRIVILEGES ON *.* TO 'x'@localhost IDENTIFIED BY 'password';``):
+
+```Panel de control -> shell -> mysqladmin -u root password```
 
 ENVIRONMENT VARIABLES:
 
@@ -142,18 +147,66 @@ ENVIRONMENT VARIABLES:
 
 NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
 
-###### Instalación en Linux
+PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
-```sudo apt install php libapache2-mod-php php-cli php-fpm php-json php-pdo php-mysql php-zip php-gd  php-mbstring php-curl php-xml php-pear php-bcmath```
+#### Instalación en Linux
 
-```sudo a2enmod php8.*```
+* Requirements
 
-```sudo apt install phpmyadmin```
+  ```sudo apt update```
 
-```sudo apt install net-tools```
+  ```sudo apt upgrade```
 
-ACTIVAR ```a2enmod rewrite / a2enmod headers``` con sudo, y
-```sudo a2enmod proxy / sudo a2enmod proxy_http```
+  ```sudo apt install openssh-server```
+
+  ```sudo apt install nodejs npm```
+
+  ```sudo apt install mariadb-server mariadb-client -y```
+
+  ```sudo mysql_secure_installation``` (poner la password a 1234 y darle a que sí a eliminar root externo y dbs de test y todo lo que dice)
+
+  ```sudo apt install apache2 -y```
+
+  ```sudo apt -y install php php-common```
+
+  ```sudo apt -y install php-cli php-fpm php-json php-pdo php-mysql php-zip php-gd php-mbstring php-curl php-xml php-pear php-bcmath```
+
+  ```sudo apt -y install libapache2-mod-php```
+
+  ```sudo a2enmod php7.*```
+
+  ```sudo apt install phpmyadmin```
+
+  ```sudo apt install net-tools```
+
+  ```sudo apt install openssl -y```
+
+  ```sudo a2enmod rewrite / sudo a2enmod headers```
+
+  ```sudo a2enmod proxy / sudo a2enmod proxy_http```
+
+  ```sudo systemctl restart apache2```
+
+  ```sudo apt install pm2```
+
+  ```sudo pm2 startup```
 
 IMPORTANTE: EL PROXYPASS DEFINE QUE SI LLAMO A EL DOMINIO DEL VIRTUAL HOST + lo que haya en el proxy pass, me redirige a otra IP o Dominio con un puerto que yo quiera. Ejemplo: ProxyPass /api http ://localhost:3000/api.
 Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/api (que puedo hacer con axios en el front) en la maquina destino donde esta el frontend servido en producción a redirigir la petición axios al localhost de esa máquina al puerto 3000 + /api endpoint donde escucha mi nodejs express.
+
+* Configuración de la web
+  
+  1. Recibir el código fuente completo con git o con FTP.
+  2. Borrar los node_modules de las carpetas frontend y backend por tema permisos con ```sudo rm -r nombrecarpeta/```.
+  3. Hacer un ```sudo npm install``` para cada carpeta.
+  4. Setear los .env de cada carpeta (con un sudo nano mismo).
+  5. Ir a la carpeta de frontend y generar el dist con ```sudo npm run build```.
+  6. ```sudo mkdir /var/www/hotelaurademallorca```
+  7. ```sudo chmod 755 /var/www/hotelaurademallorca```
+  8. Entrar al dist/ del frontend con ```cd``` y ejecutar ```sudo cp * -r /var/www/hotelaurademallorca```
+  9. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/hotemallorca```.
+  10. Nos movemos a esa carpeta backend con el comando ya visto y vamos a hacer: ```sudo pm2 start index.js``` y ```sudo pm2 save``` en este orden.
+  11. Creamos los virtualhosts de apache con ```sudo nano /etc/apache2/sites-available/hotelaurademallorca.conf``` (para HTTP) y ```sudo nano /etc/apache2/sites-available/hotelaurademallorca-ssl.conf``` (para HTTPS) y ponemos el contenido que necesitan los dos dentro de los archivos txt en el root del codigo fuente.
+  12. Activamos los virtualhosts con ```sudo a2ensite hotelaurademallorca.conf``` y ```sudo a2ensite hotelaurademallorca-ssl.conf``` y luego debemos hacer un ```sudo systemctl reload apache2```.
+  13. Agregamos a nuestro archivo /etc/hosts una línea nueva con: 127.0.0.1 hotelaurademallorca.com
+  14. Hacemos lo mismo que el paso 13 pero en la máquina windows pero en vez de poner esa IP, ponemos la IP que tiene la VM o en donde esté alojado la app en ese momento (ej: 192.168.1.102 hotelaurademallorca.com).
