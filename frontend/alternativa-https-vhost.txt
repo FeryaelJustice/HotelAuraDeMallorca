@@ -1,0 +1,5 @@
+SUSTITUR ESTA PARTE, ESTE NO ES TODO EL VHOST
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
+    SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key

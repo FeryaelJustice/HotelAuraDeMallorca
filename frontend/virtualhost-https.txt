@@ -22,8 +22,8 @@
     ProxyPassReverse /media http://localhost:3000/media
 
     SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
-    SSLCertificateKeyFile /etc/ssl/private/hotelaurademallorca.key
+    SSLCertificateFile /etc/ssl/localcerts/apache.pem
+    SSLCertificateKeyFile /etc/ssl/localcerts/apache.key
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
