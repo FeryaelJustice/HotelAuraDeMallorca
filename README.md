@@ -207,11 +207,19 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo ufw allow 3000```
 
+  ```sudo ufw allow http```
+
+  ```sudo ufw allow https```
+
+  ```sudo ufw allow mysql```
+
+  ```sudo ufw allow ssh```
+
 IMPORTANTE: EL PROXYPASS DEFINE QUE SI LLAMO A EL DOMINIO DEL VIRTUAL HOST + lo que haya en el proxy pass, me redirige a otra IP o Dominio con un puerto que yo quiera. Ejemplo: ProxyPass /api http ://localhost:3000/api.
 Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/api (que puedo hacer con axios en el front) en la maquina destino donde esta el frontend servido en producción a redirigir la petición axios al localhost de esa máquina al puerto 3000 + /api endpoint donde escucha mi nodejs express.
 
 * Configuración de la web
-  
+
   1. Recibir el código fuente completo con git o con FTP.
   2. Borrar los node_modules de las carpetas frontend y backend por tema permisos con ```sudo rm -r nombrecarpeta/```.
   3. Hacer un ```sudo npm install``` para cada carpeta.
