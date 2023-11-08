@@ -193,7 +193,7 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo systemctl restart apache2```
 
-  ```sudo apt install pm2```
+  ```sudo npm -g install pm2```
 
   ```sudo pm2 startup```
 
