@@ -1,8 +1,8 @@
 import './Home.css';
 import { Parallax } from "react-parallax";
-import Image from './../assets/pexels-maria-orlova-garden.webp'
-import Image2 from './../assets/castle-park-1920.webp'
-import Image3 from './../assets/hotel-room-1920.webp'
+import Image from './../assets/images/pexels-maria-orlova-garden.webp'
+import Image2 from './../assets/images/castle-park-1920.webp'
+import Image3 from './../assets/images/hotel-room-1920.webp'
 import { useTranslation } from "react-i18next";
 
 export const Home = () => {
