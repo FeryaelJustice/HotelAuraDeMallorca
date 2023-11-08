@@ -1,5 +1,3 @@
-/etc/apache2/sites-available/hotelaurademallorca-http.conf
-
 <VirtualHost *:80>
     ServerAdmin admin@hotelaurademallorca.com
     ServerName hotelaurademallorca.com
