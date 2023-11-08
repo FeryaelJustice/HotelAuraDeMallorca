@@ -269,10 +269,10 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
   3. Hacer un ```sudo npm install``` para cada carpeta.
   4. Setear los .env de cada carpeta (con un sudo nano mismo).
   5. Ir a la carpeta de frontend y generar el dist con ```sudo npm run build```.
-  6. ```sudo mkdir /var/www/hotelaurademallorca```
-  7. ```sudo chmod 755 /var/www/hotelaurademallorca```
+  6. ```sudo mkdir /var/www/html/hotelaurademallorca```
+  7. ```sudo chmod 755 /var/www/html/hotelaurademallorca```
   8. Entrar al dist/ del frontend con ```cd``` y ejecutar ```sudo cp * -r /var/www/hotelaurademallorca```
-  9. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/hotemallorca```.
+  9. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/html/hotelaurademallorca```.
   10. Nos movemos a esa carpeta backend con el comando ya visto y vamos a hacer: ```sudo pm2 start index.js``` y ```sudo pm2 save``` en este orden.
   11. Creamos los virtualhosts de apache con ```sudo nano /etc/apache2/sites-available/hotelaurademallorca.conf``` (para HTTP) y ```sudo nano /etc/apache2/sites-available/hotelaurademallorca-ssl.conf``` (para HTTPS) y ponemos el contenido que necesitan los dos dentro de los archivos txt en el root del codigo fuente.
   12. Activamos los virtualhosts con ```sudo a2ensite hotelaurademallorca.conf``` y ```sudo a2ensite hotelaurademallorca-ssl.conf``` y luego debemos hacer un ```sudo systemctl reload apache2```.
