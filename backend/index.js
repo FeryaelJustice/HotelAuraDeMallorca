@@ -88,12 +88,7 @@ const dbConfig = {
     connectTimeout: 30000,
     port: process.env.DB_PORT,
     timezone: process.env.DB_TIMEZONE,
-    // MYSQL2 PARAMS
-    //waitForConnections: true,
-    // idleTimeout: 80000,
-    //queueLimit: 0,
-    //enableKeepAlive: true,
-    //keepAliveInitialDelay: 0
+    pingInterval: 60000
 }
 
 // const pool = isWindows ? mysql.createPool(dbConfig) : mysql2.createPool(dbConfig)
