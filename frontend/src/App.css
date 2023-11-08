@@ -315,7 +315,7 @@ button:focus-visible {
 }
 
 .servicesPageBg {
-  background-image: url('./assets/images/services.webp');
+  background-image: url('./assets/services.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -347,7 +347,7 @@ button:focus-visible {
 }
 
 .contactPageBg {
-  background-image: url('./assets/images/laptop-1920.webp');
+  background-image: url('./assets/laptop-1920.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
