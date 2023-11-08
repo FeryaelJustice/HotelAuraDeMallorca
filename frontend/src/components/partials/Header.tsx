@@ -179,7 +179,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
                     <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangForm">
-                            <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
+                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={onChangeLang}>
                                 {LANGUAGES.map(({ code, label }) => (
                                     <option key={code} value={code}>
                                         {label}
@@ -231,7 +231,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
                     <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangFormPhone">
-                            <Form.Select aria-label="Select language" value={selectedLanguage} onChange={onChangeLang}>
+                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={onChangeLang}>
                                 {LANGUAGES.map(({ code, label }) => (
                                     <option key={code} value={code}>
                                         {label}
