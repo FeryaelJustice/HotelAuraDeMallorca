@@ -11,7 +11,7 @@ export const UserVerify = () => {
     const [verificationStatus, setVerificationStatus] = useState('');
 
     useEffect(() => {
-        serverAPI.post(`api/user/verifyEmail/${token}`)
+        serverAPI.post(`user/verifyEmail/${token}`)
             .then(response => {
                 setVerificationStatus(response.data.status);
                 setCookie('token', response.data.jwt)
