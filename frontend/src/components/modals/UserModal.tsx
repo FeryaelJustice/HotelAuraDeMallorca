@@ -6,7 +6,7 @@ import { useCookies } from 'react-cookie';
 import Alert from 'react-bootstrap/Alert';
 import ReCAPTCHA from "react-google-recaptcha";
 import { User, Role } from './../../models/index';
-import { API_URL } from './../../services/consts';
+import { API_URL_BASE } from './../../services/consts';
 import serverAPI from './../../services/serverAPI';
 import { UserRoles } from '../../constants';
 import './UserModal.css'
@@ -59,7 +59,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
         if (cookies.token) {
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
+                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                setImagePicPreview(picURL);
             })
         }
     }, [])
@@ -74,7 +75,8 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             }).catch(err => console.error(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                setImagePicPreview(API_URL + "/" + res.data.fileURL.url);
+                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                setImagePicPreview(picURL);
             })
         } else {
             setCurrentScreen(UserModalScreens.ScreenLogin)

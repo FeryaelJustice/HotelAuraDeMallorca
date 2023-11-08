@@ -11,6 +11,7 @@ import { LANGUAGES, UserRoles } from "./../../constants";
 import { Role } from './../../models/index';
 import { useTranslation } from "react-i18next";
 import { EventEmitter, Events } from "./../../events/events";
+import { API_URL_BASE } from './../../services/consts';
 
 interface HeaderProps {
     colorScheme: string,
@@ -23,7 +24,6 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
     const [cookies] = useCookies(['token']);
-    const API_URL = process.env.API_URL ? process.env.API_URL : 'http://localhost:3000';
 
     const { i18n, t } = useTranslation();
     const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
@@ -32,7 +32,8 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         if (cookies.token) {
             // retrieve profile pic and put each 20 seconds
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
+                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                setUserPhotoURL(picURL);
             })
         }
     })
@@ -46,29 +47,14 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     useEffect(() => {
         // Set the default language to the one detected by i18next
         setSelectedLanguage(i18n.language);
-
-        /*
-        // Timer profile pic
-        let timerProfilePic = setInterval(() => {
-            if (cookies.token) {
-                // retrieve profile pic and put each 20 seconds
-                serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                    setUserPhotoURL(API_URL + "/" + res.data.fileURL.url);
-                })
-            }
-        }, 10000)
-        return () => {
-            clearInterval(timerProfilePic)
-        }
-        */
     }, [])
 
     useEffect(() => {
         if (cookies.token) {
-            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then((response: any) => {
-                if (response && response.data && response.data.status != "error") {
-                    let picURL = API_URL + "/" + response.data.fileURL.url;
-                    setUserPhotoURL(picURL)
+            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then((res: any) => {
+                if (res && res.data && res.data.status != "error") {
+                    let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    setUserPhotoURL(picURL);
                 }
             }).catch((err: any) => console.error(err))
         }

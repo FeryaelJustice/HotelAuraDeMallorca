@@ -13,6 +13,9 @@
 
     ProxyPass /api http://localhost:3000/api
     ProxyPassReverse /api http://localhost:3000/api
+
+    ProxyPass /media http://localhost:3000/media
+    ProxyPassReverse /media http://localhost:3000/media
     
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/hotelaurademallorca.crt
