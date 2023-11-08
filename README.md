@@ -179,7 +179,7 @@ PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
 
   ```sudo apt -y install libapache2-mod-php```
 
-  ```sudo a2enmod php7.*```
+  ```sudo a2enmod php8.*```
 
   ```sudo apt install phpmyadmin```
 
