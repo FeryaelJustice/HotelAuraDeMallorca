@@ -1,2 +1,21 @@
 User-agent: *
+Disallow: /api/  # No indexar rutas del backend
+Disallow: /media/  # No indexar rutas del backend
+Disallow: /userVerification/  # No indexar rutas específicas del frontend
+Disallow: /i18n/  # No indexar rutas de traducciones
+
+# No seguir enlaces a páginas de administración o recursos sensibles
+Disallow: /admin/
+Disallow: /private/
+Disallow: /login/
+Disallow: /logout/
+
+# Permitir el acceso a recursos estáticos
+Allow: /assets/
+Allow: /public/
+
+# Permite a los motores de búsqueda rastrear todo lo demás
 Allow: /
+
+# Definir la ubicación del sitemap para ayudar a los motores de búsqueda a encontrarlo
+Sitemap: https://hotelaurademallorca.com/sitemap.xml
