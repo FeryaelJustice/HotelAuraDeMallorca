@@ -220,6 +220,8 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
   * Pre-config:
 
+    ```sudo apt install phpmyadmin```
+
     ```sudo mysql < /usr/share/phpmyadmin/sql/create_tables.sql```
 
     ```sudo mariadb```
