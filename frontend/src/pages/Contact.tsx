@@ -4,6 +4,7 @@ import Form from 'react-bootstrap/Form';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
 import { useCookies } from 'react-cookie';
+import BackgroundImage from './../assets/images/laptop-1920.webp'
 
 export const Contact = () => {
     const { t } = useTranslation();
@@ -66,7 +67,7 @@ export const Contact = () => {
 
     return (
         <div className='contactPage'>
-            <div className='contactPageBg' />
+            <div className='contactPageBg' style={{ backgroundImage: `url(${BackgroundImage})` }} />
             <div className='contactPageContent'>
                 <Form id='contactForm' className='contactForm' onSubmit={handleSubmit}>
                     <h1>{t("contact_title")}</h1>

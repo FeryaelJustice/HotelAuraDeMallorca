@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Service } from '../models';
 import Card from 'react-bootstrap/Card';
@@ -8,6 +7,7 @@ import Container from 'react-bootstrap/Container';
 import { API_URL } from './../services/consts';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
+import BackgroundImage from './../assets/images/services.webp'
 
 export const Services = () => {
     const { t } = useTranslation();
@@ -44,7 +44,7 @@ export const Services = () => {
 
     return (
         <div className='servicesPage'>
-            <div className='servicesPageBg' />
+            <div className='servicesPageBg' style={{ backgroundImage: `url(${BackgroundImage})` }} />
             <div className='servicesPageContent' v-if='services'>
                 <Container>
                     <Row className="mt-12">
