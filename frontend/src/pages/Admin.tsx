@@ -17,6 +17,9 @@ interface AdminProps {
 }
 
 export const Admin = ({ colorScheme }: AdminProps) => {
+
+    console.log(colorScheme)
+
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);

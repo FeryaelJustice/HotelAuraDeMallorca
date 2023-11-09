@@ -11,6 +11,9 @@ interface ContactProps {
 }
 
 export const Contact = ({ colorScheme }: ContactProps) => {
+
+    console.log(colorScheme)
+
     const { t } = useTranslation();
     const [cookies, _, removeCookie] = useCookies(['token']);
 

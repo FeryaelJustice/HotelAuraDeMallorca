@@ -29,6 +29,8 @@ enum UserModalScreens {
 
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
+    console.log(colorScheme)
+
     const { t } = useTranslation();
 
     const handleClose = () => {

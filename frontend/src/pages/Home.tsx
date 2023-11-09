@@ -10,6 +10,9 @@ interface HomeProps {
 }
 
 export const Home = ({ colorScheme }: HomeProps) => {
+
+    console.log(colorScheme)
+
     // Get env variables nativa de vite pero es SOLO para react
     // console.log(import.meta.env)
     const { t } = useTranslation();

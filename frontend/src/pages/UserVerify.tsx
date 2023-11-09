@@ -8,6 +8,9 @@ interface UserVerifyProps {
 }
 
 export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
+
+    console.log(colorScheme)
+
     const navigate = useNavigate();
     const [, setCookie,] = useCookies(['token']);
 
