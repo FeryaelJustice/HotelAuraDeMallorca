@@ -4,9 +4,27 @@
     ServerALias www.hotelaurademallorca.com
     DocumentRoot /var/www/html/hotelaurademallorca
 
-    <Directory /var/www/html>
+    <Directory /var/www/html/hotelaurademallorca>
         AllowOverride All
         Require all granted
+
+        RewriteEngine On
+
+        # Exclude /assets from rewrite
+        RewriteCond %{REQUEST_URI} !^/assets
+        RewriteCond %{REQUEST_URI} !^/i18n
+
+        # Exclude proxy paths from rewrite
+        RewriteCond %{REQUEST_URI} !^/api
+        RewriteCond %{REQUEST_URI} !^/media
+
+        # For other non-existent paths, rewrite to index.html
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^(.*)$ /index.html [L]
+
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://hotelaurademallorca.com/$1 [NC,L,R=301]
     </Directory>
 
     <Directory /var/www/html/hotelaurademallorca/assets>

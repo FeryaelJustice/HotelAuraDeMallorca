@@ -6,7 +6,7 @@ import { LANGUAGES } from "../constants";
 
 const languageCodes: string[] = LANGUAGES.map((language) => language.code);
 
-const getCurrentHost = process.env.TRANSLATIONS_DATA_URL
+const getCurrentHost = process.env.TRANSLATIONS_DATA_URL;
 
 i18n
   .use(LanguageDetector)
@@ -21,7 +21,7 @@ i18n
       escapeValue: false,
     },
     backend: {
-      loadPath: `${getCurrentHost}i18n/{{lng}}.json`,
+      loadPath: `${getCurrentHost}/i18n/{{lng}}.json`,
       crossDomain: true,
       requestOptions: {
         mode: "cors",

@@ -6,6 +6,7 @@
 
     # Exclude /assets from the rewrite rules
     RewriteCond %{REQUEST_URI} !^/assets
+    RewriteCond %{REQUEST_URI} !^/i18n
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
