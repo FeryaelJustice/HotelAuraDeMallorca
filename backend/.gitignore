@@ -13,6 +13,4 @@ node_modules
 
 # ENV (modes)
 .env
-
 package-lock.json
-public/

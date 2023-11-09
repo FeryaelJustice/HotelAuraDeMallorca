@@ -452,8 +452,21 @@ VALUES
 INSERT INTO
     media (type, url)
 VALUES
-    ('image', 'media/img/image1.webp'),
-    ('image', 'media/img/user_1.webp');
+    ('image', 'media/img/defaultImage.webp'),
+    ('image', 'media/img/home-main.webp'),
+    ('image', 'media/img/home-secondary.webp'),
+    ('image', 'media/img/home-tertiary.webp'),
+    ('image', 'media/img/services.webp'),
+    ('image', 'media/img/contact.webp'),
+    ('image', 'media/img/garden.webp'),
+    ('image', 'media/img/swimming-pool.webp'),
+    ('image', 'media/img/wifi.webp'),
+    ('image', 'media/img/spa.webp'),
+    ('image', 'media/img/gym.webp'),
+    ('image', 'media/img/room.webp'),
+    ('image', 'media/img/room-vip.webp'),
+    ('image', 'media/img/plan-basic.webp'),
+    ('image', 'media/img/plan-vip.webp');
 
 INSERT INTO
     user_media (user_id, media_id)
@@ -465,23 +478,23 @@ VALUES
 INSERT INTO
     service_media (service_id, media_id)
 VALUES
-    (1, 1),
-    (2, 1),
-    (3, 1),
-    (4, 1),
-    (5, 1);
+    (1, 7),
+    (2, 8),
+    (3, 9),
+    (4, 10),
+    (5, 11);
 
 INSERT INTO
     room_media (room_id, media_id)
 VALUES
-    (1, 1),
-    (2, 1);
+    (1, 12),
+    (2, 13);
 
 INSERT INTO
     plan_media (plan_id, media_id)
 VALUES
-    (1, 1),
-    (2, 1);
+    (1, 14),
+    (2, 15);
 
 -- PROCEDIMIENTOS
 /*
