@@ -12,7 +12,7 @@ import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
 import { isEmptyOrSpaces, validateEmail } from './../../utils';
 import './BookingModal.css'
-import { API_URL } from './../../services/consts';
+import { API_URL_BASE } from './../../services/consts';
 import { WeatherStates } from './../../constants';
 import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
@@ -206,7 +206,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                     return prevServices.map((service) => {
                         const matchingData = responseData.find((data: any) => data.serviceID === service.id);
                         if (matchingData) {
-                            return { ...service, imageURL: API_URL + "/" + matchingData.mediaURL };
+                            return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
                         }
                         return service; // No match found, return the original service
                     });

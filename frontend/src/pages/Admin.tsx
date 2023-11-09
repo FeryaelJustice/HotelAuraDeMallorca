@@ -6,7 +6,6 @@ import Button from 'react-bootstrap/Button';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import serverAPI from './../services/serverAPI';
-// import { API_URL } from './../services/consts';
 import { Booking } from '../models';
 
 // Calendar properties

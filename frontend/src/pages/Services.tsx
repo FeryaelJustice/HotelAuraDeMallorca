@@ -4,7 +4,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { API_URL } from './../services/consts';
+import { API_URL_BASE } from './../services/consts';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
 import BackgroundImage from './../assets/images/services.webp'
@@ -31,7 +31,7 @@ export const Services = () => {
                     return prevServices.map((service) => {
                         const matchingData = responseData.find((data: any) => data.serviceID === service.id);
                         if (matchingData) {
-                            return { ...service, imageURL: API_URL + "/" + matchingData.mediaURL };
+                            return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
                         }
                         return service; // No match found, return the original service
                     });
