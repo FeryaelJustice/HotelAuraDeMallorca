@@ -252,8 +252,16 @@ const UserModal = ({ show, onClose }: UserModalProps) => {
             }
         } else {
             serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
-                console.log(res)
-            }).catch(err => console.error(err))
+                alert('An email has been sent to your mail to verify your account!')
+                console.log('Confirmation email sent successfully', res);
+                resetUserModal();
+                onClose();
+            }).catch(err => {
+                console.error(err)
+                if (err.response.data && err.response.data.message) {
+                    alert(err.response.data.message)
+                }
+            })
         }
     }
 
