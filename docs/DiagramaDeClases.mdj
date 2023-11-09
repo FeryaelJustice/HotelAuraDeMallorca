@@ -1,0 +1,216 @@
+{
+	"_type": "Project",
+	"_id": "AAAAAAFF+h6SjaM2Hec=",
+	"name": "ClassDiagram",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Hec="
+			},
+			"name": "Model",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAGLs+bmHNrZp54=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ClassDiagram",
+					"ownedViews": [
+						{
+							"_type": "UMLClassView",
+							"_id": "AAAAAAGLs+rMTtrnEKc=",
+							"_parent": {
+								"$ref": "AAAAAAGLs+bmHNrZp54="
+							},
+							"model": {
+								"$ref": "AAAAAAGLs+rMTdrl8OU="
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "AAAAAAGLs+rMTtrolKI=",
+									"_parent": {
+										"$ref": "AAAAAAGLs+rMTtrnEKc="
+									},
+									"model": {
+										"$ref": "AAAAAAGLs+rMTdrl8OU="
+									},
+									"subViews": [
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAGLs+rMTtrpVd4=",
+											"_parent": {
+												"$ref": "AAAAAAGLs+rMTtrolKI="
+											},
+											"visible": false,
+											"font": "Arial;13;0",
+											"left": 288,
+											"top": -32,
+											"height": 13
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAGLs+rMTtrqtwA=",
+											"_parent": {
+												"$ref": "AAAAAAGLs+rMTtrolKI="
+											},
+											"font": "Arial;13;1",
+											"left": 453,
+											"top": 215,
+											"width": 41.919921875,
+											"height": 13,
+											"text": "Class1"
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAGLs+rMTtrrrZo=",
+											"_parent": {
+												"$ref": "AAAAAAGLs+rMTtrolKI="
+											},
+											"visible": false,
+											"font": "Arial;13;0",
+											"left": 288,
+											"top": -32,
+											"width": 73.67724609375,
+											"height": 13,
+											"text": "(from Model)"
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAGLs+rMTtrsIuU=",
+											"_parent": {
+												"$ref": "AAAAAAGLs+rMTtrolKI="
+											},
+											"visible": false,
+											"font": "Arial;13;0",
+											"left": 288,
+											"top": -32,
+											"height": 13,
+											"horizontalAlignment": 1
+										}
+									],
+									"font": "Arial;13;0",
+									"left": 448,
+									"top": 208,
+									"width": 51.919921875,
+									"height": 25,
+									"stereotypeLabel": {
+										"$ref": "AAAAAAGLs+rMTtrpVd4="
+									},
+									"nameLabel": {
+										"$ref": "AAAAAAGLs+rMTtrqtwA="
+									},
+									"namespaceLabel": {
+										"$ref": "AAAAAAGLs+rMTtrrrZo="
+									},
+									"propertyLabel": {
+										"$ref": "AAAAAAGLs+rMTtrsIuU="
+									}
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "AAAAAAGLs+rMTtrt024=",
+									"_parent": {
+										"$ref": "AAAAAAGLs+rMTtrnEKc="
+									},
+									"model": {
+										"$ref": "AAAAAAGLs+rMTdrl8OU="
+									},
+									"font": "Arial;13;0",
+									"left": 448,
+									"top": 233,
+									"width": 51.919921875,
+									"height": 10
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "AAAAAAGLs+rMTtruMeY=",
+									"_parent": {
+										"$ref": "AAAAAAGLs+rMTtrnEKc="
+									},
+									"model": {
+										"$ref": "AAAAAAGLs+rMTdrl8OU="
+									},
+									"font": "Arial;13;0",
+									"left": 448,
+									"top": 243,
+									"width": 51.919921875,
+									"height": 10
+								},
+								{
+									"_type": "UMLReceptionCompartmentView",
+									"_id": "AAAAAAGLs+rMTtrvOpQ=",
+									"_parent": {
+										"$ref": "AAAAAAGLs+rMTtrnEKc="
+									},
+									"model": {
+										"$ref": "AAAAAAGLs+rMTdrl8OU="
+									},
+									"visible": false,
+									"font": "Arial;13;0",
+									"left": 144,
+									"top": -16,
+									"width": 10,
+									"height": 10
+								},
+								{
+									"_type": "UMLTemplateParameterCompartmentView",
+									"_id": "AAAAAAGLs+rMTtrw6bw=",
+									"_parent": {
+										"$ref": "AAAAAAGLs+rMTtrnEKc="
+									},
+									"model": {
+										"$ref": "AAAAAAGLs+rMTdrl8OU="
+									},
+									"visible": false,
+									"font": "Arial;13;0",
+									"left": 144,
+									"top": -16,
+									"width": 10,
+									"height": 10
+								}
+							],
+							"font": "Arial;13;0",
+							"containerChangeable": true,
+							"left": 448,
+							"top": 208,
+							"width": 51.919921875,
+							"height": 45,
+							"nameCompartment": {
+								"$ref": "AAAAAAGLs+rMTtrolKI="
+							},
+							"attributeCompartment": {
+								"$ref": "AAAAAAGLs+rMTtrt024="
+							},
+							"operationCompartment": {
+								"$ref": "AAAAAAGLs+rMTtruMeY="
+							},
+							"receptionCompartment": {
+								"$ref": "AAAAAAGLs+rMTtrvOpQ="
+							},
+							"templateParameterCompartment": {
+								"$ref": "AAAAAAGLs+rMTtrw6bw="
+							}
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAGLs+rMTdrl8OU=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Class1"
+				}
+			]
+		}
+	],
+	"documentation": "Hotel Aura de Mallorca Class Diagram",
+	"author": "Fernando GS",
+	"company": "Homerti",
+	"copyright": "Fernando GS",
+	"version": "1"
+}
