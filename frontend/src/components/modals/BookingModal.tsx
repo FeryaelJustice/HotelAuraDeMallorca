@@ -908,7 +908,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                             {plans && plans.length > 0 ? (
                                 <div>
                                     {plans.map((plan) => (
-                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()}>
+                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
                                             <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
                                                 <Card.Text>
@@ -1008,7 +1008,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                         <h4>{t("modal_booking_rooms_found")}</h4>
                                         {filteredRooms.map((room) => (
                                             <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                                <Card style={{ marginTop: '2px' }}>
+                                                <Card style={{ marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
                                                     <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                         <Card.Title>{room.name}</Card.Title>
                                                         <Card.Text>
@@ -1065,7 +1065,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: '2px solid white', borderRadius: '12px' }}>
+                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
                                             <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text style={{}}>
