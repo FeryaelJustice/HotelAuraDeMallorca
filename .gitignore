@@ -37,3 +37,7 @@ dist-ssr
 
 # Stripe
 stripe.exe
+
+# CMS
+./cms/gestor-de-traducciones-cms/package-lock.json
+./cms/gestor-de-traducciones-cms/composer.lock

@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\DB;
 
 class TranslationsController extends Controller
 {
+    public function getAllTranslations()
+    {
+        $literals = Literal::all();
+        return Response::json(['status' => 'success', 'data' => $literals], 200);
+    }
+
     public function createTranslation(Request $request)
     {
         try {
@@ -61,8 +67,8 @@ class TranslationsController extends Controller
                 $literalObj->code = $literal["code"];
                 $literalObj->content = $literal["content"];
                 $auxLiteral = Literal::where('code', $literal["code"])->first();
-                if($auxLiteral && $auxLiteral->id){
-                    return Response::json(['status' => '404', 'message' => 'You cannot put a literal code that is existing'], 400);  
+                if ($auxLiteral && $auxLiteral->id) {
+                    return Response::json(['status' => '404', 'message' => 'You cannot put a literal code that is existing'], 400);
                 }
                 $literalObj->save();
                 $literalID = $literalObj->id;
@@ -72,7 +78,7 @@ class TranslationsController extends Controller
                     // if (!$section) {
                     //    DB::table('section_literal')->insert(['section_id' => $newSection->id, 'literal_id' => $literalID]);
                     // } else {
-                        DB::table('section_literal')->insert(['section_id' => $section["id"], 'literal_id' => $literalID]);
+                    DB::table('section_literal')->insert(['section_id' => $section["id"], 'literal_id' => $literalID]);
                     // }
                 }
             }
@@ -81,6 +87,5 @@ class TranslationsController extends Controller
         } catch (\Exception $e) {
             return Response::json(['status' => '404', 'message' => `Error inserting a translation`], 400);
         }
-
     }
 }

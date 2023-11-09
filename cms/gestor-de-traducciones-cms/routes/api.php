@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Response;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,5 +37,6 @@ Route::prefix('sections')->group(function () {
 });
 
 Route::prefix('translations')->group(function () {
+    Route::get('', [\App\Http\Controllers\TranslationsController::class, 'getAllTranslations']);
     Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
 });
