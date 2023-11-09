@@ -5,7 +5,11 @@ import Image2 from './../assets/images/castle-park-1920.webp'
 import Image3 from './../assets/images/hotel-room-1920.webp'
 import { useTranslation } from "react-i18next";
 
-export const Home = () => {
+interface HomeProps {
+    colorScheme: string,
+}
+
+export const Home = ({ colorScheme }: HomeProps) => {
     // Get env variables nativa de vite pero es SOLO para react
     // console.log(import.meta.env)
     const { t } = useTranslation();

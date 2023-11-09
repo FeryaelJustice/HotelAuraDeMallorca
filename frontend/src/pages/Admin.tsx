@@ -12,7 +12,11 @@ import { Booking } from '../models';
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
-export const Admin = () => {
+interface AdminProps {
+    colorScheme: string,
+}
+
+export const Admin = ({ colorScheme }: AdminProps) => {
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);

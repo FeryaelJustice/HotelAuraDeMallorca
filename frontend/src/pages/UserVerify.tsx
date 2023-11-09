@@ -3,7 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 import serverAPI from './../services/serverAPI';
 
-export const UserVerify = () => {
+interface UserVerifyProps {
+    colorScheme: string,
+}
+
+export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
     const navigate = useNavigate();
     const [, setCookie,] = useCookies(['token']);
 

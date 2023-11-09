@@ -6,7 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useCookies } from 'react-cookie';
 import BackgroundImage from './../assets/images/laptop-1920.webp'
 
-export const Contact = () => {
+interface ContactProps {
+    colorScheme: string,
+}
+
+export const Contact = ({ colorScheme }: ContactProps) => {
     const { t } = useTranslation();
     const [cookies, _, removeCookie] = useCookies(['token']);
 

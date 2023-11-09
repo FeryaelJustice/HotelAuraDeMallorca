@@ -16,6 +16,7 @@ import QRCode from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
 
 interface UserModalProps {
+    colorScheme: string,
     show: boolean,
     onClose: () => void;
 }
@@ -26,7 +27,7 @@ enum UserModalScreens {
     ScreenEditProfile,
 }
 
-const UserModal = ({ show, onClose }: UserModalProps) => {
+const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const { t } = useTranslation();
 

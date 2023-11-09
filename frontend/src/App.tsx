@@ -98,18 +98,18 @@ function App() {
           <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} currentUserRole={currentUserRole} />
           <main id='main' className='main'>
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/userVerification/:token" element={<UserVerify />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/" element={<Home colorScheme={colorScheme} />} />
+              <Route path="/services" element={<Services colorScheme={colorScheme} />} />
+              <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
+              <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
+              <Route path="/admin" element={<Admin colorScheme={colorScheme} />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
 
 
             <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
-            <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} />
-            <UserModal show={isUserModalOpen} onClose={closeUserModal} />
+            <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
+            <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
 
             <CookieConsent>This website uses cookies to enhance the user experience.</CookieConsent>
             <div>

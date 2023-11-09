@@ -30,6 +30,7 @@ import {
 const stripePromise = loadStripe(process.env.STRIPE_PUBLISHABLE_KEY ? process.env.STRIPE_PUBLISHABLE_KEY : '');
 
 interface BookingModalProps {
+    colorScheme: string,
     show: boolean,
     onClose: () => void;
 }
@@ -49,7 +50,7 @@ type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 // BOOKING MODAL COMPONENT
-const BookingModal = ({ show, onClose }: BookingModalProps) => {
+const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     const { t } = useTranslation();
 
@@ -908,7 +909,7 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                 <div>
                                     {plans.map((plan) => (
                                         <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()}>
-                                            <Card.Body>
+                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
                                                 <Card.Text>
                                                     <span>{plan.description}</span>
@@ -1007,8 +1008,8 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                                         <h4>{t("modal_booking_rooms_found")}</h4>
                                         {filteredRooms.map((room) => (
                                             <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                                <Card>
-                                                    <Card.Body>
+                                                <Card style={{ marginTop: '2px' }}>
+                                                    <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                         <Card.Title>{room.name}</Card.Title>
                                                         <Card.Text>
                                                             <span>{room.description}</span>
@@ -1064,10 +1065,10 @@ const BookingModal = ({ show, onClose }: BookingModalProps) => {
                             <Row className="mt-12">
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover' }}>
-                                            <Card.Body>
+                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: '2px solid white', borderRadius: '12px' }}>
+                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{service.name}</Card.Title>
-                                                <Card.Text>
+                                                <Card.Text style={{}}>
                                                     <span>{service.description}</span>
                                                     <br />
                                                     <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>

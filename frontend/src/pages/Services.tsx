@@ -8,8 +8,11 @@ import { API_URL_BASE } from './../services/consts';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
 import BackgroundImage from './../assets/images/services.webp'
+interface ServicesProps {
+    colorScheme: string,
+}
 
-export const Services = () => {
+export const Services = ({ colorScheme }: ServicesProps) => {
     const { t } = useTranslation();
     const [services, setServices] = useState<Service[]>([])
 
@@ -62,7 +65,7 @@ export const Services = () => {
                                         <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s' }}
                                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                                         >
-                                            <Card.Body>
+                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>
                                                     <span>{service.description}</span>
