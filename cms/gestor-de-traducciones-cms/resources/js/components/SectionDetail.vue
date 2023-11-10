@@ -27,13 +27,13 @@
                                     <td>
                                         <template v-if="!item.editMode">{{ item.code }}</template>
                                         <template v-else>
-                                            <input type="text" v-model="item.code" />
+                                            <input type="text" v-model="item.code" placeholder="Código del literal" />
                                         </template>
                                     </td>
                                     <td>
                                         <template v-if="!item.editMode">{{ item.content }}</template>
                                         <template v-else>
-                                            <input type="text" v-model="item.content" />
+                                            <textarea v-model="item.content" placeholder="Contenido del literal"></textarea>
                                         </template>
                                     </td>
                                     <td v-if="sections">
@@ -100,21 +100,26 @@ export default {
             // Make API call to save the changes for the specific row
             const editedData = this.items[index];
 
-            // Example API call (replace with your actual API endpoint and data)
-            axios.put(API_URL + '/translations/updateLiteral', editedData)
-                .then(response => {
-                    // Exit edit mode
-                    this.items[index].editMode = false;
-                    if (response && response.data) {
-                        alert(response.data.message);
-                    }
-                })
-                .catch(error => {
-                    console.log(error);
-                    if (error && error.response && error.response.data) {
-                        alert(error.response.data.error)
-                    }
-                });
+            if (editedData.code !== '') {
+                // Example API call (replace with your actual API endpoint and data)
+                axios.put(API_URL + '/translations/updateLiteral', editedData)
+                    .then(response => {
+                        // Exit edit mode
+                        this.items[index].editMode = false;
+                        if (response && response.data) {
+                            alert(response.data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        if (error && error.response && error.response.data) {
+                            alert(error.response.data.error)
+                        }
+                    });
+            } else {
+                alert('El código no puede estar vacío')
+            }
+
         }
     },
     mounted() {
