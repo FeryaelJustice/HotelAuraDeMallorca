@@ -7,8 +7,6 @@
 
                     <div class="card-body">
                         <p>Section ID: {{ this.$route.params.id }}</p>
-                        <!-- <EasyDataTable :headers="headers" :items="items" buttons-pagination show-index
-                            @click-row="rowSelected" /> -->
 
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
                             <thead>
@@ -18,18 +16,37 @@
                                     <th>LITERAL CONTENT</th>
                                     <th>SECTION ID</th>
                                     <th>LANG CODE</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="item in items" :key="item.id">
+                                <tr v-for="(item, index) in items" :key="item.id">
                                     <td>{{ item.literal_id }}</td>
-                                    <td>{{ item.code }}</td>
-                                    <td>{{ item.content }}</td>
+                                    <td>
+                                        <template v-if="!item.editMode">{{ item.code }}</template>
+                                        <template v-else>
+                                            <input v-model="item.code" />
+                                        </template>
+                                    </td>
+                                    <td>
+                                        <template v-if="!item.editMode">{{ item.content }}</template>
+                                        <template v-else>
+                                            <input v-model="item.content" />
+                                        </template>
+                                    </td>
                                     <td>{{ item.section_id }}</td>
                                     <td>{{ item.lang_code }}</td>
+                                    <td>
+                                        <input type="checkbox" id="edit" name="edit" v-model="item.editMode"
+                                            @change="toggleEditMode(index)" />
+                                        <label for="edit">Edit?</label>
+                                        <!-- Show the "Save Changes" button only for rows in edit mode -->
+                                        <button v-if="item.editMode" @click="saveChanges(index)">Save Changes</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
+                        <button @click="saveChanges">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -38,50 +55,62 @@
 </template>
 
 <script>
-import { RouterLink } from 'vue-router';
-// import type { Header, Item, ClickRowArgument } from "vue3-easy-data-table";
 import axios from "axios";
 const API_URL = "/api";
-
-// const headers: Header[] = [
-//     { text: "LITERAL ID", value: "literal_id" },
-//     { text: "LITERAL CODE", value: "code" },
-//     { text: "LITERAL CONTENT", value: "content" },
-//     { text: "SECTION ID", value: "section_id" },
-//     { text: "LANG CODE", value: "lang_code" },
-// ];
-
-// const items: Item[] = [
-//     { id: "Stephen Curry", section_name: "GSW" },
-//     { id: "Lebron James", section_name: "LAL" },
-//     { id: "Kevin Durant", section_name: "BKN" },
-//     { id: "Giannis Antetokounmpo", section_name: "MIL" },
-// ];
-
 export default {
     name: 'sections/:id',
-    components: {
-        RouterLink,
-    },
     data() {
         return {
-            // headers: headers,
             items: [],
+            originalData: [], // Added to store the original data for each row
         }
     },
     methods: {
-        // rowSelected(item: ClickRowArgument) {
-        //     console.log(item)
-        // }
+        toggleEditMode(index) {
+            // Here we need to only disable the edit mode for the rest of the literals
+            this.items.forEach((item, i) => {
+                if (i !== index) {
+                    item.editMode = false;
+                }
+            });
+
+            // If disable edit mode, restore item to the original data
+            if (!this.items[index].editMode) {
+                this.items[index] = Object.assign({}, this.originalData[index]);
+            }
+        },
+        saveChanges(index) {
+            // Implement your logic to save changes
+            // Access the modified data from this.items[index]
+            console.log("Saving changes for row:", this.items[index]);
+
+            // Make API call to save the changes for the specific row
+            const editedData = this.items[index];
+
+            // Example API call (replace with your actual API endpoint and data)
+            axios.put(API_URL + '/translations/updateLiteral/' + editedData.literal_id, editedData)
+                .then(response => {
+                    // Exit edit mode
+                    this.items[index].editMode = false;
+                })
+                .catch(error => {
+                    console.log(error);
+                    // Handle error if the API call fails
+                    // You may want to provide user feedback
+                });
+        },
     },
     mounted() {
-        // console.log('Pages mounted.')
         const sectionId = this.$route.params.id;
-        console.log('Section ID:', sectionId);
 
         axios.get(API_URL + '/translations/sectionLiterals/' + sectionId).then(response => {
-            console.log(response.data.data)
-            this.items = response.data.data;
+            response.data.data.forEach((sectionLiteral) => {
+                const item = sectionLiteral;
+                item.editMode = false;
+                this.items.push(item)
+                // Deep copy of the original data
+                this.originalData.push({ ...item });
+            })
         }).catch(error => { console.log(error) })
     }
 }
