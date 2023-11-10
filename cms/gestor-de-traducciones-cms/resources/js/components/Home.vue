@@ -347,6 +347,14 @@ fieldset {
     border-radius: 6px;
 }
 
+@media screen and (max-width: 768px) {
+    .literal {
+        .textarea {
+            width: initial;
+        }
+    }
+}
+
 @media screen and (max-width: 400px) {
     .myRow {
         flex-direction: column;
