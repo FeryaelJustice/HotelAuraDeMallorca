@@ -23,7 +23,7 @@ class PageController extends Controller
 
     public function getSectionPage($sectionID)
     {
-        $page = DB::select("SELECT * FROM page p INNER JOIN section s ON p.id=s.app_page_id WHERE s.id=?", [$sectionID]);
+        $page = DB::select("SELECT * FROM app_page p INNER JOIN section s ON p.id=s.app_page_id WHERE s.id=?", [$sectionID]);
         return Response::json(['status' => 'success', 'data' => $page], 200);
     }
 }

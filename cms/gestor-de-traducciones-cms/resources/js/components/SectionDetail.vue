@@ -6,7 +6,8 @@
                     <div class="card-header">Section</div>
 
                     <div class="card-body">
-                        <p>Section: '<b>{{ this.section.section_name }}</b>' of Page: '<b>{{ this.page.app_page_name }}</b>'
+                        <p>Section: '<b>{{ this.section.section_name }}</b>' of Page: '<b v-if="this.pageSection">{{
+                            this.pageSection.app_page_name }}</b>'
                         </p>
 
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
@@ -15,7 +16,7 @@
                                     <th>LITERAL ID</th>
                                     <th>LITERAL CODE</th>
                                     <th>LITERAL CONTENT</th>
-                                    <th>SECTION ID</th>
+                                    <th v-if="sections">SECTION ID</th>
                                     <th>LANG CODE</th>
                                     <th>Actions</th>
                                 </tr>
@@ -35,10 +36,14 @@
                                             <input type="text" v-model="item.content" />
                                         </template>
                                     </td>
-                                    <td>
+                                    <td v-if="sections">
                                         <template v-if="!item.editMode">{{ item.section_id }}</template>
                                         <template v-else>
-                                            <input type="number" v-model="item.section_id">
+                                            <select v-model="item.section_id">
+                                                <option v-for="section in sections" :key="section.id" :value="section.id">
+                                                    {{ section.section_name }}
+                                                </option>
+                                            </select>
                                         </template>
                                     </td>
                                     <td>{{ item.lang_code }}</td>
@@ -67,7 +72,8 @@ export default {
     data() {
         return {
             section: {},
-            page: {},
+            pageSection: {},
+            sections: {},
             items: [],
             originalData: [], // Added to store the original data for each row
         }
@@ -109,19 +115,21 @@ export default {
                         alert(error.response.data.error)
                     }
                 });
-        },
+        }
     },
     mounted() {
         const sectionId = this.$route.params.id;
 
+        // Get section data
         axios.get(API_URL + '/sections/' + sectionId).then(response => {
             this.section = response.data.data;
             // Get the page data for the section
-            axios.get(API_URL + '/pages/' + sectionId).then(response => {
-                this.page = response.data.data
+            axios.get(API_URL + '/pages/section/' + sectionId).then(response => {
+                this.pageSection = response.data.data[0]
                 // Get the page sections for the select
-                axios.get(API_URL + '/sections/pageSections/' + this.page.id).then(response => {
-                    console.log(response.data.data);
+                axios.get(API_URL + '/sections/pageSections/' + this.pageSection.app_page_id).then(response => {
+                    this.sections = response.data.data
+                    console.log(this.sections)
                 }).catch(error => { console.log(error) })
             }).catch(error => {
                 console.log(error)
