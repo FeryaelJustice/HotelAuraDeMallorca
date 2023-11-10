@@ -50,7 +50,9 @@
                                                 <input type="text" class="text" maxlength="1000"
                                                     :id="'literal_' + language.lang_code + '_code'"
                                                     :name="'literal_' + language.lang_code + '_code'"
-                                                    v-model="literals['literal_' + language.lang_code].code" required>
+                                                    v-model="literals['literal_' + language.lang_code].code"
+                                                    placeholder="Se le añadirá un '_languageCode' al final del código para identificarlo por idioma"
+                                                    required>
                                                 <label :for="'literal_' + language.lang_code + '_content'">Introduce el
                                                     contenido del literal</label>
                                                 <textarea class="textarea"
@@ -58,7 +60,7 @@
                                                     :name="'literal_' + language.lang_code + '_content'"
                                                     v-model="literals['literal_' + language.lang_code].content"
                                                     @keypress.enter="handleTextAreaEnter('literal_' + language.lang_code + '_code', $event)"
-                                                    required></textarea>
+                                                    placeholder="Contenido del literal" required></textarea>
                                             </div>
                                         </div>
                                     </transition>
