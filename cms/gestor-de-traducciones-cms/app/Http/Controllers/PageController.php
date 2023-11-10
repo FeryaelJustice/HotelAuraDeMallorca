@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use App\Models\Page;
+use Illuminate\Support\Facades\DB;
 
 class PageController extends Controller
 {
@@ -17,6 +18,12 @@ class PageController extends Controller
     public function getPage($id)
     {
         $page = Page::find($id);
+        return Response::json(['status' => 'success', 'data' => $page], 200);
+    }
+
+    public function getSectionPage($sectionID)
+    {
+        $page = DB::select("SELECT * FROM page p INNER JOIN section s ON p.id=s.app_page_id WHERE s.id=?", [$sectionID]);
         return Response::json(['status' => 'success', 'data' => $page], 200);
     }
 }

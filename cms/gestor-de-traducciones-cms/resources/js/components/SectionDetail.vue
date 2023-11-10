@@ -6,7 +6,8 @@
                     <div class="card-header">Section</div>
 
                     <div class="card-body">
-                        <p>Section ID: {{ this.$route.params.id }}</p>
+                        <p>Section: '<b>{{ this.section.section_name }}</b>' of Page: '<b>{{ this.page.app_page_name }}</b>'
+                        </p>
 
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
                             <thead>
@@ -25,16 +26,21 @@
                                     <td>
                                         <template v-if="!item.editMode">{{ item.code }}</template>
                                         <template v-else>
-                                            <input v-model="item.code" />
+                                            <input type="text" v-model="item.code" />
                                         </template>
                                     </td>
                                     <td>
                                         <template v-if="!item.editMode">{{ item.content }}</template>
                                         <template v-else>
-                                            <input v-model="item.content" />
+                                            <input type="text" v-model="item.content" />
                                         </template>
                                     </td>
-                                    <td>{{ item.section_id }}</td>
+                                    <td>
+                                        <template v-if="!item.editMode">{{ item.section_id }}</template>
+                                        <template v-else>
+                                            <input type="number" v-model="item.section_id">
+                                        </template>
+                                    </td>
                                     <td>{{ item.lang_code }}</td>
                                     <td>
                                         <input type="checkbox" id="edit" name="edit" v-model="item.editMode"
@@ -61,6 +67,8 @@ export default {
     name: 'sections/:id',
     data() {
         return {
+            section: {},
+            page: {},
             items: [],
             originalData: [], // Added to store the original data for each row
         }
@@ -102,6 +110,18 @@ export default {
     },
     mounted() {
         const sectionId = this.$route.params.id;
+
+        axios.get(API_URL + '/sections/' + sectionId).then(response => {
+            this.section = response.data.data;
+            // Get the page data for the section
+            axios.get(API_URL + '/pages/' + sectionId).then(response => {
+                this.page = response.data.data
+            }).catch(error => {
+                console.log(error)
+            })
+        }).catch(error => {
+            console.log(error)
+        })
 
         axios.get(API_URL + '/translations/sectionLiterals/' + sectionId).then(response => {
             response.data.data.forEach((sectionLiteral) => {
