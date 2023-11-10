@@ -100,6 +100,7 @@ class TranslationsController extends Controller
     {
         try {
             Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => explode('_', $request->code)[1]]);
+            DB::table('section_literal')->where('literal_id', $request->id)->update(['section_id' => $request->section_id]);
             return Response::json(['status' => 'success', 'message' => 'Updated successfully'], 200);
         } catch (\Exception $e) {
             return Response::json(['status' => 'error', 'error' => $e], 500);
