@@ -51,7 +51,7 @@
                                                     :id="'literal_' + language.lang_code + '_code'"
                                                     :name="'literal_' + language.lang_code + '_code'"
                                                     v-model="literals['literal_' + language.lang_code].code"
-                                                    placeholder="Se le añadirá un '_languageCode' al final del código para identificarlo por idioma"
+                                                    placeholder="código para identificar el literal (en la página y no repetido en ella, en distintas si)"
                                                     required>
                                                 <label :for="'literal_' + language.lang_code + '_content'">Introduce el
                                                     contenido del literal</label>
@@ -193,10 +193,9 @@ export default {
             // console.log(this.page, this.section, this.literal_es, this.literal_en, this.literal_ca, this.literal_de)
             if (this.checkForm()) {
                 // Append lang code to each literal code
-                for (const languageKey of Object.keys(this.literals)) {
-                    this.literals[languageKey].code += '_' + languageKey.split('_')[1];
-                }
-                console.log(this.literals)
+                // for (const languageKey of Object.keys(this.literals)) {
+                //     this.literals[languageKey].code = this.selectedSectionId + '_' + this.selectedSectionId + '_' + this.literals[languageKey].code + '_' + languageKey.split('_')[1];
+                // }
 
                 // Create the data to send
                 let data = {
@@ -211,7 +210,7 @@ export default {
                     this.emptyForm();
                 }).catch(err => {
                     if (err && err.response && err.response.data) {
-                        alert('Ha ocurrido un error realizando la inserción: ' + err.response.data.message)
+                        alert('Ha ocurrido un error realizando la inserción: ' + err.response.data.message.errorInfo[2])
                     }
                 }
                 )

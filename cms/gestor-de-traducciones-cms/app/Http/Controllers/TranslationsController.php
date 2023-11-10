@@ -9,7 +9,6 @@ use App\Models\Section;
 use App\Models\Page;
 // use App\Models\PageLang;
 // use App\Models\Lang;
-use Illuminate\Support\Facades\DB;
 
 class TranslationsController extends Controller
 {
@@ -67,40 +66,31 @@ class TranslationsController extends Controller
                 $literalObj->code = $literal["code"];
                 $literalObj->content = $literal["content"];
                 $literalObj->lang_code = $literal["lang_code"];
-                $auxLiteral = Literal::where('code', $literal["code"])->first();
-                if ($auxLiteral && $auxLiteral->id) {
-                    return Response::json(['status' => '404', 'message' => 'You cannot put a literal code that is existing'], 400);
-                }
+                $literalObj->section_id = $section->id;
+                $literalObj->page_id = $page->id;
+                // $auxLiteral = Literal::where('code', $literal["code"])->first();
+                // if ($auxLiteral && $auxLiteral->id) {
+                //     return Response::json(['status' => '404', 'message' => 'You cannot put a literal code that is existing'], 400);
+                // }
                 $literalObj->save();
-                $literalID = $literalObj->id;
-                // Check if $section exists before inserting into the section_literal table
-
-                if ($literalObj) {
-                    // if (!$section) {
-                    //    DB::table('section_literal')->insert(['section_id' => $newSection->id, 'literal_id' => $literalID]);
-                    // } else {
-                    DB::table('section_literal')->insert(['section_id' => $section["id"], 'literal_id' => $literalID]);
-                    // }
-                }
             }
 
             return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
         } catch (\Exception $e) {
-            return Response::json(['status' => '404', 'message' => `Error inserting a translation`], 400);
+            return Response::json(['status' => '404', 'message' => $e], 400);
         }
     }
 
     public function getSectionLiterals($sectionId)
     {
-        $literals = DB::select("SELECT * FROM section_literal sl INNER JOIN literal l ON l.id=sl.literal_id WHERE sl.section_id=?", [$sectionId]);
+        $literals = Literal::where('section_id', $sectionId)->get();
         return Response::json(['status' => 'success', 'data' => $literals], 200);
     }
 
     public function updateTranslation(Request $request)
     {
         try {
-            Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => explode('_', $request->code)[1]]);
-            DB::table('section_literal')->where('literal_id', $request->id)->update(['section_id' => $request->section_id]);
+            Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => explode('_', $request->code)[1], 'section_id' => $request->section_id, 'page_id' => $request->page_id]);
             return Response::json(['status' => 'success', 'message' => 'Updated successfully'], 200);
         } catch (\Exception $e) {
             return Response::json(['status' => 'error', 'error' => $e], 500);

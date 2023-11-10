@@ -23,7 +23,7 @@
                             </thead>
                             <tbody>
                                 <tr v-for="(item, index) in items" :key="item.id">
-                                    <td>{{ item.literal_id }}</td>
+                                    <td>{{ item.id }}</td>
                                     <td>
                                         <template v-if="!item.editMode">{{ item.code }}</template>
                                         <template v-else>

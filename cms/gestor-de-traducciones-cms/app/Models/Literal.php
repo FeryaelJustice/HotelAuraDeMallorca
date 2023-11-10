@@ -14,5 +14,7 @@ class Literal extends Model
         'code',
         'content',
         'lang_code',
+        'section_id',
+        'page_id'
     ];
 }
