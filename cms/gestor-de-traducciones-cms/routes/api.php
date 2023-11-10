@@ -34,6 +34,7 @@ Route::prefix('pages')->group(function () {
 
 Route::prefix('sections')->group(function () {
     Route::get('', [\App\Http\Controllers\SectionController::class, 'getSections']);
+    Route::get('/pageSections/{pageId}', [\App\Http\Controllers\SectionController::class, 'getPageSections']);
 });
 
 Route::prefix('translations')->group(function () {

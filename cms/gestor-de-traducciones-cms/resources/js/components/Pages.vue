@@ -18,18 +18,20 @@
 <script lang="ts">
 import { RouterLink } from 'vue-router';
 import type { Header, Item, ClickRowArgument } from "vue3-easy-data-table";
+import axios from "axios";
+const API_URL = "/api";
 
 const headers: Header[] = [
     { text: "ID", value: "id" },
     { text: "PAGE NAME", value: "app_page_name" }
 ];
 
-const items: Item[] = [
-    { id: "Stephen Curry", app_page_name: "GSW" },
-    { id: "Lebron James", app_page_name: "LAL" },
-    { id: "Kevin Durant", app_page_name: "BKN" },
-    { id: "Giannis Antetokounmpo", app_page_name: "MIL" },
-];
+// const items: Item[] = [
+//     { id: "Stephen Curry", app_page_name: "GSW" },
+//     { id: "Lebron James", app_page_name: "LAL" },
+//     { id: "Kevin Durant", app_page_name: "BKN" },
+//     { id: "Giannis Antetokounmpo", app_page_name: "MIL" },
+// ];
 
 export default {
     name: 'pages',
@@ -39,7 +41,7 @@ export default {
     data() {
         return {
             headers: headers,
-            items: items,
+            items: [],
         }
     },
     methods: {
@@ -51,6 +53,10 @@ export default {
     },
     mounted() {
         // console.log('Pages mounted.')
+        axios.get(API_URL + '/pages').then(response => {
+            console.log(response.data.data)
+            this.items = response.data.data;
+        }).catch(error => { console.log(error) })
     }
 }
 </script>

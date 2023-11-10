@@ -19,18 +19,20 @@
 <script lang="ts">
 import { RouterLink } from 'vue-router';
 import type { Header, Item, ClickRowArgument } from "vue3-easy-data-table";
+import axios from "axios";
+const API_URL = "/api";
 
 const headers: Header[] = [
     { text: "ID", value: "id" },
     { text: "SECTION NAME", value: "section_name" }
 ];
 
-const items: Item[] = [
-    { id: "Stephen Curry", section_name: "GSW" },
-    { id: "Lebron James", section_name: "LAL" },
-    { id: "Kevin Durant", section_name: "BKN" },
-    { id: "Giannis Antetokounmpo", section_name: "MIL" },
-];
+// const items: Item[] = [
+//     { id: "Stephen Curry", section_name: "GSW" },
+//     { id: "Lebron James", section_name: "LAL" },
+//     { id: "Kevin Durant", section_name: "BKN" },
+//     { id: "Giannis Antetokounmpo", section_name: "MIL" },
+// ];
 
 export default {
     name: 'page/:id',
@@ -40,7 +42,7 @@ export default {
     data() {
         return {
             headers: headers,
-            items: items,
+            items: [],
         }
     },
     methods: {
@@ -51,9 +53,14 @@ export default {
         }
     },
     mounted() {
-        // console.log('Pages mounted.') 
+        // console.log('Pages mounted.')
         const pageId = this.$route.params.id;
         console.log('Page ID:', pageId);
+
+        axios.get(API_URL + '/sections/pageSections/' + pageId).then(response => {
+            console.log(response.data.data)
+            this.items = response.data.data;
+        }).catch(error => { console.log(error) })
     }
 }
 </script>

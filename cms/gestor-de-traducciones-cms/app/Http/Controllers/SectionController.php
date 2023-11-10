@@ -19,4 +19,10 @@ class SectionController extends Controller
         $section = Section::find($id);
         return Response::json(['status' => 'success', $section], 200);
     }
+
+    public function getPageSections($pageId)
+    {
+        $sections = Section::where('app_page_id', $pageId)->get();
+        return Response::json(['status' => 'success', 'data' => $sections], 200);
+    }
 }

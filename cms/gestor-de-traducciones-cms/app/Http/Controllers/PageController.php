@@ -10,7 +10,7 @@ class PageController extends Controller
 {
     public function getPages()
     {
-        $pages = Page::orderBy("app_page_name")->get();
+        $pages = Page::orderBy("id")->get();
         return Response::json(['status' => 'success', 'data' => $pages], 200);
     }
 
