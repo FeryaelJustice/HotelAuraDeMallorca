@@ -132,6 +132,34 @@ export default {
                 textarea.setSelectionRange(newCursorPosition, newCursorPosition);
             }
         },
+        setDefaultFormValues() {
+            // Default form values
+            if (this.pages.length > 0) {
+                this.selectedPageId = this.pages[0].id;
+            }
+            if (this.filteredSections.length > 0) {
+                this.selectedSectionId = this.filteredSections[0].id;
+            }
+        },
+        emptyForm() {
+            this.currentLanguage = 'es';
+            this.setDefaultFormValues();
+            this.generateLiterals(this.languages);
+
+        },
+        generateLiterals(languages) {
+            // Generate the literals object based on the available languages
+            const literals = {};
+            for (const language of languages) {
+                const langCode = language.lang_code;
+                literals[`literal_${langCode}`] = {
+                    code: '',
+                    content: '',
+                    lang_code: langCode
+                };
+            }
+            this.literals = literals;
+        },
         checkForm() {
             if (this.page == '') {
                 return false;
@@ -178,6 +206,7 @@ export default {
                 // Create
                 axios.post(API_URL + '/translations/create', data).then(res => {
                     alert(res.data.message)
+                    this.emptyForm();
                 }).catch(err => {
                     if (err && err.response && err.response.data) {
                         alert('Ha ocurrido un error realizando la inserción: ' + err.response.data.message)
@@ -221,25 +250,9 @@ export default {
             this.pages = pages;
             this.sections = sections;
 
-            // Generate the literals object based on the available languages
-            const literals = {};
-            for (const language of languages) {
-                const langCode = language.lang_code;
-                literals[`literal_${langCode}`] = {
-                    code: '',
-                    content: '',
-                    lang_code: langCode
-                };
-            }
-            this.literals = literals;
+            this.generateLiterals(languages);
 
-            // Default form values
-            if (this.pages.length > 0) {
-                this.selectedPageId = this.pages[0].id;
-            }
-            if (this.filteredSections.length > 0) {
-                this.selectedSectionId = this.filteredSections[0].id;
-            }
+            this.setDefaultFormValues();
         }).catch(err => console.error(err))
     }
 }
