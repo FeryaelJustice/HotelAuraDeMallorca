@@ -17,6 +17,6 @@ class PageController extends Controller
     public function getPage($id)
     {
         $page = Page::find($id);
-        return Response::json(['status' => 'success', $page], 200);
+        return Response::json(['status' => 'success', 'data' => $page], 200);
     }
 }

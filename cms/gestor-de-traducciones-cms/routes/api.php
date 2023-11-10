@@ -34,10 +34,12 @@ Route::prefix('pages')->group(function () {
 
 Route::prefix('sections')->group(function () {
     Route::get('', [\App\Http\Controllers\SectionController::class, 'getSections']);
+    Route::get('/{id}', [\App\Http\Controllers\SectionController::class, 'getSection']);
     Route::get('/pageSections/{pageId}', [\App\Http\Controllers\SectionController::class, 'getPageSections']);
 });
 
 Route::prefix('translations')->group(function () {
     Route::get('', [\App\Http\Controllers\TranslationsController::class, 'getAllTranslations']);
     Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
+    Route::get('/sectionLiterals/{sectionId}', [\App\Http\Controllers\TranslationsController::class, 'getSectionLiterals']);
 });

@@ -3,10 +3,10 @@
         <div class="row justify-content-center">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header">Page</div>
+                    <div class="card-header">Section</div>
 
                     <div class="card-body">
-                        <p>Page ID: {{ this.$route.params.id }}</p>
+                        <p>Section ID: {{ this.$route.params.id }}</p>
                         <EasyDataTable :headers="headers" :items="items" buttons-pagination show-index
                             @click-row="rowSelected" />
                     </div>
@@ -23,8 +23,10 @@ import axios from "axios";
 const API_URL = "/api";
 
 const headers: Header[] = [
-    { text: "ID", value: "id" },
-    { text: "SECTION NAME", value: "section_name" }
+    { text: "LITERAL ID", value: "literal_id" },
+    { text: "LITERAL CODE", value: "code" },
+    { text: "LITERAL CONTENT", value: "content" },
+    { text: "SECTION ID", value: "section_id" },
 ];
 
 // const items: Item[] = [
@@ -35,7 +37,7 @@ const headers: Header[] = [
 // ];
 
 export default {
-    name: 'pages/:id',
+    name: 'sections/:id',
     components: {
         RouterLink,
     },
@@ -48,16 +50,14 @@ export default {
     methods: {
         rowSelected(item: ClickRowArgument) {
             console.log(item)
-            const id = item.id;
-            this.$router.push(`/sections/${id}`)
         }
     },
     mounted() {
         // console.log('Pages mounted.')
-        const pageId = this.$route.params.id;
-        console.log('Page ID:', pageId);
+        const sectionId = this.$route.params.id;
+        console.log('Section ID:', sectionId);
 
-        axios.get(API_URL + '/sections/pageSections/' + pageId).then(response => {
+        axios.get(API_URL + '/translations/sectionLiterals/' + sectionId).then(response => {
             console.log(response.data.data)
             this.items = response.data.data;
         }).catch(error => { console.log(error) })

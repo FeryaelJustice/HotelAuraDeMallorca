@@ -17,7 +17,7 @@ class SectionController extends Controller
     public function getSection($id)
     {
         $section = Section::find($id);
-        return Response::json(['status' => 'success', $section], 200);
+        return Response::json(['status' => 'success', 'data' => $section], 200);
     }
 
     public function getPageSections($pageId)

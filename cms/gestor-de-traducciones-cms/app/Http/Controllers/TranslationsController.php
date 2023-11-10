@@ -88,4 +88,10 @@ class TranslationsController extends Controller
             return Response::json(['status' => '404', 'message' => `Error inserting a translation`], 400);
         }
     }
+
+    public function getSectionLiterals($sectionId)
+    {
+        $literals = DB::select("SELECT * FROM section_literal sl INNER JOIN literal l ON l.id=sl.literal_id WHERE sl.section_id=?", [$sectionId]);
+        return Response::json(['status' => 'success', 'data' => $literals], 200);
+    }
 }

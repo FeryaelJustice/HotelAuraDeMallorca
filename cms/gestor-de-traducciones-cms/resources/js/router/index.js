@@ -4,6 +4,7 @@ import Home from './../components/Home.vue'
 import About from './../components/About.vue'
 import Pages from './../components/Pages.vue'
 import PageDetail from './../components/PageDetail.vue'
+import SectionDetail from './../components/SectionDetail.vue'
 import NotFound from './../components/NotFound.vue';
 
 const routes = [
@@ -11,6 +12,7 @@ const routes = [
     { path: '/about', component: About },
     { path: '/pages', component: Pages },
     { path: '/pages/:id', component: PageDetail },
+    { path: '/sections/:id', component: SectionDetail },
     { path: '/:pathMatch(.*)', component: NotFound },
 ]
 const router = createRouter({
