@@ -52,7 +52,6 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <button @click="saveChanges">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -96,15 +95,19 @@ export default {
             const editedData = this.items[index];
 
             // Example API call (replace with your actual API endpoint and data)
-            axios.put(API_URL + '/translations/updateLiteral/' + editedData.literal_id, editedData)
+            axios.put(API_URL + '/translations/updateLiteral', editedData)
                 .then(response => {
                     // Exit edit mode
                     this.items[index].editMode = false;
+                    if (response && response.data) {
+                        alert(response.data.message);
+                    }
                 })
                 .catch(error => {
                     console.log(error);
-                    // Handle error if the API call fails
-                    // You may want to provide user feedback
+                    if (error && error.response && error.response.data) {
+                        alert(error.response.data.error)
+                    }
                 });
         },
     },

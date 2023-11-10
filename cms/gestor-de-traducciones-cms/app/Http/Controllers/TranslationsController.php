@@ -95,4 +95,14 @@ class TranslationsController extends Controller
         $literals = DB::select("SELECT * FROM section_literal sl INNER JOIN literal l ON l.id=sl.literal_id WHERE sl.section_id=?", [$sectionId]);
         return Response::json(['status' => 'success', 'data' => $literals], 200);
     }
+
+    public function updateTranslation(Request $request)
+    {
+        try {
+            Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => explode('_', $request->code)[1]]);
+            return Response::json(['status' => 'success', 'message' => 'Updated successfully'], 200);
+        } catch (\Exception $e) {
+            return Response::json(['status' => 'error', 'error' => $e], 500);
+        }
+    }
 }
