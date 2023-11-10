@@ -24,7 +24,8 @@ const API_URL = "/api";
 
 const headers: Header[] = [
     { text: "ID", value: "id" },
-    { text: "SECTION NAME", value: "section_name" }
+    { text: "SECTION NAME", value: "section_name" },
+    { text: "SECTION PARENT ID", value: "section_parent" }
 ];
 
 // const items: Item[] = [

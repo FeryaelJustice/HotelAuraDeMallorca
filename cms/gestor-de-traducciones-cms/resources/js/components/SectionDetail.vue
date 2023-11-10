@@ -116,6 +116,10 @@ export default {
             // Get the page data for the section
             axios.get(API_URL + '/pages/' + sectionId).then(response => {
                 this.page = response.data.data
+                // Get the page sections for the select
+                axios.get(API_URL + '/sections/pageSections/' + this.page.id).then(response => {
+                    console.log(response.data.data);
+                }).catch(error => { console.log(error) })
             }).catch(error => {
                 console.log(error)
             })
