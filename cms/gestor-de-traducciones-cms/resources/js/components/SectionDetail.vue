@@ -27,6 +27,7 @@ const headers: Header[] = [
     { text: "LITERAL CODE", value: "code" },
     { text: "LITERAL CONTENT", value: "content" },
     { text: "SECTION ID", value: "section_id" },
+    { text: "LANG CODE", value: "lang_code" },
 ];
 
 // const items: Item[] = [
