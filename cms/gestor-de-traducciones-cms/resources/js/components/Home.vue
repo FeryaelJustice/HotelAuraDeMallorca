@@ -162,12 +162,20 @@ export default {
         onSubmit() {
             // console.log(this.page, this.section, this.literal_es, this.literal_en, this.literal_ca, this.literal_de)
             if (this.checkForm()) {
+                // Append lang code to each literal code
+                for (const languageKey of Object.keys(this.literals)) {
+                    this.literals[languageKey].code += '_' + languageKey.split('_')[1];
+                }
+                console.log(this.literals)
+
+                // Create the data to send
                 let data = {
                     page: this.selectedPageId,
                     section: this.selectedSectionId,
                     literals: this.literals
                 }
-                console.log(data)
+
+                // Create
                 axios.post(API_URL + '/translations/create', data).then(res => {
                     alert(res.data.message)
                 }).catch(err => {
@@ -220,6 +228,7 @@ export default {
                 literals[`literal_${langCode}`] = {
                     code: '',
                     content: '',
+                    lang_code: langCode
                 };
             }
             this.literals = literals;

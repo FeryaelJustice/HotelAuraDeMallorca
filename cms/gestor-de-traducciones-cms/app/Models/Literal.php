@@ -13,5 +13,6 @@ class Literal extends Model
     protected $fillable = [
         'code',
         'content',
+        'lang_code',
     ];
 }

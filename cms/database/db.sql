@@ -59,6 +59,7 @@ CREATE TABLE literal (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     code VARCHAR(255) NOT NULL UNIQUE,
     content TEXT,
+    lang_code VARCHAR(3) NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -185,19 +186,67 @@ VALUES
 
 -- INSERTS en la tabla literal
 INSERT INTO
-    literal (code, content)
+    literal (code, content, lang_code)
 VALUES
     (
-        'titleHeader',
-        'Welcome to our website.'
+        'titleHeader_en',
+        'Welcome to our website.',
+        'en'
     ),
     (
-        'footerInfo',
-        'Learn more about us.'
+        'footerInfo_en',
+        'Learn more about us.',
+        'en'
     ),
     (
-        'contactInfo',
-        'Contact us for inquiries.'
+        'contactInfo_en',
+        'Contact us for inquiries.',
+        'en'
+    ),
+    (
+        'titleHeader_es',
+        'Bienvenido a nuestra página web.',
+        'es'
+    ),
+    (
+        'footerInfo_es',
+        'Aprende más sobre nosotros.',
+        'es'
+    ),
+    (
+        'contactInfo_es',
+        'Contáctanos para consultas.',
+        'es'
+    ),
+    (
+        'titleHeader_ca',
+        'Benvingut a la nostra pàgina web.',
+        'ca'
+    ),
+    (
+        'footerInfo_ca',
+        'Aprèn més sobre nosaltres.',
+        'ca'
+    ),
+    (
+        'contactInfo_ca',
+        'Contacteu amb nosaltres per consultes.',
+        'ca'
+    ),
+    (
+        'titleHeader_de',
+        'Willkommen auf unserer Webseite.',
+        'de'
+    ),
+    (
+        'footerInfo_de',
+        'lerne mehr über uns.',
+        'de'
+    ),
+    (
+        'contactInfo_de',
+        'Kontaktieren Sie uns für Anfragen.',
+        'de'
     );
 
 -- INSERTS en la tabla section_literal

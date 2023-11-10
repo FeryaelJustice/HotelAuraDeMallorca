@@ -66,6 +66,7 @@ class TranslationsController extends Controller
                 $literalObj = new Literal();
                 $literalObj->code = $literal["code"];
                 $literalObj->content = $literal["content"];
+                $literalObj->lang_code = $literal["lang_code"];
                 $auxLiteral = Literal::where('code', $literal["code"])->first();
                 if ($auxLiteral && $auxLiteral->id) {
                     return Response::json(['status' => '404', 'message' => 'You cannot put a literal code that is existing'], 400);
