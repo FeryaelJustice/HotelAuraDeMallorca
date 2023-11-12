@@ -98,7 +98,7 @@ CREATE TABLE booking (
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (plan_id) REFERENCES plan(id),
     FOREIGN KEY (room_id) REFERENCES room(id),
-    CONSTRAINT valid_cancellation CHECK (cancellation_deadline <= booking_end_date)
+    CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
 );
 
 -- Create the table booking_service
@@ -519,9 +519,9 @@ BEFORE INSERT ON booking
 FOR EACH ROW
 BEGIN
     SET NEW.cancellation_deadline = NEW.created_at + INTERVAL 24 HOUR;
-    IF NEW.cancellation_deadline >= NEW.booking_end_date THEN
+    IF NEW.cancellation_deadline >= NEW.booking_start_date THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de finalización de la reserva';
+        SET MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de inicio de la reserva';
     END IF;
 END;
 //
