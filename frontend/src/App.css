@@ -239,6 +239,14 @@ nav a {
   /* contrast accessibility */
 }
 
+.footer-right-legal{
+  flex-direction: row !important;
+}
+
+.footer-right-legal span{
+  margin-left: 10px;
+}
+
 .card {
   padding: 2em;
 }

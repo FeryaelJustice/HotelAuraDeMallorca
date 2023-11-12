@@ -3,4 +3,7 @@ export { Services } from "./Services";
 export { Contact } from "./Contact";
 export { UserVerify } from "./UserVerify";
 export { Admin } from "./Admin";
+export { PrivacyPolicy } from './PrivacyPolicy';
+export { LegalNotice } from './LegalNotice';
+export { CookiePolicy } from './CookiePolicy';
 export { NotFound } from "./NotFound";

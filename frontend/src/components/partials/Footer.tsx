@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { NavLink } from "react-router-dom"
+
 export const Footer = () => {
     const { t } = useTranslation();
     return (
@@ -12,6 +14,11 @@ export const Footer = () => {
                     <span>Tlf: <a href="tel:123456789">{t("footer_callus")}</a></span>
                     <span>Whatsapp: <a href="https://api.whatsapp.com/send?phone=123456789">{t("footer_sendmsg")}</a> </span>
                     <span>Email: <a href="mailto:hotelaurademallorca@aurademallorca.com">{t("footer_contact")}</a></span>
+                    <div className="footer-right-legal">
+                        <span><NavLink to="/privacy-policy">Privacy Policy</NavLink></span>
+                        <span><NavLink to="/legal-notice">Legal Notice</NavLink></span>
+                        <span><NavLink to="/cookies-policy">Cookies Policy</NavLink></span>
+                    </div>
                 </div>
             </div>
             <div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
-import { Home, Services, Contact, UserVerify, NotFound, Admin } from './pages';
+import { Home, Services, Contact, UserVerify, NotFound, Admin, PrivacyPolicy, LegalNotice, CookiePolicy } from './pages';
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
@@ -103,9 +103,11 @@ function App() {
               <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
               <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
               <Route path="/admin" element={<Admin colorScheme={colorScheme} />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/legal-notice" element={<LegalNotice />} />
+              <Route path="/cookies-policy" element={<CookiePolicy />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-
 
             <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
             <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
