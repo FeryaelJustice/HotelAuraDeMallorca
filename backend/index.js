@@ -1272,7 +1272,13 @@ async function createOrSelectGuests(guests) {
             insertGuests(guests.filter(guest => guest.id === null))
         ]);
 
-        return existingGuests.map(guest => guest.id).concat(guestIdMap).concat(guestsToInsert);
+        // Use a Set to ensure unique values
+        const guestIdSet = new Set(existingGuests.map(guest => guest.id).concat(guestIdMap).concat(guestsToInsert));
+
+        // Convert the Set back to an array
+        const uniqueGuestIds = Array.from(guestIdSet);
+
+        return uniqueGuestIds;
     } catch (error) {
         throw error; // Optionally, rethrow the error for further handling
     }

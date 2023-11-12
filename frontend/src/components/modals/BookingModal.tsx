@@ -469,8 +469,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
             }
             await cancelBooking();
-        } finally {
             removeCookie('token');
+            // } finally {
+            //     removeCookie('token');
         }
     }
 
