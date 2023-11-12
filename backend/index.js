@@ -537,7 +537,7 @@ expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
         try {
             pool.getConnection((err, connection) => {
                 if (err) {
-                    return reject(error);
+                    return reject(err);
                 }
                 connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], (err, result) => {
                     if (err) {

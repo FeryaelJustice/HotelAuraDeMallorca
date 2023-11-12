@@ -89,13 +89,16 @@ CREATE TABLE booking (
     user_id INT,
     plan_id INT,
     room_id INT,
-    booking_start_date DATE,
-    booking_end_date DATE,
+    booking_start_date DATE NOT NULL,
+    booking_end_date DATE NOT NULL,
+    cancellation_deadline DATE,
+    is_cancelled BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (plan_id) REFERENCES plan(id),
-    FOREIGN KEY (room_id) REFERENCES room(id)
+    FOREIGN KEY (room_id) REFERENCES room(id),
+    CONSTRAINT valid_cancellation CHECK (cancellation_deadline <= booking_end_date)
 );
 
 -- Create the table booking_service
@@ -507,3 +510,19 @@ VALUES
  UPDATE app_user SET AUTO_INCREMENT = maxId;
  END; //
  */
+
+-- TRIGGERS
+-- Cancellation date on booking
+DELIMITER //
+CREATE TRIGGER before_booking_insert
+BEFORE INSERT ON booking
+FOR EACH ROW
+BEGIN
+    SET NEW.cancellation_deadline = NEW.created_at + INTERVAL 24 HOUR;
+    IF NEW.cancellation_deadline >= NEW.booking_end_date THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de finalización de la reserva';
+    END IF;
+END;
+//
+DELIMITER ;

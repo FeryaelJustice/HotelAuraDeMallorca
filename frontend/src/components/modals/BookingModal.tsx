@@ -461,7 +461,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         } catch (error: any) {
             console.error('Error during the booking process:', error);
             if (error && error.response && error.response.data) {
-                alert(error.response.data.message)
+                if (error.response.data.message) {
+                    alert(error.response.data.message)
+                }
+                if (error.response.data.message) {
+                    alert(error.response.data.error)
+                }
             }
             await cancelBooking();
         } finally {
