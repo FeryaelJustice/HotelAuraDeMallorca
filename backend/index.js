@@ -1257,7 +1257,7 @@ expressRouter.post('/createBooking', async (req, res) => {
 
         return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", error: `Internal server error: ${error}` });
     }
 });
 
@@ -1354,7 +1354,7 @@ async function createBooking(booking, guestIds, servicesIDs) {
 
                     connection.query(query, values, async (err, result) => {
                         if (err) {
-                            connection.rollback(() => reject("Error creating booking"));
+                            connection.rollback(() => reject(`Error creating booking: ${err}`));
                             return;
                         }
 

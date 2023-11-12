@@ -464,7 +464,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 if (error.response.data.message) {
                     alert(error.response.data.message)
                 }
-                if (error.response.data.message) {
+                if (error.response.data.error) {
                     alert(error.response.data.error)
                 }
             }
@@ -973,7 +973,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                 </Col>
                                 <Col md={6}>
                                     <h3>{t("modal_booking_rooms_enddate")}</h3>
-                                    <Calendar minDate={startDate instanceof Date ? startDate : undefined} onChange={handleEndDateChange} value={endDate} />
+                                    <Calendar minDate={startDate instanceof Date ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : undefined} onChange={handleEndDateChange} value={endDate} />
                                 </Col>
                             </Row>
                             <br />
