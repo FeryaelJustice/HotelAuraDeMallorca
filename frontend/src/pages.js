@@ -6,4 +6,5 @@ export { Admin } from '@/pages/Admin';
 export { PrivacyPolicy } from '@/pages/PrivacyPolicy';
 export { LegalNotice } from '@/pages/LegalNotice';
 export { CookiePolicy } from '@/pages/CookiePolicy';
+export { TermsOfUse } from '@/pages/TermsOfUse';
 export { NotFound } from '@/pages/NotFound';

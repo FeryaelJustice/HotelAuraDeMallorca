@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
-import { Home, Services, Contact, UserVerify, NotFound, Admin, PrivacyPolicy, LegalNotice, CookiePolicy } from './pages';
+import { Home, Services, Contact, UserVerify, NotFound, Admin, PrivacyPolicy, LegalNotice, CookiePolicy, TermsOfUse } from './pages';
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
@@ -106,6 +106,7 @@ function App() {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/legal-notice" element={<LegalNotice />} />
               <Route path="/cookies-policy" element={<CookiePolicy />} />
+              <Route path="/terms-of-use" element={<TermsOfUse />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
 

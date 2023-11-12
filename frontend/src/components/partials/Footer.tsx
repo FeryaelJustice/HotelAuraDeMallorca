@@ -18,6 +18,7 @@ export const Footer = () => {
                         <span><NavLink to="/privacy-policy">Privacy Policy</NavLink></span>
                         <span><NavLink to="/legal-notice">Legal Notice</NavLink></span>
                         <span><NavLink to="/cookies-policy">Cookies Policy</NavLink></span>
+                        <span><NavLink to="/terms-of-use">Terms of Use</NavLink></span>
                     </div>
                 </div>
             </div>
