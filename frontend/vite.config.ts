@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         "/assets": {
-          target: env.FRONT_URL,
+          target: env.FRONT_ASSETS_URL,
           changeOrigin: true,
         },
       },

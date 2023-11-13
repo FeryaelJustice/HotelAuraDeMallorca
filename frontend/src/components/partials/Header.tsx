@@ -18,9 +18,10 @@ interface HeaderProps {
     onOpenBookingModal: () => void;
     onOpenUserModal: () => void;
     currentUserRole: Role,
+    userHasBookings: boolean
 }
 
-export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, currentUserRole }: HeaderProps) => {
+export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, currentUserRole, userHasBookings }: HeaderProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
     const [cookies] = useCookies(['token']);
@@ -120,6 +121,21 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                 }}>{t("contact")}</NavLink>
                 {(currentUserRole.name == UserRoles.ADMIN || currentUserRole.name == UserRoles.EMPLOYEE) && (
                     <NavLink to="/admin" className={({ isActive }) => {
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
+                    }}>Admin</NavLink>
+                )}
+                {(cookies.token && userHasBookings) && (
+                    <NavLink to="/bookings" className={({ isActive }) => {
                         let classNames = '';
 
                         if (isActive) {

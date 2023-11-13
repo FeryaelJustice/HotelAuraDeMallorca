@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
-import { Home, Services, Contact, UserVerify, NotFound, Admin, PrivacyPolicy, LegalNotice, CookiePolicy, TermsOfUse } from './pages';
+import { Home, Services, Contact, UserVerify, NotFound, UserBookings, Admin, PrivacyPolicy, LegalNotice, CookiePolicy, TermsOfUse } from './pages';
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
@@ -17,10 +17,13 @@ import { UserRoles } from "./constants";
 import { Role } from './models/index';
 
 import summerParty from './assets/music/summer-party.mp3'
+import axios from 'axios';
+import { API_URL } from './services/consts';
 
 function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [userHasBookings, setUserHasBookings] = useState(false);
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const { t } = useTranslation();
 
@@ -60,7 +63,12 @@ function App() {
 
   useEffect(() => {
     if (cookies.token) {
-      getAllLoggedUserData()
+      getAllLoggedUserData().then(res => {
+        let resp = res.data;
+        axios.get(API_URL + '/bookingsByUser/' + resp.id).then((data) => {
+          console.log(data)
+        }).catch(err => console.log(err))
+      })
     }
   }, [cookies])
 
@@ -95,13 +103,14 @@ function App() {
         <div className='app'>
 
           <ScrollToTop />
-          <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} currentUserRole={currentUserRole} />
+          <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} currentUserRole={currentUserRole} userHasBookings={userHasBookings} />
           <main id='main' className='main'>
             <Routes>
               <Route path="/" element={<Home colorScheme={colorScheme} />} />
               <Route path="/services" element={<Services colorScheme={colorScheme} />} />
               <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
               <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
+              <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} />} />
               <Route path="/admin" element={<Admin colorScheme={colorScheme} />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/legal-notice" element={<LegalNotice />} />

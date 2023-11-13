@@ -2,6 +2,7 @@ export { Home } from '@/pages/Home';
 export { Services } from '@/pages/Services';
 export { Contact } from '@/pages/Contact';
 export { UserVerify } from '@/pages/UserVerify';
+export { UserBookings } from '@/pages/UserBookings';
 export { Admin } from '@/pages/Admin';
 export { PrivacyPolicy } from '@/pages/PrivacyPolicy';
 export { LegalNotice } from '@/pages/LegalNotice';
