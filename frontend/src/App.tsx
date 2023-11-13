@@ -17,7 +17,6 @@ import { UserRoles } from "./constants";
 import { Role } from './models/index';
 
 import summerParty from './assets/music/summer-party.mp3'
-import axios from 'axios';
 import { API_URL } from './services/consts';
 
 function App() {
@@ -63,12 +62,10 @@ function App() {
 
   useEffect(() => {
     if (cookies.token) {
-      getAllLoggedUserData().then(res => {
-        let resp = res.data;
-        axios.get(API_URL + '/bookingsByUser/' + resp.id).then((data) => {
-          console.log(data)
-        }).catch(err => console.log(err))
-      })
+      getAllLoggedUserData()
+      serverAPI.get(API_URL + '/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
+        setUserHasBookings(res.data.data.length > 0)
+      }).catch(err => console.log(err))
     }
   }, [cookies])
 
@@ -135,8 +132,8 @@ function App() {
     </Suspense>
   )
 
-  // Get JWT user data
-  async function getAllLoggedUserData(): Promise<any> {
+  // Get JWT user data to set user role for app (currently used in header only)
+  async function getAllLoggedUserData() {
     const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
     if (loggedUserID) {
       const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {

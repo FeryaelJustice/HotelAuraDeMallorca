@@ -18,8 +18,6 @@ interface AdminProps {
 
 export const Admin = ({ colorScheme }: AdminProps) => {
 
-    console.log(colorScheme)
-
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
@@ -123,7 +121,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
             startDate: selectedBookingStartDate,
             endDate: selectedBookingEndDate
         }
-        serverAPI.post('/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
+        serverAPI.put('/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
         }).catch(err => console.error(err))
     }
@@ -137,7 +135,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
     }
 
     return (
-        <div>
+        <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
             <h1>Sección de administrador</h1>
             <div className='admin_bookingSection'>
                 <h2>Bookings</h2>

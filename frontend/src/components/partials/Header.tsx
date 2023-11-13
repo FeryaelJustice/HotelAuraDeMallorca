@@ -119,6 +119,21 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
                     return classNames;
                 }}>{t("contact")}</NavLink>
+                {(cookies.token && userHasBookings) && (
+                    <NavLink to="/user-bookings" className={({ isActive }) => {
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
+                    }}>Reservas</NavLink>
+                )}
                 {(currentUserRole.name == UserRoles.ADMIN || currentUserRole.name == UserRoles.EMPLOYEE) && (
                     <NavLink to="/admin" className={({ isActive }) => {
                         let classNames = '';
@@ -132,22 +147,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                         }
 
                         return classNames;
-                    }}>Admin</NavLink>
-                )}
-                {(cookies.token && userHasBookings) && (
-                    <NavLink to="/bookings" className={({ isActive }) => {
-                        let classNames = '';
-
-                        if (isActive) {
-                            classNames += 'is-active';
-                        }
-
-                        if (colorScheme !== 'dark') {
-                            classNames += classNames ? '-light' : '-light';
-                        }
-
-                        return classNames;
-                    }}>Admin</NavLink>
+                    }}><strong>Admin</strong></NavLink>
                 )}
                 <div id="nav-actions">
                     <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>{t("book")}</Button>
