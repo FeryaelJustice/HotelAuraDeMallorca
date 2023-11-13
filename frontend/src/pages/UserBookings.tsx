@@ -54,7 +54,17 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         serverAPI.put('/cancelBookingByUser', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
             removeBooking();
-        }).catch(err => console.error(err))
+        }).catch(error => {
+            console.error(error)
+            if (error && error.response && error.response.data) {
+                if (error.response.data.message) {
+                    alert(error.response.data.message)
+                }
+                if (error.response.data.error) {
+                    alert(error.response.data.error)
+                }
+            }
+        })
     }
 
     function removeBooking() {

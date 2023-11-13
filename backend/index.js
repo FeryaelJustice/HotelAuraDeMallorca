@@ -1254,25 +1254,42 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
 
             getUserRoleById(connection, userID).then(userRole => {
                 if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                    connection.beginTransaction(async (err) => {
+                    connection.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
                         if (err) {
-                            connection.rollback();
                             return res.status(500).send({ status: "error", error: "Internal server error" });
                         }
-                        connection.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
-                            if (err) {
-                                connection.rollback();
-                                return res.status(500).send({ status: "error", error: "Internal server error" });
+                        if (results) {
+                            const deadline = new Date(results[0].cancellation_deadline)
+                            const currentDate = new Date();
+                            // Compare dates
+                            if (deadline < currentDate) {
+                                return res.status(500).send({
+                                    status: 'error',
+                                    error: 'Deadline to cancel this booking is over',
+                                });
                             }
 
-                            connection.commit((err) => {
+                            connection.beginTransaction(async (err) => {
                                 if (err) {
                                     connection.rollback();
+                                    return res.status(500).send({ status: "error", error: "Internal server error" });
                                 }
-                                return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                                connection.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
+                                    if (err) {
+                                        connection.rollback();
+                                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                                    }
+
+                                    connection.commit((err) => {
+                                        if (err) {
+                                            connection.rollback();
+                                        }
+                                        return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                                    });
+                                })
                             });
-                        })
-                    });
+                        }
+                    })
                 }
             }).catch(err => {
                 return res.status(500).send({ status: "error", error: "Internal server error: " + err });
