@@ -67,7 +67,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                                             onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '')}
                                         >
-                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white', background: colorScheme == "black" ? ' rgba(0, 0, 0, .9)' : 'rgba(255, 255, 255, .9)', width: 'fit-content', borderRadius: '8px' }}>
+                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white', background: colorScheme == "dark" ? ' rgba(0, 0, 0, .9)' : 'rgba(255, 255, 255, .9)', width: 'fit-content', borderRadius: '8px' }}>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>
                                                     <span>{service.description}</span>
