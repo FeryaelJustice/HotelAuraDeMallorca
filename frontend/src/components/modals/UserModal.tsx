@@ -146,8 +146,15 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         setLoginValidated(form.checkValidity());
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
             serverAPI.post('/login', userLogin).then(res => {
-                setCookie('token', res.data.cookieJWT)
-                console.log("logged successfully" + res)
+                if (!res.data.cookieJWT) {
+                    resetUserModal();
+                    onClose();
+                    removeCookie('token');
+                    alert('User has no access token, contact the administrator')
+                } else {
+                    setCookie('token', res.data.cookieJWT)
+                    console.log("logged successfully" + res)
+                }
             }).catch(err => {
                 console.error(err)
                 if (err.response.data && err.response.data.msg) {
