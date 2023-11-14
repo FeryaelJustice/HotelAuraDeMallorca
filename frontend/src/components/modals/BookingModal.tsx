@@ -117,7 +117,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     };
 
     // Booking Modal
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
@@ -502,7 +502,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
             const res = await serverAPI.post('/register', userToCreate);
 
-            setCookie('token', res.data.cookieJWT);
+            if (cookies.cookieConsent) {
+                setCookie('token', res.data.cookieJWT);
+            }
 
             // Send confirmation email
             await sendConfirmationEmail(res.data.insertId);

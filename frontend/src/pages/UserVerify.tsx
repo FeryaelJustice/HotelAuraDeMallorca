@@ -12,22 +12,31 @@ export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
     console.log(colorScheme)
 
     const navigate = useNavigate();
-    const [, setCookie,] = useCookies(['token']);
+    const [cookies, setCookie, _] = useCookies(['token', 'cookieConsent']);
 
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 
     useEffect(() => {
+        if (cookies.cookieConsent) {
         serverAPI.post(`user/verifyEmail/${token}`)
             .then(response => {
                 setVerificationStatus(response.data.status);
-                setCookie('token', response.data.jwt)
-                navigate("/")
+                if (cookies.cookieConsent) {
+                    setCookie('token', response.data.jwt)
+                    navigate("/")
+                } else {
+                    alert("You didn't consent to use cookies, couldn't verify email")
+                }
             })
             .catch(error => {
                 console.error('Error verifying email:', error);
                 setVerificationStatus('error');
             });
+        } else {
+            alert("You didn't consent to use cookies, couldn't verify email")
+            navigate("/")
+        }
     }, []);
 
     useEffect(() => {

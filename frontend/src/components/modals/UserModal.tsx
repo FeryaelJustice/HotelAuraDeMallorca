@@ -52,7 +52,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
-    const [cookies, setCookie, removeCookie] = useCookies(['token']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
     const [currentUser, setCurrentUser] = useState(new User());
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
@@ -152,8 +152,12 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     removeCookie('token');
                     alert('User has no access token, contact the administrator')
                 } else {
-                    setCookie('token', res.data.cookieJWT)
-                    console.log("logged successfully" + res)
+                    if (cookies.cookieConsent) {
+                        setCookie('token', res.data.cookieJWT)
+                        console.log("logged successfully" + res)
+                    } else {
+                        alert("You didn't consent to use cookies, couldn't login")
+                    }
                 }
             }).catch(err => {
                 console.error(err)
