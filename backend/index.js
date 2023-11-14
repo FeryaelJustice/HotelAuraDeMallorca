@@ -330,7 +330,25 @@ expressRouter.post('/login', (req, res) => {
                                 // Generating jwt manually, but we use our db
                                 // const userID = results[0].id;
                                 // let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+
+                                if (!results[0].access_token) {
+                                    // If user hasn't a token, generate jwt token and update the user on db
+                                    const userID = results[0].id;
+                                    const jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                                    connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (error, result) => {
+                                        if (error) {
+                                            console.log("Error updating access token to user on login which haven't gone one before.")
+                                        }
+                                        if (result) {
+                                            return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                        } else {
+                                            console.log("Error updating access token to user on login which haven't gone one before.")
+                                        }
+                                    })
+                                } else {
+                                    // Return the user of db
+                                    return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                }
                             } else {
                                 return res.status(500).send({ status: "error", msg: "User not verified" });
                             }
