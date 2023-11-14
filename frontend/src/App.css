@@ -196,8 +196,6 @@ nav a {
 
 .footer {
   width: 100%;
-  background-color: #FFFFFF;
-  color: #000000;
   height: 160px;
   display: flex;
   flex-direction: column;

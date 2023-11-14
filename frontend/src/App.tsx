@@ -179,7 +179,7 @@ function App() {
               <audio ref={audioRef} src={summerParty} />
             </div>
           </main>
-          <Footer />
+          <Footer colorScheme={colorScheme} />
         </div>
       </Router>
     </Suspense>
