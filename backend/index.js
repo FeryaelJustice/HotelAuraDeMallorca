@@ -11,16 +11,26 @@ const moment = require('moment'); // for dates, library
 const dateFormat = 'YYYY-MM-DD';
 const nodemailer = require("nodemailer");
 const fileExtensionRegex = /\.[^.]+$/;
+const fs = require('fs');
 const multer = require('multer');
-const multerStorage = multer.diskStorage({
+// Podriamos hacer un storage con rutas distintas para cada proposito con un objeto uploadWith con su storage distinto para usarlo en las rutas
+const rutaMedia = 'media/'
+const rutaImgs = rutaMedia + 'img/'
+const rutaProfilePics = rutaImgs + 'users/profilepics/'
+// Aqui hacemos solo para subida de fotos de perfil de usuarios, pero podria hacerse mas
+const multerStorageForUserPic = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/media/img/')
+        // const { id } = req.body
+        // Generico: cb(null, 'public' + rutaMedia)
+        const path = 'public/' + rutaProfilePics
+        fs.mkdirSync(path, { recursive: true })
+        return cb(null, path)
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .webp
+        return cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .webp
     }
 })
-const upload = multer({ storage: multerStorage })
+const uploadWithMulterForUserPic = multer({ storage: multerStorageForUserPic })
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 // const morgan = require('morgan') // logger
@@ -551,7 +561,7 @@ expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
     });
 })
 
-expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
+expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'), (req, res) => {
     const userID = req.body.userID;
 
     // Delete all existing media and user_media associated with the user.
@@ -623,7 +633,7 @@ expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
                     if (!req.file) {
                         reject('No file found')
                     }
-                    connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + filename], (err, result) => {
+                    connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', rutaProfilePics + filename], (err, result) => {
                         if (err) {
                             reject(err);
                         }
