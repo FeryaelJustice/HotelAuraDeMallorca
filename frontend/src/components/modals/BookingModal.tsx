@@ -125,7 +125,10 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
+        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
+            console.log(err)
+            removeCookie('token');
+        });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
@@ -133,8 +136,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
-            } else {
-                removeCookie('token');
             }
         }
     }
@@ -469,7 +470,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
             }
             await cancelBooking();
-            removeCookie('token');
             // } finally {
             //     removeCookie('token');
         }

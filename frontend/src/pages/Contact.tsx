@@ -58,7 +58,10 @@ export const Contact = ({ colorScheme }: ContactProps) => {
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
+        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
+            console.log(err)
+            removeCookie('token');
+        });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
@@ -66,8 +69,6 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
-            } else {
-                removeCookie('token');
             }
         }
     }

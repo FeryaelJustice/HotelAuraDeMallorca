@@ -62,6 +62,7 @@ function App() {
 
   useEffect(() => {
     if (cookies.token) {
+      // Verificamos en el verify user del backend la base de datos con el access token
       getAllLoggedUserData()
       serverAPI.get(API_URL + '/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
         setUserHasBookings(res.data.data.length > 0)
@@ -93,6 +94,25 @@ function App() {
   const closeUserModal = () => {
     setIsUserModalOpen(false);
   };
+
+  // Get JWT user data to set user role for app (currently used in header only)
+  async function getAllLoggedUserData() {
+    const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
+      console.log(err)
+      removeCookie('token');
+    });
+    if (loggedUserID) {
+      const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
+        removeCookie('token')
+        console.error(err)
+      });
+      if (getLoggedUserData) {
+        const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
+        setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
+        return getLoggedUserData.data;
+      }
+    }
+  }
 
   return (
     <Suspense fallback="loading">
@@ -131,24 +151,6 @@ function App() {
       </Router>
     </Suspense>
   )
-
-  // Get JWT user data to set user role for app (currently used in header only)
-  async function getAllLoggedUserData() {
-    const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
-    if (loggedUserID) {
-      const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
-        removeCookie('token')
-        console.error(err)
-      });
-      if (getLoggedUserData) {
-        const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
-        setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
-        return getLoggedUserData.data;
-      } else {
-        removeCookie('token');
-      }
-    }
-  }
 }
 
 export default App

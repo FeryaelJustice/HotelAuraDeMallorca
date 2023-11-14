@@ -105,15 +105,17 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             if (response.data.status == "success") {
                 alert(response.data.message)
                 // Remove cookies
-                removeCookie('token')
-                window.location.reload()
+                logout();
             }
         }).catch(err => console.error(err))
     }
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
-        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
+        const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
+            console.log(err)
+            removeCookie('token');
+        });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
                 removeCookie('token')
@@ -123,8 +125,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
                 setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
                 return getLoggedUserData.data;
-            } else {
-                removeCookie('token');
             }
         }
     }

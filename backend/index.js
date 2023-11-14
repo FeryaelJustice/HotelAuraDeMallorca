@@ -120,17 +120,17 @@ const verifyUser = (req, res, next) => {
                 // Check also on db
                 pool.getConnection((error, connection) => {
                     if (error) {
-                        throw Error;
+                        return res.status(401).json({ status: "error", msg: "Couldn't connect to db on check user token in db." })
                     }
                     connection.query('SELECT id, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
                         if (err) {
-                            throw Error;
+                            return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
                         }
-                        if (result) {
+                        if (result && result.length > 0) {
                             req.id = decoded.userID;
                             next();
                         } else {
-                            throw Error;
+                            return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
                         }
                     })
                 })
@@ -327,10 +327,10 @@ expressRouter.post('/login', (req, res) => {
                             // Check is verified
                             if (results[0].user_verified === 1) {
                                 // Login
-                                let userID = results[0].id;
-                                let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                                // res.cookie('token', jwtToken)
-                                return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                // Generating jwt manually, but we use our db
+                                // const userID = results[0].id;
+                                // let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                             } else {
                                 return res.status(500).send({ status: "error", msg: "User not verified" });
                             }
@@ -367,10 +367,7 @@ expressRouter.post('/loginByToken', (req, res) => {
                     // Check is verified
                     if (results[0].user_verified === 1) {
                         // Login
-                        let userID = results[0].id;
-                        let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                        // res.cookie('token', jwtToken)
-                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                        return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                     } else {
                         return res.status(500).send({ status: "error", msg: "User not verified" });
                     }
@@ -762,8 +759,8 @@ expressRouter.post('/user/verifyEmail/:token', function (req, res) {
             // Clear verification token and expiry
             await clearVerificationToken(connection, user.id);
 
-            let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
-            return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: jwtToken });
+            // let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
+            return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: user.access_token });
         } catch (error) {
             return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
         }
