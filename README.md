@@ -224,19 +224,23 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
     ```sudo mysql < /usr/share/phpmyadmin/sql/create_tables.sql```
 
-    (si los 2 pasos anteriores fallan): [Instalación de PHP manual en Debian](https://www.digitalocean.com/community/tutorials/how-to-install-phpmyadmin-from-source-debian-10)
+    (si los 2 pasos anteriores fallan): [Instalación de PHPMyAdmin manual en Debian](https://www.digitalocean.com/community/tutorials/how-to-install-phpmyadmin-from-source-debian-10)
 
     ```sudo mariadb```
 
-    ```GRANT SELECT, INSERT, UPDATE, DELETE ON phpmyadmin 'pma'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+    ```GRANT SELECT, INSERT, UPDATE, DELETE ON phpmyadmin.* TO 'pma'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
 
-    ```GRANT SELECT, INSERT, UPDATE, DELETE ON *.* 'admin'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+    ```GRANT ALL PRIVILEGES ON ON *.* TO 'admin'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
 
-    ```GRANT SELECT, INSERT, UPDATE, DELETE ON *.* 'fer'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+    ```GRANT ALL PRIVILEGES ON *.* TO 'fer'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
+
+    ```GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
 
     ```FLUSH PRIVILEGES;```
 
     ```EXIT;```
+
+    (if you installed phpmyadmin with the manual way link, you can avoid this, you choose the way you want to install phpmyadmin)
 
     ```wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz```
 
@@ -244,11 +248,11 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
     ```sudo mv phpMyAdmin-*-all-languages/ /var/www/html/phpmyadmin```
 
-    ```cd /var/www/html```
+    ```cd /var/www/html/phpmyadmin```
 
-    ```sudo cp /usr/share/phpmyadmin/config.sample.inc.php /usr/share/phpmyadmin/config.inc.php```
+    ```sudo cp config.sample.inc.php config.inc.php```
 
-    ```sudo mkdir /var/www/html/phpmyadmin/tmp```
+    ```sudo mkdir tmp```
 
     ```openssl rand -base64 32``` (copy the value given)
 
@@ -260,16 +264,18 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
     ```sudo chown -R www-data:www-data /var/www/html/phpmyadmin```
 
+    (avoid until here)
+
     ```sudo nano /etc/apache2/conf-available/phpmyadmin.conf```: put the content of phpmyadmin-virtualhost
 
     ```sudo a2enconf phpmyadmin.conf```
 
     ```sudo systemctl restart apache2```
 
-  * ACTIVAR SSL antes de config de la app (que se configura para https):
-  Seguir el tutorial de: <https://wiki.debian.org/Self-Signed_Certificate>
+* ACTIVAR SSL antes de config de la app (que se configura para https):
+  Seguir el tutorial de: <https://wiki.debian.org/Self-Signed_Certificate>, hacer cada paso con ```sudo```
 
-  * Config de la app:
+* Config de la app:
 
   1. Recibir el código fuente completo con git o con FTP.
   2. Borrar los node_modules de las carpetas frontend y backend por tema permisos con ```sudo rm -r nombrecarpeta/```.
@@ -277,11 +283,12 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
   4. Setear los .env de cada carpeta (con un sudo nano mismo).
   5. Ir a la carpeta de frontend y generar el dist con ```sudo npm run build```.
   6. ```sudo mkdir /var/www/html/hotelaurademallorca```
-  7. ```sudo chmod 755 /var/www/html/hotelaurademallorca```
-  8. Entrar al dist/ del frontend con ```cd``` y ejecutar ```sudo cp * -r /var/www/hotelaurademallorca```
-  9. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/html/hotelaurademallorca```.
-  10. Nos movemos a esa carpeta backend con el comando ya visto y vamos a hacer: ```sudo pm2 start index.js``` y ```sudo pm2 save``` en este orden.
-  11. Creamos los virtualhosts de apache con ```sudo nano /etc/apache2/sites-available/hotelaurademallorca.conf``` (para HTTP) y ```sudo nano /etc/apache2/sites-available/hotelaurademallorca-ssl.conf``` (para HTTPS) y ponemos el contenido que necesitan los dos dentro de los archivos txt en el root del codigo fuente.
-  12. Activamos los virtualhosts con ```sudo a2ensite hotelaurademallorca.conf``` y ```sudo a2ensite hotelaurademallorca-ssl.conf``` y luego debemos hacer un ```sudo systemctl reload apache2```.
-  13. Agregamos a nuestro archivo /etc/hosts una línea nueva con: 127.0.0.1 hotelaurademallorca.com
-  14. Hacemos lo mismo que el paso 13 pero en la máquina windows pero en vez de poner esa IP, ponemos la IP que tiene la VM o en donde esté alojado la app en ese momento (ej: 192.168.1.102 hotelaurademallorca.com).
+  7. ```sudo chown www-data:www-data /var/www/html/hotelaurademallorca```
+  8. ```sudo chmod 755 /var/www/html/hotelaurademallorca```
+  9. Entrar al dist/ del frontend con ```cd``` y ejecutar ```sudo cp * -r /var/www/html/hotelaurademallorca```
+  10. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/html/hotelaurademallorca```.
+  11. Nos movemos a esa carpeta backend con el comando ya visto y vamos a hacer: ```sudo pm2 start index.js``` y ```sudo pm2 save``` en este orden.
+  12. Creamos los virtualhosts de apache con ```sudo nano /etc/apache2/sites-available/hotelaurademallorca.conf``` (para HTTP) y ```sudo nano /etc/apache2/sites-available/hotelaurademallorca-ssl.conf``` (para HTTPS) y ponemos el contenido que necesitan los dos dentro de los archivos txt en el root del codigo fuente.
+  13. Activamos los virtualhosts con ```sudo a2ensite hotelaurademallorca.conf``` y ```sudo a2ensite hotelaurademallorca-ssl.conf``` y luego debemos hacer un ```sudo systemctl reload apache2```.
+  14. Agregamos a nuestro archivo /etc/hosts una línea nueva con: 127.0.0.1 hotelaurademallorca.com
+  15. Hacemos lo mismo que el paso 13 pero en la máquina windows pero en vez de poner esa IP, ponemos la IP que tiene la VM o en donde esté alojado la app en ese momento (ej: 192.168.1.102 hotelaurademallorca.com).
