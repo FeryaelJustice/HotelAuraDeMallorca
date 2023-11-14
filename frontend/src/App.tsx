@@ -8,6 +8,7 @@ import { Home, Services, Contact, UserVerify, NotFound, UserBookings, Admin, Pri
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
+import ViewImageModal from './components/modals/ViewImageModal';
 import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
 import CookieConsent from "react-cookie-consent";
@@ -20,15 +21,31 @@ import summerParty from './assets/music/summer-party.mp3'
 import { API_URL } from './services/consts';
 
 function App() {
+  // MODALS
+  // Booking modal
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  // User modal
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  // Image preview modal
+  const [isImageViewModalOpen, setIsImageViewModalOpen] = useState(false);
+  const [imagePreviewData, setImagePreviewData] = useState({});
+
+  // User has bookings
   const [userHasBookings, setUserHasBookings] = useState(false);
+  
+  // Color scheme
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  
+  // Translations
   const { t } = useTranslation();
 
+  // Cookies
   const [cookies, _, removeCookie] = useCookies(['token', 'cookieConsent']);
+  
+  // Logged user role
   const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
+  // Audio player
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -95,6 +112,19 @@ function App() {
     setIsUserModalOpen(false);
   };
 
+  // Image preview modal
+  const openImagePreviewModal = (src: string, title: string) => {
+    setIsImageViewModalOpen(true);
+    setImagePreviewData({
+      src: src,
+      title: title
+    })
+  }
+
+  const closeImageViewModal = () => {
+    setIsImageViewModalOpen(false);
+  }
+
   // Get JWT user data to set user role for app (currently used in header only)
   async function getAllLoggedUserData() {
     const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
@@ -124,7 +154,7 @@ function App() {
           <main id='main' className='main'>
             <Routes>
               <Route path="/" element={<Home colorScheme={colorScheme} />} />
-              <Route path="/services" element={<Services colorScheme={colorScheme} />} />
+              <Route path="/services" element={<Services colorScheme={colorScheme} openImagePreviewModal={openImagePreviewModal} />} />
               <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
               <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
               <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} />} />
@@ -139,6 +169,7 @@ function App() {
             <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
             <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
             <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
+            <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />
 
             <CookieConsent location='bottom' buttonText='Sure, I accept!' cookieName='cookieConsent' enableDeclineButton style={{ background: "#2B373B" }} buttonStyle={{ color: "#4e503b", fontSize: "13px" }} expires={150}>
               {t("app_name")} uses cookies to its basic funcionality and to enhance the user experience.

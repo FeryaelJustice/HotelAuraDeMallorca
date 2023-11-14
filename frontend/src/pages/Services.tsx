@@ -10,9 +10,10 @@ import { useTranslation } from "react-i18next";
 import BackgroundImage from './../assets/images/services.webp'
 interface ServicesProps {
     colorScheme: string,
+    openImagePreviewModal: (imageSrc: string, title: string) => void,
 }
 
-export const Services = ({ colorScheme }: ServicesProps) => {
+export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) => {
     const { t } = useTranslation();
     const [services, setServices] = useState<Service[]>([])
 
@@ -52,7 +53,7 @@ export const Services = ({ colorScheme }: ServicesProps) => {
                 <Container>
                     <Row className="mt-12">
                         <Col>
-                            <h1 className='servicesPageTitle'>{t("services_title")}</h1>
+                            <h1 className='servicesPageTitle' style={{ backgroundColor: 'black' }}>{t("services_title")}</h1>
                         </Col>
                     </Row>
                     <br />
@@ -62,10 +63,11 @@ export const Services = ({ colorScheme }: ServicesProps) => {
                             <div>
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s' }}
+                                        <Card style={{ cursor: 'pointer', backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', backgroundPositionY: 'center', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                            onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '')}
                                         >
-                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white', background: colorScheme == "black" ? ' rgba(0, 0, 0, .9)' : 'rgba(255, 255, 255, .9)', width: 'fit-content', borderRadius: '8px' }}>
                                                 <Card.Title>{service.name}</Card.Title>
                                                 <Card.Text>
                                                     <span>{service.description}</span>
