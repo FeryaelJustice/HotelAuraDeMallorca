@@ -224,6 +224,8 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
 
     ```sudo mysql < /usr/share/phpmyadmin/sql/create_tables.sql```
 
+    (si los 2 pasos anteriores fallan): [Instalación de PHP manual en Debian](https://www.digitalocean.com/community/tutorials/how-to-install-phpmyadmin-from-source-debian-10)
+
     ```sudo mariadb```
 
     ```GRANT SELECT, INSERT, UPDATE, DELETE ON phpmyadmin 'pma'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
@@ -265,7 +267,7 @@ Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/ap
     ```sudo systemctl restart apache2```
 
   * ACTIVAR SSL antes de config de la app (que se configura para https):
-  Seguir el tutorial de: https://wiki.debian.org/Self-Signed_Certificate
+  Seguir el tutorial de: <https://wiki.debian.org/Self-Signed_Certificate>
 
   * Config de la app:
 
