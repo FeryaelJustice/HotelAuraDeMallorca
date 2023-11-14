@@ -949,7 +949,59 @@ expressRouter.get('/rooms', (req, res) => {
                     return res.status(500).json({ status: "error", msg: "Error on connecting db" });
                 }
                 if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+                    // Results
+                    // Get medias
+                    let roomsMedias = [];
+                    const promises = [];
+
+                    for (room of results) {
+                        const planMediaQuery = new Promise((resolve, reject) => {
+                            const roomID = room.id;
+                            connection.query('SELECT media_id FROM room_media WHERE room_id = ?', [roomID], (error, results) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    if (results && results.length > 0) {
+                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                            if (error) {
+                                                reject(error);
+                                            } else {
+                                                roomsMedias.push({ roomID: roomID, mediaURL: mediaResults[0].url });
+                                                resolve();
+                                            }
+                                        });
+                                    } else {
+                                        resolve("no rooms media");
+                                    }
+                                }
+                            });
+                        });
+                        promises.push(planMediaQuery);
+                    }
+                    Promise.all(promises)
+                        .then(() => {
+                            const combinedArray = results.map(result => {
+                                // Find the corresponding media object based on roomID
+                                const mediaObject = roomsMedias.find(media => media.roomID === result.id);
+
+                                // If a matching media object is found, add its properties to the result
+                                if (mediaObject) {
+                                    return {
+                                        ...result,
+                                        imageURL: mediaObject.mediaURL,
+                                    };
+                                }
+
+                                // If no matching media object is found, return the result as is
+                                return result;
+                            });
+                            // Return services
+                            return res.status(200).send({ status: "success", msg: "Rooms found", data: combinedArray });
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        })
                 } else {
                     return res.status(500).send({ status: "error", msg: "No rooms found" });
                 }
@@ -1022,7 +1074,59 @@ expressRouter.get('/plans', (req, res) => {
                     return res.status(500).json({ status: "error", msg: "Error on connecting db" });
                 }
                 if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Plans found", data: results });
+                    // Results
+                    // Get medias
+                    let plansMedias = [];
+                    const promises = [];
+
+                    for (plan of results) {
+                        const planMediaQuery = new Promise((resolve, reject) => {
+                            const planID = plan.id;
+                            connection.query('SELECT media_id FROM plan_media WHERE plan_id = ?', [planID], (error, results) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    if (results && results.length > 0) {
+                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                            if (error) {
+                                                reject(error);
+                                            } else {
+                                                plansMedias.push({ planID: planID, mediaURL: mediaResults[0].url });
+                                                resolve();
+                                            }
+                                        });
+                                    } else {
+                                        resolve("no plans media");
+                                    }
+                                }
+                            });
+                        });
+                        promises.push(planMediaQuery);
+                    }
+                    Promise.all(promises)
+                        .then(() => {
+                            const combinedArray = results.map(result => {
+                                // Find the corresponding media object based on planID
+                                const mediaObject = plansMedias.find(media => media.planID === result.id);
+
+                                // If a matching media object is found, add its properties to the result
+                                if (mediaObject) {
+                                    return {
+                                        ...result,
+                                        imageURL: mediaObject.mediaURL,
+                                    };
+                                }
+
+                                // If no matching media object is found, return the result as is
+                                return result;
+                            });
+                            // Return services
+                            return res.status(200).send({ status: "success", msg: "Plans found", data: combinedArray });
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        })
                 } else {
                     return res.status(500).send({ status: "error", msg: "No plans found" });
                 }
@@ -1068,7 +1172,59 @@ expressRouter.get('/services', (req, res) => {
                     return res.status(500).json({ status: "error", msg: "Error on connecting db" });
                 }
                 if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Services found", data: results });
+                    // Results
+                    // Get medias
+                    let servicesMedias = [];
+                    const promises = [];
+
+                    for (service of results) {
+                        const serviceMediaQuery = new Promise((resolve, reject) => {
+                            const serviceID = service.id;
+                            connection.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    if (results && results.length > 0) {
+                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                            if (error) {
+                                                reject(error);
+                                            } else {
+                                                servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
+                                                resolve();
+                                            }
+                                        });
+                                    } else {
+                                        resolve("no services media");
+                                    }
+                                }
+                            });
+                        });
+                        promises.push(serviceMediaQuery);
+                    }
+                    Promise.all(promises)
+                        .then(() => {
+                            const combinedArray = results.map(result => {
+                                // Find the corresponding media object based on serviceID
+                                const mediaObject = servicesMedias.find(media => media.serviceID === result.id);
+
+                                // If a matching media object is found, add its properties to the result
+                                if (mediaObject) {
+                                    return {
+                                        ...result,
+                                        imageURL: mediaObject.mediaURL,
+                                    };
+                                }
+
+                                // If no matching media object is found, return the result as is
+                                return result;
+                            });
+                            // Return services
+                            return res.status(200).send({ status: "success", msg: "Services found", data: combinedArray });
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        })
                 } else {
                     return res.status(500).send({ status: "error", msg: "No services found" });
                 }

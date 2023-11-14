@@ -5,6 +5,7 @@ export class Room {
   price: number | null = null;
   availabilityStart: Date | null = null;
   availabilityEnd: Date | null = null;
+  imageURL: string | null = null; // not in DB
 
   constructor(room?: Room) {
     if (room) {
@@ -14,6 +15,7 @@ export class Room {
       this.price = room.price;
       this.availabilityStart = room.availabilityStart;
       this.availabilityEnd = room.availabilityEnd;
+      this.imageURL = room.imageURL;
     }
   }
 }

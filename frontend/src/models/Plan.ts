@@ -3,6 +3,7 @@ export class Plan {
   name: string | null = null;
   description: string | null = null;
   price: number | null = null;
+  imageURL: string | null = null; // not in DB
 
   constructor(plan?: Plan) {
     if (plan) {
@@ -10,6 +11,7 @@ export class Plan {
       this.name = plan.name;
       this.description = plan.description;
       this.price = plan.price;
+      this.imageURL = plan.imageURL;
     }
   }
 }

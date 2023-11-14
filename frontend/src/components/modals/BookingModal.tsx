@@ -183,9 +183,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
         // Services
         serverAPI.get('/services').then(res => {
-            let servicess = res.data.data;
+            const services = res.data.data;
             let retrievedServices: Service[] = [];
-            servicess.forEach((service: any) => {
+            services.forEach((service: any) => {
                 retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: null }))
             })
             setServices(retrievedServices)
@@ -200,21 +200,18 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             setSelectedServicesIDs(selectedServicesObject);
 
             // Get and set services images
-            serverAPI.post('/servicesImages', { services: servicess }).then(res => {
-                const responseData = res.data.data;
-
-                // Update the imageURL property of matching services
-                setServices((prevServices) => {
-                    return prevServices.map((service) => {
-                        const matchingData = responseData.find((data: any) => data.serviceID === service.id);
-                        if (matchingData) {
-                            return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
-                        }
-                        return service; // No match found, return the original service
-                    });
-                });
-
-            }).catch(err => { console.error(err) });
+            // serverAPI.post('/servicesImages', { services: servicess }).then(res => {
+            //     const responseData = res.data.data;s
+            //     setServices((prevServices) => {
+            //         return prevServices.map((service) => {
+            //             const matchingData = responseData.find((data: any) => data.serviceID === service.id);
+            //             if (matchingData) {
+            //                 return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
+            //             }
+            //             return service; // No match found, return the original service
+            //         });
+            //     });
+            // }).catch(err => { console.error(err) });
         }).catch
             (err => console.error(err))
 
@@ -223,7 +220,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             let rooms = res.data.data;
             let retrievedRooms: Room[] = [];
             rooms.forEach((room: any) => {
-                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end) }))
+                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end), imageURL: null }))
             })
             setRooms(retrievedRooms)
         }).catch
@@ -234,7 +231,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             let plans = res.data.data;
             let retrievedPlans: Plan[] = [];
             plans.forEach((plan: any) => {
-                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price }))
+                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price, imageURL: null }))
             })
             setPlans(retrievedPlans)
             setStripeOptions({
