@@ -26,7 +26,7 @@ function App() {
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const { t } = useTranslation();
 
-  const [cookies, _, removeCookie] = useCookies(['token']);
+  const [cookies, _, removeCookie] = useCookies(['token', 'cookieConsent']);
   const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -140,7 +140,9 @@ function App() {
             <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
             <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
 
-            <CookieConsent>This website uses cookies to enhance the user experience.</CookieConsent>
+            <CookieConsent location='bottom' buttonText='Sure, I accept!' cookieName='cookieConsent' enableDeclineButton style={{ background: "#2B373B" }} buttonStyle={{ color: "#4e503b", fontSize: "13px" }} expires={150}>
+              {t("app_name")} uses cookies to its basic funcionality and to enhance the user experience.
+            </CookieConsent>
             <div>
               <button onClick={toggleAudio}>{isPlaying ? 'Pause Audio' : 'Play Audio'}</button>
               <audio ref={audioRef} src={summerParty} />
