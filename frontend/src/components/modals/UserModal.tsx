@@ -187,8 +187,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         user_surnames: 'usuario',
         user_password: '1234',
         user_verified: 0,
-        verification_token: null,
-        verification_token_expiry: null,
         user_email: userRegister.email,
     };
     const handleFormWantsQRRegister = (e: any) => {

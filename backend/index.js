@@ -117,8 +117,23 @@ const verifyUser = (req, res, next) => {
             if (err) {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
-                req.id = decoded.userID;
-                next();
+                // Check also on db
+                pool.getConnection((error, connection) => {
+                    if (error) {
+                        throw Error;
+                    }
+                    connection.query('SELECT id, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
+                        if (err) {
+                            throw Error;
+                        }
+                        if (result) {
+                            req.id = decoded.userID;
+                            next();
+                        } else {
+                            throw Error;
+                        }
+                    })
+                })
             }
         })
     }
@@ -170,10 +185,10 @@ expressRouter.post('/register', (req, res) => {
                 if (resultss.length > 0) {
                     return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
                 } else {
-                    let sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
+                    const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password) VALUES (?, ?, ?, ?)';
 
                     bcrypt.hash(data.password, salt, (err, hash) => {
-                        let values = [data.name, data.surnames, data.email, hash, 0];
+                        const values = [data.name, data.surnames, data.email, hash];
                         connection.query(sql, values, (error, results) => {
                             if (error) {
                                 console.error(error);
@@ -192,6 +207,12 @@ expressRouter.post('/register', (req, res) => {
 
                             // Insert user role to user
                             connection.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, data.roleID], (err) => {
+                                if (err) {
+                                    console.error(err)
+                                }
+                            });
+
+                            connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
                                 if (err) {
                                     console.error(err)
                                 }
@@ -230,12 +251,12 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                     if (resultss.length > 0) {
                         return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
                     } else {
-                        const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified, verification_token, verification_token_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                        const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
                         bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
-                            const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified, extractedData.verification_token, extractedData.verification_token_expiry];
+                            const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified];
                             connection.query(query, values, (err, result) => {
                                 if (err) {
-                                    console.error(error);
+                                    console.error(err);
                                     return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
                                 }
                                 if (result) {
@@ -256,10 +277,14 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                         }
                                     });
 
-                                    sendConfirmationEmail(connection, userID).then(json => {
+                                    connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    });
 
+                                    sendConfirmationEmail(connection, userID).then(json => {
                                         return res.status(200).json({ json, cookieJWT: jwtToken, insertId: userID });
-                                        return res.status(200).send(json);
                                     }).catch(jsonError => {
                                         return res.status(500).send(jsonError);
                                     })
@@ -315,6 +340,42 @@ expressRouter.post('/login', (req, res) => {
                     })
                 } else {
                     return res.status(500).send({ status: "error", msg: "No email exists" });
+                }
+            });
+        } catch (error) {
+            res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    });
+})
+
+expressRouter.post('/loginByToken', (req, res) => {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error acquiring connection from pool:', err);
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        try {
+            const token = req.body.token;
+            let sql = 'SELECT * FROM app_user WHERE access_token = ?';
+            let values = [token];
+            connection.query(sql, values, (error, results) => {
+                if (error) {
+                    console.error(error);
+                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                }
+                if (results.length > 0) {
+                    // Check is verified
+                    if (results[0].user_verified === 1) {
+                        // Login
+                        let userID = results[0].id;
+                        let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                        // res.cookie('token', jwtToken)
+                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                    } else {
+                        return res.status(500).send({ status: "error", msg: "User not verified" });
+                    }
+                } else {
+                    return res.status(500).send({ status: "error", msg: "Token not valid" });
                 }
             });
         } catch (error) {
@@ -477,98 +538,108 @@ expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
 
 expressRouter.post('/uploadUserImg', upload.single('image'), (req, res) => {
     const userID = req.body.userID;
+
     // Delete all existing media and user_media associated with the user.
-    const deleteMediaPromise = new Promise((resolve, reject) => {
-        try {
-            pool.getConnection((err, connection) => {
-                if (err) {
-                    return reject(err);
-                }
-                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
-                    if (error) {
-                        return reject(error);
-                    }
-
-                    try {
-                        if (results && results != []) {
-                            for (const result of results) {
-                                connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
-                                    if (error) {
-                                        reject(err);
-                                    }
-                                });
-                            }
-
-                            resolve();
-                        } else {
-                            reject();
-                        }
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            });
-        } catch (error) {
-            reject(error);
-        }
-    });
-
-    const deleteUserMediaPromise = deleteMediaPromise.then(() => {
+    function deleteMediaPromise(userID) {
         return new Promise((resolve, reject) => {
-            pool.getConnection((err, connection) => {
-                if (err) {
-                    return reject(err);
-                }
-                connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
-                    if (error) {
-                        return reject(error);
+            try {
+                pool.getConnection((err, connection) => {
+                    if (err) {
+                        reject(err);
                     }
-                    resolve();
+                    connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
+                        if (error) {
+                            reject(error);
+                        }
+
+                        try {
+                            if (results && results != []) {
+                                for (const result of results) {
+                                    connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
+                                        if (error) {
+                                            reject(err);
+                                        }
+                                    });
+                                }
+
+                                resolve();
+                            } else {
+                                reject();
+                            }
+                        } catch (error) {
+                            reject(error);
+                        }
+                    });
                 });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    function deleteUserMediaPromise(userID) {
+        return new Promise((resolve, reject) => {
+            deleteMediaPromise(userID).then(() => {
+                pool.getConnection((err, connection) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        resolve();
+                    });
+                });
+            }).catch(_ => {
+                reject('Image existing in db and coulnt be replaced with your new image')
             });
         });
-    }).catch(_ => {
-        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} existing in db and couln't be replaced with your new image` });
-    });
+    }
 
     // Insert the new media and user_media records.
-    const insertMediaAndUserMediaPromise = new Promise((resolve, reject) => {
-        try {
-            pool.getConnection((err, connection) => {
-                if (err) {
-                    return reject(err);
-                }
-                connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + req.file.filename], (err, result) => {
+    function insertMediaAndUserMediaPromise(filename, userID) {
+        return new Promise((resolve, reject) => {
+            try {
+                pool.getConnection((err, connection) => {
                     if (err) {
-                        return reject(err);
+                        reject(err);
                     }
+                    if (!req.file) {
+                        reject('No file found')
+                    }
+                    connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', 'media/img/' + filename], (err, result) => {
+                        if (err) {
+                            reject(err);
+                        }
 
-                    try {
-                        const newMediaID = result.insertId;
-                        connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID], (error) => {
-                            if (error) {
-                                return reject(err);
-                            }
-                            resolve();
-                        });
-                    } catch (error) {
-                        reject(error);
-                    }
+                        try {
+                            const newMediaID = result.insertId;
+                            connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID], (error) => {
+                                if (error) {
+                                    reject(err);
+                                }
+                                resolve();
+                            });
+                        } catch (error) {
+                            reject(error);
+                        }
+                    });
                 });
-            });
-        } catch (error) {
-            reject(error);
-        }
-    }).catch(_ => {
-        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} existing in db successfully deleted but couldn't be inserted` });
-    });
+            } catch (error) {
+                reject(error);
+            }
+        })
+    }
 
-    // Wait for both promises to resolve before sending a response to the client.
-    Promise.all([deleteUserMediaPromise, insertMediaAndUserMediaPromise]).then(() => {
-        return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
-    }).catch(() => {
-        return res.status(500).json({ status: 'error', message: `Image ${req.file.filename} for the user couldn't be inserted` });
-    });
+    if (req.file) {
+        // Wait for both promises to resolve before sending a response to the client.
+        Promise.all([deleteUserMediaPromise(userID), insertMediaAndUserMediaPromise(req.file.filename, userID)]).then(() => {
+            return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
+        })
+    } else {
+        return res.status(200).json({ status: 'success', message: `Image not changed, not uploaded.` });
+    }
 });
 
 expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
@@ -1351,7 +1422,7 @@ function selectGuestIds(existingGuestIds) {
             }
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 const query = 'SELECT id FROM guest WHERE id IN (?)';
                 connection.query(query, [existingGuestIds], (err, results) => {
@@ -1378,7 +1449,7 @@ function insertGuests(guestsToInsert) {
 
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
                 const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
@@ -1402,7 +1473,6 @@ async function createBooking(booking, guestIds, servicesIDs) {
         pool.getConnection(async (err, connection) => {
             if (err) {
                 reject("Error acquiring connection from pool");
-                return;
             }
 
             try {
@@ -1636,7 +1706,7 @@ function deleteBookingByUserID(userID) {
 
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 connection.query(sql, values, (err) => {
                     if (err) {
@@ -1660,7 +1730,7 @@ function deletePaymentByUserID(userID) {
 
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 connection.query(sql, values, (err) => {
                     if (err) {
@@ -1684,7 +1754,7 @@ function deleteUserRoleByUserID(userID) {
 
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 connection.query(sql, values, (err) => {
                     if (err) {
@@ -1708,7 +1778,7 @@ function deleteUserMediaByUserID(userID) {
 
             pool.getConnection(async (err, connection) => {
                 if (err) {
-                    return reject(error);
+                    reject(error);
                 }
                 connection.query(sql, values, (err) => {
                     if (err) {

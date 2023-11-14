@@ -13,6 +13,7 @@ CREATE TABLE app_user (
     user_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(255),
     verification_token_expiry TIMESTAMP,
+    access_token VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -513,16 +514,19 @@ VALUES
 
 -- TRIGGERS
 -- Cancellation date on booking
-DELIMITER //
-CREATE TRIGGER before_booking_insert
-BEFORE INSERT ON booking
-FOR EACH ROW
-BEGIN
-    SET NEW.cancellation_deadline = NEW.created_at + INTERVAL 24 HOUR;
-    IF NEW.cancellation_deadline >= NEW.booking_start_date THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de inicio de la reserva';
-    END IF;
+DELIMITER // 
+CREATE TRIGGER before_booking_insert BEFORE
+INSERT
+    ON booking FOR EACH ROW BEGIN
+SET
+    NEW.cancellation_deadline = NEW.created_at + INTERVAL 24 HOUR;
+
+IF NEW.cancellation_deadline >= NEW.booking_start_date THEN SIGNAL SQLSTATE '45000'
+SET
+    MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de inicio de la reserva';
+
+END IF;
+
 END;
+
 //
-DELIMITER ;
