@@ -186,7 +186,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const services = res.data.data;
             let retrievedServices: Service[] = [];
             services.forEach((service: any) => {
-                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: null }))
+                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: API_URL_BASE + "/" + service.imageURL }))
             })
             setServices(retrievedServices)
 
@@ -220,7 +220,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             let rooms = res.data.data;
             let retrievedRooms: Room[] = [];
             rooms.forEach((room: any) => {
-                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end), imageURL: null }))
+                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end), imageURL: API_URL_BASE + "/" + room.imageURL }))
             })
             setRooms(retrievedRooms)
         }).catch
@@ -231,7 +231,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             let plans = res.data.data;
             let retrievedPlans: Plan[] = [];
             plans.forEach((plan: any) => {
-                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price, imageURL: null }))
+                retrievedPlans.push(new Plan({ id: plan.id, name: plan.plan_name, description: plan.plan_description, price: plan.plan_price, imageURL: API_URL_BASE + "/" + plan.imageURL }))
             })
             setPlans(retrievedPlans)
             setStripeOptions({
@@ -913,8 +913,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                             {plans && plans.length > 0 ? (
                                 <div>
                                     {plans.map((plan) => (
-                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ width: '300px', height: '180px', padding: '0', marginTop: '20px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                            <Card.Body style={{ backgroundImage: `url(${plan.imageURL})`, backgroundSize: 'cover', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                 <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
                                                 <Card.Text>
                                                     <span>{plan.description}</span>
@@ -1013,7 +1013,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                         <h4>{t("modal_booking_rooms_found")}</h4>
                                         {filteredRooms.map((room) => (
                                             <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                                <Card style={{ marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                                <Card style={{ backgroundImage: `url(${room.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
                                                     <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
                                                         <Card.Title>{room.name}</Card.Title>
                                                         <Card.Text>
