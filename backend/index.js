@@ -1334,52 +1334,47 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         try {
-            // Update booking (only for admins)
-            const userID = req.id;
             const bookingID = req.body.bookingID;
 
-            getUserRoleById(connection, userID).then(userRole => {
-                if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                    connection.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
+            connection.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
+                if (err) {
+                    return res.status(500).send({ status: "error", error: "Internal server error" });
+                }
+                if (results) {
+                    const deadline = new Date(results[0].cancellation_deadline)
+                    const currentDate = new Date();
+                    // Compare dates
+                    if (deadline < currentDate) {
+                        return res.status(500).send({
+                            status: 'error',
+                            error: 'Deadline to cancel this booking is over',
+                        });
+                    }
+
+                    connection.beginTransaction(async (err) => {
                         if (err) {
+                            connection.rollback();
                             return res.status(500).send({ status: "error", error: "Internal server error" });
                         }
-                        if (results) {
-                            const deadline = new Date(results[0].cancellation_deadline)
-                            const currentDate = new Date();
-                            // Compare dates
-                            if (deadline < currentDate) {
-                                return res.status(500).send({
-                                    status: 'error',
-                                    error: 'Deadline to cancel this booking is over',
-                                });
+                        connection.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
+                            if (err) {
+                                connection.rollback();
+                                return res.status(500).send({ status: "error", error: "Internal server error" });
                             }
 
-                            connection.beginTransaction(async (err) => {
+                            connection.commit((err) => {
                                 if (err) {
                                     connection.rollback();
-                                    return res.status(500).send({ status: "error", error: "Internal server error" });
                                 }
-                                connection.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
-                                    if (err) {
-                                        connection.rollback();
-                                        return res.status(500).send({ status: "error", error: "Internal server error" });
-                                    }
-
-                                    connection.commit((err) => {
-                                        if (err) {
-                                            connection.rollback();
-                                        }
-                                        return res.status(200).send({ status: "success", msg: "Successfully updated!" });
-                                    });
-                                })
+                                return res.status(200).send({ status: "success", msg: "Successfully updated!" });
                             });
-                        }
-                    })
+                        })
+                    });
+                } else {
+                    return res.status(500).send({ status: "error", error: "Internal server error" });
                 }
-            }).catch(err => {
-                return res.status(500).send({ status: "error", error: "Internal server error: " + err });
-            });
+            })
+
         } catch (error) {
             return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
         }
