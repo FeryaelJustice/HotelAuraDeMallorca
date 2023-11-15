@@ -6,9 +6,7 @@ Disallow: /i18n/  # No indexar rutas de traducciones
 
 # No seguir enlaces a páginas de administración o recursos sensibles
 Disallow: /admin/
-Disallow: /private/
-Disallow: /login/
-Disallow: /logout/
+Disallow: /user-bookings/
 
 # Permitir el acceso a recursos estáticos
 Allow: /assets/

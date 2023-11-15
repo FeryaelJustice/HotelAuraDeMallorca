@@ -24,4 +24,12 @@
         <loc>https://hotelaurademallorca.com/cookies-policy</loc>
         <changefreq>weekly</changefreq>
     </url>
+    <url>
+        <loc>https://hotelaurademallorca.com/terms-of-use</loc>
+        <changefreq>weekly</changefreq>
+    </url>
+    <url>
+        <loc>https://hotelaurademallorca.com/user-bookings</loc>
+        <changefreq>weekly</changefreq>
+    </url>
 </urlset>
