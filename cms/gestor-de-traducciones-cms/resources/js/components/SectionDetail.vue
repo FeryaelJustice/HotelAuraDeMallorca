@@ -16,7 +16,6 @@
                                     <th>LITERAL ID</th>
                                     <th>LITERAL CODE</th>
                                     <th>LITERAL CONTENT</th>
-                                    <th v-if="sections">SECTION ID</th>
                                     <th>LANG CODE</th>
                                     <th>Actions</th>
                                 </tr>
@@ -33,17 +32,8 @@
                                     <td>
                                         <template v-if="!item.editMode">{{ item.content }}</template>
                                         <template v-else>
-                                            <textarea v-model="item.content" placeholder="Contenido del literal"></textarea>
-                                        </template>
-                                    </td>
-                                    <td v-if="sections">
-                                        <template v-if="!item.editMode">{{ item.section_id }}</template>
-                                        <template v-else>
-                                            <select v-model="item.section_id">
-                                                <option v-for="section in sections" :key="section.id" :value="section.id">
-                                                    {{ section.section_name }}
-                                                </option>
-                                            </select>
+                                            <textarea v-model="item.content" placeholder="Contenido del literal"
+                                                style="height: 140px;"></textarea>
                                         </template>
                                     </td>
                                     <td>{{ item.lang_code }}</td>
@@ -71,10 +61,9 @@ export default {
     name: 'sections/:id',
     data() {
         return {
-            section: {},
-            pageSection: {},
-            sections: {},
-            items: [],
+            section: {}, // data de la seccion
+            sectionPage: {}, // data de la pagina a la que pertenece la seccion
+            items: [], // items de la tabla (literales)
             originalData: [], // Added to store the original data for each row
         }
     },
@@ -93,9 +82,7 @@ export default {
             }
         },
         saveChanges(index) {
-            // Implement your logic to save changes
             // Access the modified data from this.items[index]
-            console.log("Saving changes for row:", this.items[index]);
 
             // Make API call to save the changes for the specific row
             const editedData = this.items[index];
@@ -113,15 +100,16 @@ export default {
                     .catch(error => {
                         console.log(error);
                         if (error && error.response && error.response.data) {
-                            alert(error.response.data.error)
+                            alert(error.response.data.error.errorInfo)
                         }
                     });
             } else {
                 alert('El código no puede estar vacío')
             }
 
-        }
+        },
     },
+
     mounted() {
         const sectionId = this.$route.params.id;
 
@@ -130,11 +118,24 @@ export default {
             this.section = response.data.data;
             // Get the page data for the section
             axios.get(API_URL + '/pages/section/' + sectionId).then(response => {
-                this.pageSection = response.data.data[0]
+                this.sectionPage = response.data.data[0]
                 // Get the page sections for the select
-                axios.get(API_URL + '/sections/pageSections/' + this.pageSection.app_page_id).then(response => {
-                    this.sections = response.data.data
-                    console.log(this.sections)
+                axios.get(API_URL + '/sections/pageSections/' + this.sectionPage.app_page_id).then(response => {
+                    response.data.data.forEach((section, index) => {
+                        axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + section.id).then(response => {
+                            response.data.data.forEach(async (sectionLiteral) => {
+                                const item = sectionLiteral;
+                                item.editMode = false;
+                                this.items.push(item)
+                                // Deep copy of the original data
+                                this.originalData.push({ ...item });
+                            })
+                        }).catch(error => { console.log(error) })
+                    })
+
+                    // Order array objects
+                    Object.values(this.items).sort((a, b) => a.section_id - b.section_id)
+                    Object.values(this.originalData).sort((a, b) => a.section_id - b.section_id);
                 }).catch(error => { console.log(error) })
             }).catch(error => {
                 console.log(error)
@@ -143,15 +144,6 @@ export default {
             console.log(error)
         })
 
-        axios.get(API_URL + '/translations/sectionLiterals/' + sectionId).then(response => {
-            response.data.data.forEach((sectionLiteral) => {
-                const item = sectionLiteral;
-                item.editMode = false;
-                this.items.push(item)
-                // Deep copy of the original data
-                this.originalData.push({ ...item });
-            })
-        }).catch(error => { console.log(error) })
     }
 }
 </script>
