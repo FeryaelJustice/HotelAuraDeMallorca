@@ -1218,29 +1218,36 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                 <br />
                                 {/* Services list */}
                                 <Row className="mt-12">
-                                    {services.map((service) => (
-                                        <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                            <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                                <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                    <Card.Title>{service.name}</Card.Title>
-                                                    <Card.Text style={{}}>
-                                                        <span>{service.description}</span>
-                                                        <br />
-                                                        <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>
-                                                        <br />
-                                                        <span>{t("modal_booking_services_card_text_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
-                                                    </Card.Text>
-                                                    <Form.Check
-                                                        type="checkbox"
-                                                        name="service"
-                                                        value={service.id ? service.id : -1}
-                                                        checked={selectedServicesIDs[service.id ? service.id : 1]}
-                                                        label={t("modal_booking_services_card_choose")}
-                                                        onChange={() => serviceSelected(service.id)} />
-                                                </Card.Body>
-                                            </Card>
-                                        </Row>
-                                    ))}
+                                    {services && services.length > 0 ? (
+                                        <div>
+                                            {services.map((service) => (
+                                                <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                                    <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                                        <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                                            <Card.Title>{service.name}</Card.Title>
+                                                            <Card.Text style={{}}>
+                                                                <span>{service.description}</span>
+                                                                <br />
+                                                                <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>
+                                                                <br />
+                                                                <span>{t("modal_booking_services_card_text_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
+                                                            </Card.Text>
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                name="service"
+                                                                value={service.id ? service.id : -1}
+                                                                checked={selectedServicesIDs[service.id ? service.id : 1]}
+                                                                label={t("modal_booking_services_card_choose")}
+                                                                onChange={() => serviceSelected(service.id)} />
+                                                        </Card.Body>
+                                                    </Card>
+                                                </Row>
+                                            ))}
+                                        </div>) : (
+                                            <div>
+                                                <h4>No services found</h4>
+                                            </div>
+                                        )}
                                 </Row>
 
                                 <div className='bookingNavButtons'>
