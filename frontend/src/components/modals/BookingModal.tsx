@@ -45,6 +45,10 @@ enum BookingSteps {
     StepConfirmation,
 }
 
+type PricesToPayBackup = {
+    [key in BookingSteps]: number; // Assume the value is a number, adjust as needed
+};
+
 // Booking step: calendar properties
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
@@ -62,6 +66,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     // Stripe
     const [totalPriceToPay, setTotalPriceToPay] = useState<number>(0);
+    const [pricesToPayBackup, setPricesToPayBackup] = useState<PricesToPayBackup | undefined>(undefined);
+    const [comesFromNextSteps, setComesFromNextSteps] = useState<boolean>(false)
     const [stripeOptions, setStripeOptions] = useState<StripeElementsOptions | undefined>({
         mode: 'payment',
         amount: 200,
@@ -276,6 +282,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
+        setComesFromNextSteps(false);
+
         // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
         let canBookBasedOnWeather = true;
         const startDateFormat = extractFormattedDate(startDate)
@@ -299,6 +307,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 if (checkedPlan === 1) {
                     // Basic selected
                     setTotalPriceToPay(totalPriceToPay + (plans[0].price ? plans[0].price : 50));
+
+                    // After the step, backup the step price
+                    setPricesToPayBackup({
+                        ...pricesToPayBackup!,
+                        [BookingSteps.StepPlan]: (plans[0].price ? plans[0].price : 50),
+                    });
                 } else if (checkedPlan === 2) {
                     // VIP selected
 
@@ -311,26 +325,91 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     });
                     setSelectedServicesIDs(updatedSelectedServicesIDs)
 
-                    setTotalPriceToPay(totalPriceToPay + (plans[1].price ? plans[1].price : 150));
+                    // Update price to all selected services
+                    let totalServicesPrice = 0;
+                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
+                        // console.log(`${key}: ${value}`);
+                        if (value) {
+                            // Si es true, es que esta seleccionado
+                            const res = await serverAPI.get('/service/' + key)
+                            if (res) {
+                                totalServicesPrice += res.data.data[0].serv_price;
+                            }
+                        }
+                    }
+
+                    // Sum all the services prices + the plan price itself
+                    setTotalPriceToPay(totalPriceToPay + totalServicesPrice + (plans[1].price ? plans[1].price : 150))
+
+                    // After the step, backup the step price
+                    setPricesToPayBackup({
+                        ...pricesToPayBackup!,
+                        [BookingSteps.StepChooseServices]: totalServicesPrice,
+                        [BookingSteps.StepPlan]: (plans[1].price ? plans[1].price : 150),
+                    });
                 }
-                // setCheckedPlan(1)
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepChooseRoom:
-                serverAPI.get('/room/' + selectedRoomID).then(res => {
-                    setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-                }).catch(err => console.error(err))
-
                 if (selectedRoomID != null) {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
                         if (checkedPlan == 2) {
                             if (canBookBasedOnWeather) {
+                                serverAPI.get('/room/' + selectedRoomID).then(async res => {
+
+                                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
+                                    // Crear una copia del estado actual
+                                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
+                                    // Establecer todos los valores en true
+                                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
+                                        updatedSelectedServicesIDs[key] = true;
+                                    });
+                                    setSelectedServicesIDs(updatedSelectedServicesIDs)
+
+                                    // Update price to all selected services
+                                    let totalServicesPrice = 0;
+                                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
+                                        // console.log(`${key}: ${value}`);
+                                        if (value) {
+                                            // Si es true, es que esta seleccionado
+                                            const resp = await serverAPI.get('/service/' + key)
+                                            if (resp) {
+                                                totalServicesPrice += resp.data.data[0].serv_price;
+                                            }
+                                        }
+                                    }
+
+                                    // If comes from previous step to control the check plan vip
+                                    if (comesFromNextSteps) {
+                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
+                                    } else {
+                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+                                    }
+
+                                    // After the step, backup the step price
+                                    setPricesToPayBackup({
+                                        ...pricesToPayBackup!,
+                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                        [BookingSteps.StepChooseServices]: totalServicesPrice,
+                                    });
+                                }).catch(err => console.error(err))
+
                                 setCurrentStep(BookingSteps.StepFillGuests);
                             } else {
                                 alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
                             }
                         } else {
+                            serverAPI.get('/room/' + selectedRoomID).then(res => {
+                                setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+
+                                // After the step, backup the step price
+                                setPricesToPayBackup({
+                                    ...pricesToPayBackup!,
+                                    [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                });
+                            }).catch(err => console.error(err))
+
                             setCurrentStep(BookingSteps.StepChooseServices);
                         }
                     } else {
@@ -340,7 +419,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     alert('No room selected')
                 }
                 // setCurrentStep(BookingSteps.StepChooseServices);
-
                 break;
             case BookingSteps.StepChooseServices:
                 if (canBookBasedOnWeather) {
@@ -357,6 +435,13 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     }
 
                     setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
+
+                    // After the step, backup the step price
+                    setPricesToPayBackup({
+                        ...pricesToPayBackup!,
+                        [BookingSteps.StepChooseServices]: totalServicesPrice,
+                    });
+
                     setCurrentStep(BookingSteps.StepFillGuests);
                 } else {
                     alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
@@ -396,6 +481,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     // Logica de navegacion por el modal, paso atrás
     const goToPreviousStep = async () => {
+        setComesFromNextSteps(true);
+        
+        let priceToDiscount = 0;
+        let priceResult = 0;
+
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
                 alert("You can't turn back, you are in the first step!")
@@ -404,15 +494,71 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepPersonalData);
                 break;
             case BookingSteps.StepChooseRoom:
+                // Restore price backup of the previous step (we discount what we have on that step)
+                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPlan] || totalPriceToPay
+                priceResult = totalPriceToPay - priceToDiscount;
+
+                if (priceResult >= 0) {
+                    setTotalPriceToPay(priceResult);
+                }
+                // Empty selected step previous step of where we are price backup
+                setPricesToPayBackup((prevPrices) => {
+                    const updatedPrices = { ...prevPrices! };
+                    updatedPrices[BookingSteps.StepPlan] = 0;
+                    return updatedPrices;
+                });
+
                 setCurrentStep(BookingSteps.StepPlan);
                 break;
             case BookingSteps.StepChooseServices:
+                // Restore price backup of the previous step (we discount what we have on that step)
+                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay;
+                priceResult = totalPriceToPay - priceToDiscount;
+
+                if (priceResult >= 0) {
+                    setTotalPriceToPay(priceResult);
+                }
+
+                // Empty selected step previous step of where we are price backup
+                setPricesToPayBackup((prevPrices) => {
+                    const updatedPrices = { ...prevPrices! };
+                    updatedPrices[BookingSteps.StepChooseRoom] = 0;
+                    return updatedPrices;
+                });
+
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepFillGuests:
+                // Restore price backup of the previous step (we discount what we have on that step)
                 if (checkedPlan == 2) {
+                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay)
+                } else {
+                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay
+                }
+                priceResult = totalPriceToPay - priceToDiscount;
+
+                if (priceResult >= 0) {
+                    setTotalPriceToPay(priceResult);
+                }
+
+                if (checkedPlan == 2) {
+                    // Empty selected step previous step of where we are price backup and the 2nd previous due to the checked plan vip
+                    setPricesToPayBackup((prevPrices) => {
+                        const updatedPrices = { ...prevPrices! };
+                        updatedPrices[BookingSteps.StepChooseServices] = 0;
+                        updatedPrices[BookingSteps.StepChooseRoom] = 0;
+                        return updatedPrices;
+                    });
+
                     setCurrentStep(BookingSteps.StepChooseRoom);
                 } else {
+                    // Empty selected step previous step of where we are price backup
+                    setPricesToPayBackup((prevPrices) => {
+                        const updatedPrices = { ...prevPrices! };
+                        updatedPrices[BookingSteps.StepChooseServices] = 0;
+                        return updatedPrices;
+                    });
+
                     setCurrentStep(BookingSteps.StepChooseServices);
                 }
                 break;
@@ -850,6 +996,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         setChildren(0)
         setFilteredRooms([])
         setTotalPriceToPay(0);
+        setPricesToPayBackup(undefined);
     }
 
     // When close, reset modal data
@@ -861,418 +1008,426 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     return (
         <BaseModal title={t("book")} show={show} onClose={handleClose}>
-            {currentStep === BookingSteps.StepPersonalData && (
-                <div>
-                    <h2>{t("modal_booking_personaldata_title")}</h2>
+            <div>
 
-                    <Form id='personalDataForm' noValidate onSubmit={handlePersonalDataSubmit}>
-                        <Form.Group className="mb-3" controlId="formName">
-                            <Form.Label>{t("modal_booking_personaldata_name_label")}</Form.Label>
-                            <Form.Control type="text" name="name" placeholder={t("modal_booking_personaldata_name_placeholder")} value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
-                            <Form.Control.Feedback type='invalid'>
-                                {userPersonalDataErrors.nameError}
-                            </Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3" controlId="formSurnames">
-                            <Form.Label>{t("modal_booking_personaldata_surnames_label")}</Form.Label>
-                            <Form.Control type="text" name="surnames" placeholder={t("modal_booking_personaldata_surnames_placeholder")} value={userPersonalData.surnames} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.surnamesError} required />
-                            <Form.Control.Feedback type='invalid'>
-                                {userPersonalDataErrors.surnamesError}
-                            </Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3" controlId="formEmail">
-                            <Form.Label>{t("modal_booking_personaldata_email_label")}</Form.Label>
-                            <Form.Control type="email" name="email" placeholder={t("modal_booking_personaldata_email_placeholder")} value={userPersonalData.email} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.emailError} required />
-                            <Form.Text className="text-muted">
-                                {t("modal_booking_personaldata_email_description")}
-                            </Form.Text>
-                            <Form.Control.Feedback type='invalid'>
-                                {userPersonalDataErrors.emailError}
-                            </Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Label><em>{t("modal_booking_personaldata_infodefaultaccount")}</em><br /><strong>{t("modal_booking_personaldata_infodefaultaccount_important")}</strong></Form.Label>
-
-                        <div className='bookingNavButtons'>
-                            <span>.</span>
-                            <Button variant='primary' type='submit'>
-                                {t("modal_booking_nextstep")}
-                            </Button>
-                        </div>
-                    </Form>
-                </div>
-            )
-            }
-
-            {
-                currentStep === BookingSteps.StepPlan && (
+                {currentStep === BookingSteps.StepPersonalData && (
                     <div>
-                        <h2>{t("modal_booking_plans_title")}</h2>
-                        <div className="cards-plan">
-                            {plans && plans.length > 0 ? (
-                                <div>
-                                    {plans.map((plan) => (
-                                        <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ width: '300px', height: '180px', padding: '0', marginTop: '20px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                            <Card.Body style={{ backgroundImage: `url(${plan.imageURL})`, backgroundSize: 'cover', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
-                                                <Card.Text>
-                                                    <span>{plan.description}</span>
-                                                    <br />
-                                                    <span>{t("modal_booking_plans_card_text_price", { price: plan.price })}</span>
-                                                </Card.Text>
-                                                <Form.Check
-                                                    type="radio"
-                                                    name="pricing-plan"
-                                                    value={plan.name?.toLowerCase()}
-                                                    checked={checkedPlan === plan.id}
-                                                    onChange={() => selectPlan(plan.id)}
-                                                />
-                                            </Card.Body>
-                                        </Card>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div>
-                                    <h4>No plans found</h4>
-                                </div>
-                            )}
-                        </div>
+                        <h2>{t("modal_booking_personaldata_title")}</h2>
 
-                        <div className='bookingNavButtons'>
-                            {!cookies.token && (
-                                <Button variant="secondary" onClick={goToPreviousStep}>
-                                    {t("modal_booking_previousstep")}
+                        <Form id='personalDataForm' noValidate onSubmit={handlePersonalDataSubmit}>
+                            <Form.Group className="mb-3" controlId="formName">
+                                <Form.Label>{t("modal_booking_personaldata_name_label")}</Form.Label>
+                                <Form.Control type="text" name="name" placeholder={t("modal_booking_personaldata_name_placeholder")} value={userPersonalData.name} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.nameError} required />
+                                <Form.Control.Feedback type='invalid'>
+                                    {userPersonalDataErrors.nameError}
+                                </Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3" controlId="formSurnames">
+                                <Form.Label>{t("modal_booking_personaldata_surnames_label")}</Form.Label>
+                                <Form.Control type="text" name="surnames" placeholder={t("modal_booking_personaldata_surnames_placeholder")} value={userPersonalData.surnames} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.surnamesError} required />
+                                <Form.Control.Feedback type='invalid'>
+                                    {userPersonalDataErrors.surnamesError}
+                                </Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3" controlId="formEmail">
+                                <Form.Label>{t("modal_booking_personaldata_email_label")}</Form.Label>
+                                <Form.Control type="email" name="email" placeholder={t("modal_booking_personaldata_email_placeholder")} value={userPersonalData.email} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.emailError} required />
+                                <Form.Text className="text-muted">
+                                    {t("modal_booking_personaldata_email_description")}
+                                </Form.Text>
+                                <Form.Control.Feedback type='invalid'>
+                                    {userPersonalDataErrors.emailError}
+                                </Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Label><em>{t("modal_booking_personaldata_infodefaultaccount")}</em><br /><strong>{t("modal_booking_personaldata_infodefaultaccount_important")}</strong></Form.Label>
+
+                            <div className='bookingNavButtons'>
+                                <span>.</span>
+                                <Button variant='primary' type='submit'>
+                                    {t("modal_booking_nextstep")}
                                 </Button>
-                            )}
-
-                            <Button variant='primary' onClick={goToNextStep}>
-                                {t("modal_booking_nextstep")}
-                            </Button>
-                        </div>
-
+                            </div>
+                        </Form>
                     </div>
                 )
-            }
+                }
 
-            {
-                currentStep === BookingSteps.StepChooseRoom && (
-                    <div className='bookingContainer'>
-                        <Container>
-                            <Row className="mt-12">
-                                <Col>
-                                    <h2>{t("modal_booking_rooms_title")}</h2>
-                                </Col>
-                            </Row>
-                            <br />
-                            {/* Inputs de fechas */}
-                            <Row className="mt-12">
-                                <Col md={6}>
-                                    <h3>{t("modal_booking_rooms_startdate")}</h3>
-                                    <Calendar minDate={new Date()} maxDate={endDate instanceof Date ? endDate : undefined} onChange={handleStartDateChange} value={startDate} />
-                                </Col>
-                                <Col md={6}>
-                                    <h3>{t("modal_booking_rooms_enddate")}</h3>
-                                    <Calendar minDate={startDate instanceof Date ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : undefined} onChange={handleEndDateChange} value={endDate} />
-                                </Col>
-                            </Row>
-                            <br />
-                            {/* Inputs de adultos y niños */}
-                            <Row className="mt-12">
-                                <Col md={6}>
-                                    <Form.Label>{t("modal_booking_rooms_adults")}</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={1}
-                                        max={10}
-                                        value={adults}
-                                        onChange={(e) => setAdults(e.target.value as unknown as number)}
-                                    />
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Label>{t("modal_booking_rooms_children")}</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={0}
-                                        max={10}
-                                        value={children}
-                                        onChange={(e) => setChildren(e.target.value as unknown as number)}
-                                    />
-                                </Col>
-                            </Row>
-                            <br />
-                            <Row className='mt-12'>
-                                <span><em>{t("modal_booking_rooms_info_adultschildren")}</em></span>
-                                <hr />
-                            </Row>
-                            <br />
-                            {/* Room list */}
-                            <Row className="mt-12">
-                                {filteredRooms && filteredRooms.length > 0 ? (
+                {
+                    currentStep === BookingSteps.StepPlan && (
+                        <div>
+                            <h2>{t("modal_booking_plans_title")}</h2>
+                            <div className="cards-plan">
+                                {plans && plans.length > 0 ? (
                                     <div>
-                                        <h4>{t("modal_booking_rooms_found")}</h4>
-                                        {filteredRooms.map((room) => (
-                                            <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                                <Card style={{ backgroundImage: `url(${room.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                                    <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                        <Card.Title>{room.name}</Card.Title>
-                                                        <Card.Text>
-                                                            <span>{room.description}</span>
-                                                            <br />
-                                                            <span>{t("modal_booking_rooms_card_text_price", { price: room.price })}</span>
-                                                            <br />
-                                                            <span>{t("modal_booking_rooms_card_text_availabilityDates", { availabilityStart: room.availabilityStart?.toISOString().split('T')[0], availabilityEnd: room.availabilityEnd?.toISOString().split('T')[0] })}</span>
-                                                        </Card.Text>
-                                                        <Form.Check type="radio"
-                                                            name="pricing-plan"
-                                                            value={selectedRoomID?.toString()}
-                                                            checked={selectedRoomID === room.id}
-                                                            onChange={() => roomSelected(room.id)}
-                                                            onClick={() => roomSelected(room.id)} label="Book" />
-                                                    </Card.Body>
-                                                </Card>
-                                            </Row>
+                                        {plans.map((plan) => (
+                                            <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ width: '300px', height: '180px', padding: '0', marginTop: '20px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                                <Card.Body style={{ backgroundImage: `url(${plan.imageURL})`, backgroundSize: 'cover', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                                    <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
+                                                    <Card.Text>
+                                                        <span>{plan.description}</span>
+                                                        <br />
+                                                        <span>{t("modal_booking_plans_card_text_price", { price: plan.price })}</span>
+                                                    </Card.Text>
+                                                    <Form.Check
+                                                        type="radio"
+                                                        name="pricing-plan"
+                                                        value={plan.name?.toLowerCase()}
+                                                        checked={checkedPlan === plan.id}
+                                                        onChange={() => selectPlan(plan.id)}
+                                                    />
+                                                </Card.Body>
+                                            </Card>
                                         ))}
                                     </div>
                                 ) : (
                                     <div>
-                                        <h4>No rooms found</h4>
+                                        <h4>No plans found</h4>
                                     </div>
                                 )}
-                            </Row>
+                            </div>
 
                             <div className='bookingNavButtons'>
-                                <Button variant="secondary" onClick={goToPreviousStep}>
-                                    {t("modal_booking_previousstep")}
-                                </Button>
+                                {!cookies.token && (
+                                    <Button variant="secondary" onClick={goToPreviousStep}>
+                                        {t("modal_booking_previousstep")}
+                                    </Button>
+                                )}
 
                                 <Button variant='primary' onClick={goToNextStep}>
                                     {t("modal_booking_nextstep")}
                                 </Button>
                             </div>
-                        </Container>
-                    </div>
-                )
-            }
 
-            {
-                currentStep === BookingSteps.StepChooseServices && (
-                    <div className='servicesContainer'>
-                        <Container>
-                            <Row className="mt-12">
-                                <Col>
-                                    <h2>{t("modal_booking_services_title")}</h2>
-                                    <em>({t("modal_booking_services_optional")})</em>
-                                </Col>
-                            </Row>
-                            <br />
-                            {/* Services list */}
-                            <Row className="mt-12">
-                                {services.map((service) => (
-                                    <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                            <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                <Card.Title>{service.name}</Card.Title>
-                                                <Card.Text style={{}}>
-                                                    <span>{service.description}</span>
-                                                    <br />
-                                                    <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>
-                                                    <br />
-                                                    <span>{t("modal_booking_services_card_text_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
-                                                </Card.Text>
-                                                <Form.Check
-                                                    type="checkbox"
-                                                    name="service"
-                                                    value={service.id ? service.id : -1}
-                                                    checked={selectedServicesIDs[service.id ? service.id : 1]}
-                                                    label={t("modal_booking_services_card_choose")}
-                                                    onChange={() => serviceSelected(service.id)} />
-                                            </Card.Body>
-                                        </Card>
-                                    </Row>
-                                ))}
-                            </Row>
-
-                            <div className='bookingNavButtons'>
-                                <Button variant="secondary" onClick={goToPreviousStep}>
-                                    {t("modal_booking_previousstep")}
-                                </Button>
-
-                                <Button variant='primary' onClick={goToNextStep}>
-                                    {t("modal_booking_nextstep")}
-                                </Button>
-                            </div>
-                        </Container>
-                    </div>
-                )
-            }
-
-            {
-                currentStep === BookingSteps.StepFillGuests && (
-                    <div>
-                        <div className='fillguests-info'>
-                            <span>{t("modal_booking_guests_info", { adults, children })}</span>
                         </div>
-                        <div className='fillguests-content'>
+                    )
+                }
+
+                {
+                    currentStep === BookingSteps.StepChooseRoom && (
+                        <div className='bookingContainer'>
                             <Container>
-                                <Form id='fillGuestsForm' noValidate onSubmit={handleGuestsSubmit}>
-                                    {guests.map((guest, index) => (
-                                        <Row key={index}>
-                                            <Row><strong>{t("modal_booking_guests_guestindex", { index })}</strong></Row>
-                                            <Row>
-                                                <Col>
-                                                    <Form.Group controlId={`name-${index}`}>
-                                                        <Form.Label>{t("modal_booking_guests_guest_name")}</Form.Label>
-                                                        <Form.Control
-                                                            type="text"
-                                                            name="name"
-                                                            disabled={userWantsToBecomeGuest && index === 0}
-                                                            value={guest.name ? guest.name : ''}
-                                                            isInvalid={!!guestsDataErrors[index].nameError}
-                                                            onChange={(e) => handleGuestsInputChange(index, e)}
-                                                        />    <Form.Control.Feedback type='invalid'>
-                                                            {guestsDataErrors[index].nameError}
-                                                        </Form.Control.Feedback>
-                                                    </Form.Group>
-                                                </Col>
-                                                <Col>
-                                                    <Form.Group controlId={`surname-${index}`}>
-                                                        <Form.Label>{t("modal_booking_guests_guest_surnames")}</Form.Label>
-                                                        <Form.Control
-                                                            type="text"
-                                                            name="surnames"
-                                                            disabled={userWantsToBecomeGuest && index === 0}
-                                                            value={guest.surnames ? guest.surnames : ''}
-                                                            isInvalid={!!guestsDataErrors[index].surnamesError}
-                                                            onChange={(e) => handleGuestsInputChange(index, e)}
-                                                        />    <Form.Control.Feedback type='invalid'>
-                                                            {guestsDataErrors[index].surnamesError}
-                                                        </Form.Control.Feedback>
-                                                    </Form.Group>
-                                                </Col>
-                                                <Col>
-                                                    <Form.Group controlId={`email-${index}`}>
-                                                        <Form.Label>{t("modal_booking_guests_guest_email")}</Form.Label>
-                                                        <Form.Control
-                                                            type="email"
-                                                            name="email"
-                                                            disabled={userWantsToBecomeGuest && index === 0}
-                                                            value={guest.email ? guest.email : ''}
-                                                            isInvalid={!!guestsDataErrors[index].emailError}
-                                                            onChange={(e) => handleGuestsInputChange(index, e)}
-                                                        />    <Form.Control.Feedback type='invalid'>
-                                                            {guestsDataErrors[index].emailError}
-                                                        </Form.Control.Feedback>
-                                                    </Form.Group>
-                                                </Col>
-                                                <Col>
-                                                    <div className='isAdultFillGuest'>
-                                                        <Form.Group controlId={`isAdult-${index}`}>
-                                                            <Form.Check
-                                                                type="checkbox"
-                                                                label={t("modal_booking_guests_guest_adult")}
-                                                                name="isAdult"
-                                                                disabled={userWantsToBecomeGuest && index === 0}
-                                                                checked={guest.isAdult ? guest.isAdult : false}
-                                                                onChange={(e) => handleGuestsInputChange(index, e)}
-                                                            />
-                                                        </Form.Group>
-                                                    </div>
-                                                </Col></Row>
-                                        </Row>
-                                    ))}
-                                    <br />
-                                    <Button variant="success" onClick={addGuest}>
-                                        {t("modal_booking_guests_button_add")}
-                                    </Button>
-                                    <Button variant="success" onClick={substractGuest}>
-                                        {t("modal_booking_guests_button_remove")}
-                                    </Button>
-                                    <br />
-                                    <br />
-                                    <div className='userWantsToBecomeGuest'>
-                                        <Form.Check type='checkbox' name="userWantsToBecomeGuest" label={t("modal_booking_guests_adduserasguest")} checked={userWantsToBecomeGuest} onChange={() => setUserWantsToBecomeGuest(!userWantsToBecomeGuest)} />
-                                        {userWantsToBecomeGuest && (
-                                            <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label={t("modal_booking_guests_adduserasguest_adult")} checked={isUserGuestAdult} onChange={() => setIsUserGuestAdult(!isUserGuestAdult)} />
-                                        )}
-                                        <br />
-                                        <br />
-                                    </div>
+                                <Row className="mt-12">
+                                    <Col>
+                                        <h2>{t("modal_booking_rooms_title")}</h2>
+                                    </Col>
+                                </Row>
+                                <br />
+                                {/* Inputs de fechas */}
+                                <Row className="mt-12">
+                                    <Col md={6}>
+                                        <h3>{t("modal_booking_rooms_startdate")}</h3>
+                                        <Calendar minDate={new Date()} maxDate={endDate instanceof Date ? endDate : undefined} onChange={handleStartDateChange} value={startDate} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <h3>{t("modal_booking_rooms_enddate")}</h3>
+                                        <Calendar minDate={startDate instanceof Date ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : undefined} onChange={handleEndDateChange} value={endDate} />
+                                    </Col>
+                                </Row>
+                                <br />
+                                {/* Inputs de adultos y niños */}
+                                <Row className="mt-12">
+                                    <Col md={6}>
+                                        <Form.Label>{t("modal_booking_rooms_adults")}</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            min={1}
+                                            max={10}
+                                            value={adults}
+                                            onChange={(e) => setAdults(e.target.value as unknown as number)}
+                                        />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label>{t("modal_booking_rooms_children")}</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            min={0}
+                                            max={10}
+                                            value={children}
+                                            onChange={(e) => setChildren(e.target.value as unknown as number)}
+                                        />
+                                    </Col>
+                                </Row>
+                                <br />
+                                <Row className='mt-12'>
+                                    <span><em>{t("modal_booking_rooms_info_adultschildren")}</em></span>
+                                    <hr />
+                                </Row>
+                                <br />
+                                {/* Room list */}
+                                <Row className="mt-12">
+                                    {filteredRooms && filteredRooms.length > 0 ? (
+                                        <div>
+                                            <h4>{t("modal_booking_rooms_found")}</h4>
+                                            {filteredRooms.map((room) => (
+                                                <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                                    <Card style={{ backgroundImage: `url(${room.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                                        <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                                            <Card.Title>{room.name}</Card.Title>
+                                                            <Card.Text>
+                                                                <span>{room.description}</span>
+                                                                <br />
+                                                                <span>{t("modal_booking_rooms_card_text_price", { price: room.price })}</span>
+                                                                <br />
+                                                                <span>{t("modal_booking_rooms_card_text_availabilityDates", { availabilityStart: room.availabilityStart?.toISOString().split('T')[0], availabilityEnd: room.availabilityEnd?.toISOString().split('T')[0] })}</span>
+                                                            </Card.Text>
+                                                            <Form.Check type="radio"
+                                                                name="pricing-plan"
+                                                                value={selectedRoomID?.toString()}
+                                                                checked={selectedRoomID === room.id}
+                                                                onChange={() => roomSelected(room.id)}
+                                                                onClick={() => roomSelected(room.id)} label="Book" />
+                                                        </Card.Body>
+                                                    </Card>
+                                                </Row>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <h4>No rooms found</h4>
+                                        </div>
+                                    )}
+                                </Row>
 
-                                    <div className='bookingNavButtons'>
-                                        <Button variant="secondary" type='button' onClick={goToPreviousStep}>
-                                            {t("modal_booking_previousstep")}
-                                        </Button>
+                                <div className='bookingNavButtons'>
+                                    <Button variant="secondary" onClick={goToPreviousStep}>
+                                        {t("modal_booking_previousstep")}
+                                    </Button>
 
-                                        <Button variant='primary' type='submit'>
-                                            {t("modal_booking_nextstep")}
-                                        </Button>
-                                    </div>
-                                </Form>
+                                    <Button variant='primary' onClick={goToNextStep}>
+                                        {t("modal_booking_nextstep")}
+                                    </Button>
+                                </div>
                             </Container>
                         </div>
-                    </div>
-                )
-            }
+                    )
+                }
 
-            {
-                currentStep === BookingSteps.StepPaymentMethod && (
-                    <div>
-                        <h2>{t("modal_booking_payment_title")}</h2>
-                        <div className="cards-payment">
-                            {paymentMethods.map((paymentMethod) => (
-                                <Card key={paymentMethod.id ? (paymentMethod.id + Math.random() * (1000 - 1)) : Math.random()}>
-                                    <Card.Body>
-                                        <Card.Title>{paymentMethod.name}</Card.Title>
-                                        <Form.Check
-                                            type="radio"
-                                            name="payment-method"
-                                            value={paymentMethod.id?.toString()}
-                                            checked={checkedPaymentMethod === paymentMethod.id}
-                                            onChange={() => paymentMethodSelected(paymentMethod.id)}
-                                        />
-                                    </Card.Body>
-                                </Card>
-                            ))}
-                        </div>
-                        <div className='payment-selected'>
-                            {checkedPaymentMethod == 1 ? (
-                                <div className="stripe">
-                                    <h4>Stripe</h4>
-                                    <Elements stripe={stripePromise} options={stripeOptions}>
-                                        <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
-                                    </Elements>
-                                </div>
-                            ) : checkedPaymentMethod == 2 ? (
-                                <div className='paypal'>
-                                    <h4>Paypal</h4>
-                                    <em>Not available</em>
-                                </div>
-                            ) : null}
-                        </div>
-                        <div className='bookingNavButtons'>
-                            <Button variant="secondary" onClick={goToPreviousStep}>
-                                {t("modal_booking_previousstep")}
-                            </Button>
+                {
+                    currentStep === BookingSteps.StepChooseServices && (
+                        <div className='servicesContainer'>
+                            <Container>
+                                <Row className="mt-12">
+                                    <Col>
+                                        <h2>{t("modal_booking_services_title")}</h2>
+                                        <em>({t("modal_booking_services_optional")})</em>
+                                    </Col>
+                                </Row>
+                                <br />
+                                {/* Services list */}
+                                <Row className="mt-12">
+                                    {services.map((service) => (
+                                        <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
+                                            <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
+                                                <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
+                                                    <Card.Title>{service.name}</Card.Title>
+                                                    <Card.Text style={{}}>
+                                                        <span>{service.description}</span>
+                                                        <br />
+                                                        <span>{t("modal_booking_services_card_text_price", { price: service.price })}</span>
+                                                        <br />
+                                                        <span>{t("modal_booking_services_card_text_availabilityDates", { availabilityStart: service.availabilityStart?.toISOString().split('T')[0], availabilityEnd: service.availabilityEnd?.toISOString().split('T')[0] })}</span>
+                                                    </Card.Text>
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        name="service"
+                                                        value={service.id ? service.id : -1}
+                                                        checked={selectedServicesIDs[service.id ? service.id : 1]}
+                                                        label={t("modal_booking_services_card_choose")}
+                                                        onChange={() => serviceSelected(service.id)} />
+                                                </Card.Body>
+                                            </Card>
+                                        </Row>
+                                    ))}
+                                </Row>
 
-                            {/* <Button variant='primary' onClick={goToNextStep}>
+                                <div className='bookingNavButtons'>
+                                    <Button variant="secondary" onClick={goToPreviousStep}>
+                                        {t("modal_booking_previousstep")}
+                                    </Button>
+
+                                    <Button variant='primary' onClick={goToNextStep}>
+                                        {t("modal_booking_nextstep")}
+                                    </Button>
+                                </div>
+                            </Container>
+                        </div>
+                    )
+                }
+
+                {
+                    currentStep === BookingSteps.StepFillGuests && (
+                        <div>
+                            <div className='fillguests-info'>
+                                <span>{t("modal_booking_guests_info", { adults, children })}</span>
+                            </div>
+                            <div className='fillguests-content'>
+                                <Container>
+                                    <Form id='fillGuestsForm' noValidate onSubmit={handleGuestsSubmit}>
+                                        {guests.map((guest, index) => (
+                                            <Row key={index}>
+                                                <Row><strong>{t("modal_booking_guests_guestindex", { index })}</strong></Row>
+                                                <Row>
+                                                    <Col>
+                                                        <Form.Group controlId={`name-${index}`}>
+                                                            <Form.Label>{t("modal_booking_guests_guest_name")}</Form.Label>
+                                                            <Form.Control
+                                                                type="text"
+                                                                name="name"
+                                                                disabled={userWantsToBecomeGuest && index === 0}
+                                                                value={guest.name ? guest.name : ''}
+                                                                isInvalid={!!guestsDataErrors[index].nameError}
+                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                            />    <Form.Control.Feedback type='invalid'>
+                                                                {guestsDataErrors[index].nameError}
+                                                            </Form.Control.Feedback>
+                                                        </Form.Group>
+                                                    </Col>
+                                                    <Col>
+                                                        <Form.Group controlId={`surname-${index}`}>
+                                                            <Form.Label>{t("modal_booking_guests_guest_surnames")}</Form.Label>
+                                                            <Form.Control
+                                                                type="text"
+                                                                name="surnames"
+                                                                disabled={userWantsToBecomeGuest && index === 0}
+                                                                value={guest.surnames ? guest.surnames : ''}
+                                                                isInvalid={!!guestsDataErrors[index].surnamesError}
+                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                            />    <Form.Control.Feedback type='invalid'>
+                                                                {guestsDataErrors[index].surnamesError}
+                                                            </Form.Control.Feedback>
+                                                        </Form.Group>
+                                                    </Col>
+                                                    <Col>
+                                                        <Form.Group controlId={`email-${index}`}>
+                                                            <Form.Label>{t("modal_booking_guests_guest_email")}</Form.Label>
+                                                            <Form.Control
+                                                                type="email"
+                                                                name="email"
+                                                                disabled={userWantsToBecomeGuest && index === 0}
+                                                                value={guest.email ? guest.email : ''}
+                                                                isInvalid={!!guestsDataErrors[index].emailError}
+                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                            />    <Form.Control.Feedback type='invalid'>
+                                                                {guestsDataErrors[index].emailError}
+                                                            </Form.Control.Feedback>
+                                                        </Form.Group>
+                                                    </Col>
+                                                    <Col>
+                                                        <div className='isAdultFillGuest'>
+                                                            <Form.Group controlId={`isAdult-${index}`}>
+                                                                <Form.Check
+                                                                    type="checkbox"
+                                                                    label={t("modal_booking_guests_guest_adult")}
+                                                                    name="isAdult"
+                                                                    disabled={userWantsToBecomeGuest && index === 0}
+                                                                    checked={guest.isAdult ? guest.isAdult : false}
+                                                                    onChange={(e) => handleGuestsInputChange(index, e)}
+                                                                />
+                                                            </Form.Group>
+                                                        </div>
+                                                    </Col></Row>
+                                            </Row>
+                                        ))}
+                                        <br />
+                                        <Button variant="success" onClick={addGuest}>
+                                            {t("modal_booking_guests_button_add")}
+                                        </Button>
+                                        <Button variant="success" onClick={substractGuest}>
+                                            {t("modal_booking_guests_button_remove")}
+                                        </Button>
+                                        <br />
+                                        <br />
+                                        <div className='userWantsToBecomeGuest'>
+                                            <Form.Check type='checkbox' name="userWantsToBecomeGuest" label={t("modal_booking_guests_adduserasguest")} checked={userWantsToBecomeGuest} onChange={() => setUserWantsToBecomeGuest(!userWantsToBecomeGuest)} />
+                                            {userWantsToBecomeGuest && (
+                                                <Form.Check type='checkbox' name="isLoggedUserGuestAdult" label={t("modal_booking_guests_adduserasguest_adult")} checked={isUserGuestAdult} onChange={() => setIsUserGuestAdult(!isUserGuestAdult)} />
+                                            )}
+                                            <br />
+                                            <br />
+                                        </div>
+
+                                        <div className='bookingNavButtons'>
+                                            <Button variant="secondary" type='button' onClick={goToPreviousStep}>
+                                                {t("modal_booking_previousstep")}
+                                            </Button>
+
+                                            <Button variant='primary' type='submit'>
+                                                {t("modal_booking_nextstep")}
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                </Container>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {
+                    currentStep === BookingSteps.StepPaymentMethod && (
+                        <div>
+                            <h2>{t("modal_booking_payment_title")}</h2>
+                            <div className="cards-payment">
+                                {paymentMethods.map((paymentMethod) => (
+                                    <Card key={paymentMethod.id ? (paymentMethod.id + Math.random() * (1000 - 1)) : Math.random()}>
+                                        <Card.Body>
+                                            <Card.Title>{paymentMethod.name}</Card.Title>
+                                            <Form.Check
+                                                type="radio"
+                                                name="payment-method"
+                                                value={paymentMethod.id?.toString()}
+                                                checked={checkedPaymentMethod === paymentMethod.id}
+                                                onChange={() => paymentMethodSelected(paymentMethod.id)}
+                                            />
+                                        </Card.Body>
+                                    </Card>
+                                ))}
+                            </div>
+                            <div className='payment-selected'>
+                                {checkedPaymentMethod == 1 ? (
+                                    <div className="stripe">
+                                        <h4>Stripe</h4>
+                                        <Elements stripe={stripePromise} options={stripeOptions}>
+                                            <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
+                                        </Elements>
+                                    </div>
+                                ) : checkedPaymentMethod == 2 ? (
+                                    <div className='paypal'>
+                                        <h4>Paypal</h4>
+                                        <em>Not available</em>
+                                    </div>
+                                ) : null}
+                            </div>
+                            <div className='bookingNavButtons'>
+                                <Button variant="secondary" onClick={goToPreviousStep}>
+                                    {t("modal_booking_previousstep")}
+                                </Button>
+
+                                {/* <Button variant='primary' onClick={goToNextStep}>
                                 {t("modal_booking_nextstep")}
                             </Button> */}
+                            </div>
                         </div>
-                    </div>
-                )
-            }
+                    )
+                }
 
-            {
-                currentStep === BookingSteps.StepConfirmation && (
-                    <div>
-                        <h2>{t("modal_booking_completed_title")}</h2>
-                        <p>{bookingFinalMessage}</p>
-                        <Button variant='primary' onClick={goToNextStep}>{t("modal_booking_completed_close")}</Button>
-                    </div>
-                )
-            }
+                {
+                    currentStep === BookingSteps.StepConfirmation && (
+                        <div>
+                            <h2>{t("modal_booking_completed_title")}</h2>
+                            <p>{bookingFinalMessage}</p>
+                            <Button variant='primary' onClick={goToNextStep}>{t("modal_booking_completed_close")}</Button>
+                        </div>
+                    )
+                }
+
+                {currentStep !== BookingSteps.StepConfirmation && (
+                    // Show the current price to pay in all steps
+                    <p>Price to pay: {totalPriceToPay}</p>
+                )}
+            </div>
         </BaseModal >
     );
 };
