@@ -485,7 +485,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         
         let priceToDiscount = 0;
         let priceResult = 0;
-        console.log(pricesToPayBackup)
 
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
