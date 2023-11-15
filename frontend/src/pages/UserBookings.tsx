@@ -25,7 +25,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
 
     // One time async
     useEffect(() => {
-        if (!cookies.token) {
+        if (!cookies.token || !userHasBookings) {
             navigate("/")
         }
         serverAPI.get(API_URL + '/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
