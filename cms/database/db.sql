@@ -31,17 +31,6 @@ CREATE TABLE lang (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the table page_lang
-CREATE TABLE app_page_lang (
-    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    app_page_id INT NOT NULL,
-    lang_id INT NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (app_page_id) REFERENCES app_page(id),
-    FOREIGN KEY (lang_id) REFERENCES lang(id)
-);
-
 -- Create the table section
 CREATE TABLE section (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -101,34 +90,6 @@ VALUES
     ('es', 'Spanish'),
     ('ca', 'Catalan'),
     ('de', 'German');
-
--- INSERTS en la tabla page_lang
-INSERT INTO
-    app_page_lang (app_page_id, lang_id)
-VALUES
-    (1, 1),
-    -- Homerti - English
-    (1, 2),
-    -- Homerti - Spanish
-    (1, 3),
-    -- Homerti - Catalan
-    (1, 4),
-    -- Homerti - German
-    (2, 1),
-    -- Vacalia - English
-    (2, 2),
-    -- Vacalia - Spanish
-    (2, 3),
-    -- Vacalia - Catalan
-    (2, 4),
-    -- Vacalia - German
-    (3, 1),
-    -- Aura de Mallorca - English
-    (3, 2),
-    -- Aura de Mallorca - Spanish
-    (3, 3),
-    -- Aura de Mallorca - Catalan
-    (3, 4);
 
 -- Aura de Mallorca - German
 -- INSERTS en la tabla section

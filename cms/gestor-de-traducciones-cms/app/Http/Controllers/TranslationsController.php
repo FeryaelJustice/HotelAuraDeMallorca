@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Response;
 use App\Models\Literal;
 use App\Models\Section;
 use App\Models\Page;
-// use App\Models\PageLang;
-// use App\Models\Lang;
 
 class TranslationsController extends Controller
 {
@@ -34,15 +32,6 @@ class TranslationsController extends Controller
                 $newPage = new Page();
                 $newPage->app_page_name = $postData['page'];
                 $newPage->save();
-
-                // Create page available langs
-                $langs = Lang::all();
-                foreach ($langs as $lang) {
-                    $newPageLang = new PageLang();
-                    $newPageLang->app_page_id = $newPage->id;
-                    $newPageLang->lang_id = $lang->id;
-                    $newPageLang->save();
-                }
                 */
             }
 
