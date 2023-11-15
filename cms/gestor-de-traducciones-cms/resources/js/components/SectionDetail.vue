@@ -6,8 +6,8 @@
                     <div class="card-header">Section</div>
 
                     <div class="card-body">
-                        <p>Section: '<b>{{ this.section.section_name }}</b>' of Page: '<b v-if="this.pageSection">{{
-                            this.pageSection.app_page_name }}</b>'
+                        <p>Section: '<b>{{ this.section.section_name }}</b>' of Page: '<b v-if="this.sectionPage">{{
+                            this.sectionPage.app_page_name }}</b>'
                         </p>
 
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
