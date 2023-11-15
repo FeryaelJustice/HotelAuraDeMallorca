@@ -90,7 +90,7 @@ class TranslationsController extends Controller
     public function updateTranslation(Request $request)
     {
         try {
-            Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => explode('_', $request->code)[1], 'section_id' => $request->section_id, 'page_id' => $request->page_id]);
+            Literal::where('id', $request->id)->update(['code' => $request->code, 'content' => $request->content, 'lang_code' => $request->lang_code, 'section_id' => $request->section_id, 'page_id' => $request->page_id]);
             return Response::json(['status' => 'success', 'message' => 'Updated successfully'], 200);
         } catch (\Exception $e) {
             return Response::json(['status' => 'error', 'error' => $e], 500);
