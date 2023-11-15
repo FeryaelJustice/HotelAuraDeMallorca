@@ -849,6 +849,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         setAdults(1)
         setChildren(0)
         setFilteredRooms([])
+        setTotalPriceToPay(0);
     }
 
     // When close, reset modal data
