@@ -113,11 +113,12 @@ function App() {
   };
 
   // Image preview modal
-  const openImagePreviewModal = (src: string, title: string) => {
+  const openImagePreviewModal = (src: string, title: string, description: string) => {
     setIsImageViewModalOpen(true);
     setImagePreviewData({
       src: src,
-      title: title
+      title: title,
+      description: description
     })
   }
 

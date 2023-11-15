@@ -29,8 +29,6 @@ enum UserModalScreens {
 
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
-    console.log(colorScheme)
-
     const { t } = useTranslation();
 
     const handleClose = () => {
@@ -522,7 +520,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <Button variant="primary" type='submit'>
                                 {t("modal_user_editprofile_send")}
                             </Button>
-                            <Button variant="warning" type='button' onClick={logout}>
+                            <Button variant="warning" type='button' onClick={logout} style={{backgroundColor: colorScheme == "light" ? 'purple' : 'yellow',color: colorScheme == "light" ? 'white': 'black'}}>
                                 {t("modal_user_editprofile_logout")}
                             </Button>
                             <Button variant='danger' type='button' onClick={deleteAccount}>

@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import BackgroundImage from './../assets/images/services.webp'
 interface ServicesProps {
     colorScheme: string,
-    openImagePreviewModal: (imageSrc: string, title: string) => void,
+    openImagePreviewModal: (imageSrc: string, title: string, description: string) => void,
 }
 
 export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) => {
@@ -65,7 +65,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
                                         <Card style={{height: '360px', cursor: 'pointer', backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', backgroundPositionY: 'center', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                                            onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '')}
+                                            onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '', service.description ? service.description : '')}
                                         >
                                             <Card.Body style={{ display:'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white', background: colorScheme == "dark" ? ' rgba(0, 0, 0, .9)' : 'rgba(255, 255, 255, .9)', borderRadius: '8px' }}>
                                                 <Card.Title>{service.name}</Card.Title>

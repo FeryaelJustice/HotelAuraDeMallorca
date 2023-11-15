@@ -8,7 +8,6 @@ interface ViewImageModalProps {
 }
 
 const ViewImageModal = ({ colorScheme, show, onClose, imagePreviewData }: ViewImageModalProps) => {
-    console.log(colorScheme)
 
     const handleClose = () => {
         onClose();
@@ -16,7 +15,8 @@ const ViewImageModal = ({ colorScheme, show, onClose, imagePreviewData }: ViewIm
 
     return (
         <BaseModal title={imagePreviewData.title} show={show} onClose={handleClose}>
-            <img src={imagePreviewData.src} alt='Image' style={{width:'100%', height: 'auto'}}></img>
+            <img src={imagePreviewData.src} alt='Image' style={{ width: '100%', height: 'auto' }}></img>
+            <p style={{ fontSize: '1.2em', textAlign: 'center', color: colorScheme == "dark" ? '#B7ADFF' : '#0000F0'}}><b>{imagePreviewData.description}</b></p>
         </BaseModal>
     )
 };
