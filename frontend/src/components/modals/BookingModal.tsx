@@ -96,7 +96,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
             // Create the PaymentIntent and obtain clientSecret from your server endpoint
             const paymentData = {
-                amount: totalPriceToPay,
+                amount: totalPriceToPay * 100, // Due to how Stripe works, if you send 1 euro, it charges 0.01 euros.
                 currency: stripeOptions.currency,
                 plan: plan
             }
@@ -559,7 +559,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     id: null,
                     userID: user_id,
                     bookingID: bookingResponse.data.insertId,
-                    amount: totalPriceToPay * 100, // Due to how Stripe works, if you send 1 euro, it charges 0.01 euros.
+                    amount: totalPriceToPay,
                     date: new Date(),
                     paymentMethodID: checkedPaymentMethod
                 });
