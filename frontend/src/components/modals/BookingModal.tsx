@@ -127,7 +127,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
-    const [weatherFiveDaysForecastList, setWeatherFiveDaysForecastList] = useState<Weather[]>();
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -204,20 +203,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const selectedServicesObject = Object.assign({}, ...keyValuePairArray);
             // Update the state with the object
             setSelectedServicesIDs(selectedServicesObject);
-
-            // Get and set services images
-            // serverAPI.post('/servicesImages', { services: servicess }).then(res => {
-            //     const responseData = res.data.data;s
-            //     setServices((prevServices) => {
-            //         return prevServices.map((service) => {
-            //             const matchingData = responseData.find((data: any) => data.serviceID === service.id);
-            //             if (matchingData) {
-            //                 return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
-            //             }
-            //             return service; // No match found, return the original service
-            //         });
-            //     });
-            // }).catch(err => { console.error(err) });
         }).catch
             (err => console.error(err))
 
@@ -269,17 +254,15 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             lon: 2.709183392285786,
         };
         weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-            const forecastFiveDaysList = res.data.list;
             postWeatherDataToDB(res.data.list);
 
-            // Esto lo quitaremos y comprobaremos del db al darle a pagar
-            const fiveDaysListObj: Weather[] = [];
-            forecastFiveDaysList.forEach((forecastDay: any) => {
-                const day = new Date(forecastDay.dt_txt)
-                // day.setHours(0, 0, 0, 0)
-                fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
-            });
-            setWeatherFiveDaysForecastList(fiveDaysListObj)
+            // Esto es si quisieramos mantenerlo en un useState
+            // const forecastFiveDaysList = res.data.list;
+            // const fiveDaysListObj: Weather[] = [];
+            // forecastFiveDaysList.forEach((forecastDay: any) => {
+            //     const day = new Date(forecastDay.dt_txt)
+            //     fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
+            // });
         }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
     }, [cookies])
 
@@ -293,23 +276,24 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }
 
-    // Logica de navegacion por el modal
-    const goToNextStep = async () => {
-        setComesFromNextSteps(false);
-
-        // Funcionalidad caracterísitica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta
-        let canBookBasedOnWeather = true;
+    function checkCanBookBasedOnWeather(weatherData: any) {
+        // Funcionalidad característica: comprobar el tiempo antes de seguir, ya que es a los servicios a lo que afecta (el data viene de nuestro db, con previamente insertado los datos de la weather api)
+        let canBook = true;
         const startDateFormat = extractFormattedDate(startDate)
-        weatherFiveDaysForecastList?.forEach(weatherForecast => {
-            const foreDateFormat = extractFormattedDate(weatherForecast.date)
-            // console.log(foreDateFormat)
-            // console.log(startDateFormat)
-            // console.log(weatherForecast.state)
-            if (startDateFormat == foreDateFormat && weatherForecast.state == WeatherStates.RAIN) {
-                canBookBasedOnWeather = false;
+        weatherData.forEach((weatherForecast: any) => {
+            const foreDateFormat = extractFormattedDate(weatherForecast.weather_date)
+            console.log(startDateFormat == foreDateFormat && weatherForecast.weather_state == WeatherStates.RAIN)
+            if (startDateFormat == foreDateFormat && weatherForecast.weather_state == WeatherStates.RAIN) {
+                canBook = false;
                 return;
             }
         })
+        return canBook;
+    }
+
+    // Logica de navegacion por el modal
+    const goToNextStep = async () => {
+        setComesFromNextSteps(false);
 
         // Lógica específica para cada paso
         switch (currentStep) {
@@ -373,64 +357,66 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 if (selectedRoomID != null) {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        if (checkedPlan == 2) {
-                            if (canBookBasedOnWeather) {
-                                serverAPI.get('/room/' + selectedRoomID).then(async res => {
+                        serverAPI.get('/weather').then(res => {
+                            console.log(checkCanBookBasedOnWeather(res.data.data))
+                            if (checkCanBookBasedOnWeather(res.data.data)) {
+                                if (checkedPlan == 2) {
+                                    serverAPI.get('/room/' + selectedRoomID).then(async res => {
+                                        // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
+                                        // Crear una copia del estado actual
+                                        const updatedSelectedServicesIDs = { ...selectedServicesIDs };
+                                        // Establecer todos los valores en true
+                                        Object.keys(updatedSelectedServicesIDs).forEach(key => {
+                                            updatedSelectedServicesIDs[key] = true;
+                                        });
+                                        setSelectedServicesIDs(updatedSelectedServicesIDs)
 
-                                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                                    // Crear una copia del estado actual
-                                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                                    // Establecer todos los valores en true
-                                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                                        updatedSelectedServicesIDs[key] = true;
-                                    });
-                                    setSelectedServicesIDs(updatedSelectedServicesIDs)
-
-                                    // Update price to all selected services
-                                    let totalServicesPrice = 0;
-                                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
-                                        // console.log(`${key}: ${value}`);
-                                        if (value) {
-                                            // Si es true, es que esta seleccionado
-                                            const resp = await serverAPI.get('/service/' + key)
-                                            if (resp) {
-                                                totalServicesPrice += resp.data.data[0].serv_price;
+                                        // Update price to all selected services
+                                        let totalServicesPrice = 0;
+                                        for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
+                                            // console.log(`${key}: ${value}`);
+                                            if (value) {
+                                                // Si es true, es que esta seleccionado
+                                                const resp = await serverAPI.get('/service/' + key)
+                                                if (resp) {
+                                                    totalServicesPrice += resp.data.data[0].serv_price;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    // If comes from previous step to control the check plan vip
-                                    if (comesFromNextSteps) {
-                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
-                                    } else {
+                                        // If comes from previous step to control the check plan vip
+                                        if (comesFromNextSteps) {
+                                            setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
+                                        } else {
+                                            setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+                                        }
+
+                                        // After the step, backup the step price
+                                        setPricesToPayBackup({
+                                            ...pricesToPayBackup!,
+                                            [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                            [BookingSteps.StepChooseServices]: totalServicesPrice,
+                                        });
+                                    }).catch(err => console.error(err))
+
+                                    setCurrentStep(BookingSteps.StepFillGuests);
+                                } else {
+                                    serverAPI.get('/room/' + selectedRoomID).then(res => {
                                         setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-                                    }
 
-                                    // After the step, backup the step price
-                                    setPricesToPayBackup({
-                                        ...pricesToPayBackup!,
-                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                        [BookingSteps.StepChooseServices]: totalServicesPrice,
-                                    });
-                                }).catch(err => console.error(err))
+                                        // After the step, backup the step price
+                                        setPricesToPayBackup({
+                                            ...pricesToPayBackup!,
+                                            [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                        });
+                                    }).catch(err => console.error(err))
 
-                                setCurrentStep(BookingSteps.StepFillGuests);
+                                    setCurrentStep(BookingSteps.StepChooseServices);
+                                }
                             } else {
-                                alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
+                                alert("You can't book a service on booking start date: " + startDate?.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
                             }
-                        } else {
-                            serverAPI.get('/room/' + selectedRoomID).then(res => {
-                                setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-
-                                // After the step, backup the step price
-                                setPricesToPayBackup({
-                                    ...pricesToPayBackup!,
-                                    [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                });
-                            }).catch(err => console.error(err))
-
-                            setCurrentStep(BookingSteps.StepChooseServices);
-                        }
+                        })
                     } else {
                         alert('Adults: maximum 10. Children: maximum 10.')
                     }
@@ -440,31 +426,27 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 // setCurrentStep(BookingSteps.StepChooseServices);
                 break;
             case BookingSteps.StepChooseServices:
-                if (canBookBasedOnWeather) {
-                    let totalServicesPrice = 0;
-                    for (const [key, value] of Object.entries(selectedServicesIDs)) {
-                        // console.log(`${key}: ${value}`);
-                        if (value) {
-                            // Si es true, es que esta seleccionado
-                            const res = await serverAPI.get('/service/' + key)
-                            if (res) {
-                                totalServicesPrice += res.data.data[0].serv_price;
-                            }
+                let totalServicesPrice = 0;
+                for (const [key, value] of Object.entries(selectedServicesIDs)) {
+                    // console.log(`${key}: ${value}`);
+                    if (value) {
+                        // Si es true, es que esta seleccionado
+                        const res = await serverAPI.get('/service/' + key)
+                        if (res) {
+                            totalServicesPrice += res.data.data[0].serv_price;
                         }
                     }
-
-                    setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
-
-                    // After the step, backup the step price
-                    setPricesToPayBackup({
-                        ...pricesToPayBackup!,
-                        [BookingSteps.StepChooseServices]: totalServicesPrice,
-                    });
-
-                    setCurrentStep(BookingSteps.StepFillGuests);
-                } else {
-                    alert("You can't book a service on booking start date: " + startDateFormat.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
                 }
+
+                setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
+
+                // After the step, backup the step price
+                setPricesToPayBackup({
+                    ...pricesToPayBackup!,
+                    [BookingSteps.StepChooseServices]: totalServicesPrice,
+                });
+
+                setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
                 // Asegurarse que corresponde el numero de niños y adultos con lo marcado ahora

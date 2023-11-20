@@ -195,7 +195,7 @@ expressRouter.post('/checkUserExists', (req, res) => {
                 return res.status(500).json({ status: "error", message: "Error checking for existing users" })
             }
             if (results && results.length > 0) {
-                return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+                return res.status(409).json({ status: "error", message: "Existing email found in DB, use another email!" })
             } else {
                 return res.status(200).json({ status: "success", message: "User available" })
             }
@@ -1867,13 +1867,14 @@ expressRouter.post('/insert-weather', async (req, res) => {
 
         // Iterate through weather data and insert into the database
         for (const date of uniqueDates) {
-            const firstOccurrence = weatherData.find(data => {
-                const dataDate = data.dt_txt.split(' ')[0]; // Extract date part
-                return dataDate === date;
+            const rainOccurrence = weatherData.find(data => {
+                const dataDate = data.dt_txt.split(' ')[0];
+                return dataDate === date && data.weather[0].main === 'Rain';
             });
-            if (firstOccurrence) {
+
+            if (rainOccurrence) {
                 // Get date from the ocurrence
-                const parsedDate = new Date(firstOccurrence.dt_txt);
+                const parsedDate = new Date(rainOccurrence.dt_txt);
                 // Set correct hours due to tz difference
                 parsedDate.setHours(parsedDate.getHours() + 1)
                 if (parsedDate.toISOString().split('T')[1].split(':')[0] != 0) {
@@ -1882,7 +1883,7 @@ expressRouter.post('/insert-weather', async (req, res) => {
                     parsedDate.setMinutes(0);
                     parsedDate.setSeconds(0);
                 }
-                const state = firstOccurrence.weather[0].main;
+                const state = rainOccurrence.weather[0].main;
 
                 // Check if the date doesn't exist in the database before inserting
                 const existingData = await new Promise((resolve, reject) => {
@@ -1900,7 +1901,6 @@ expressRouter.post('/insert-weather', async (req, res) => {
                         req.dbConnectionPool.query('INSERT INTO weather (weather_date, weather_state) VALUES (?, ?)', [parsedDate, state], (error) => {
                             if (error) {
                                 remainingQueries--;
-                                console.error('Error executing query:', error);
                                 reject(error);
                             } else {
                                 remainingQueries--;
@@ -1909,47 +1909,94 @@ expressRouter.post('/insert-weather', async (req, res) => {
                         });
                     });
                 } else {
-                    remainingQueries--;
-                    existingDataIsFound = true;
-                }
-
-                if (remainingQueries === 0) {
-                    await new Promise((resolve, reject) => {
-                        req.dbConnectionPool.commit((err) => {
-                            if (err) {
-                                req.dbConnectionPool.rollback(() => {
-                                    reject({ status: "error", error: 'Internal server error' });
-                                });
-                            } else {
-                                resolve();
-                            }
+                    for (data in existingData) {
+                        await new Promise((resolve, reject) => {
+                            req.dbConnectionPool.query('UPDATE weather SET weather_state = ? WHERE id = ?', ['Rain', data.id], (error) => {
+                                if (error) {
+                                    remainingQueries--;
+                                    reject(error);
+                                } else {
+                                    remainingQueries--;
+                                    resolve();
+                                }
+                            });
                         });
-                    });
-                    if (!existingDataIsFound) {
-                        return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
-                    } else {
-                        return res.status(200).send({ status: "success", message: 'Weather data inserted successfully with existing weather data days found.' });
                     }
                 }
             } else {
-                remainingQueries--;
-                if (remainingQueries === 0) {
-                    await new Promise((resolve, reject) => {
-                        req.dbConnectionPool.commit((err) => {
-                            if (err) {
-                                req.dbConnectionPool.rollback(() => {
-                                    reject({ status: "error", error: 'Internal server error' });
-                                });
-                            } else {
-                                resolve();
-                            }
-                        });
-                    });
-                    if (!existingDataIsFound) {
-                        return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
-                    } else {
-                        return res.status(200).send({ status: "success", message: 'Weather data inserted successfully with existing weather data days found.' });
+                // Handle cases where no 'RAIN' occurrence for the day
+                const firstOccurrence = weatherData.find(data => {
+                    const dataDate = data.dt_txt.split(' ')[0];
+                    return dataDate === date;
+                });
+
+                if (firstOccurrence) {
+                    const parsedDate = new Date(firstOccurrence.dt_txt);
+                    // Set correct hours due to tz difference
+                    parsedDate.setHours(parsedDate.getHours() + 1)
+                    if (parsedDate.toISOString().split('T')[1].split(':')[0] != 0) {
+                        // Check if hour is different from 00 midnight
+                        parsedDate.setHours(1); // 1 because of timezone that does -1h
+                        parsedDate.setMinutes(0);
+                        parsedDate.setSeconds(0);
                     }
+                    const state = firstOccurrence.weather[0].main;
+
+                    try {
+                        // Check if the date doesn't exist in the database before inserting
+                        const existingData = await new Promise((resolve, reject) => {
+                            req.dbConnectionPool.query('SELECT * FROM weather WHERE weather_date = ?', [parsedDate], (error, result) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    resolve(result);
+                                }
+                            });
+                        });
+
+                        if (existingData.length === 0) {
+                            await new Promise((resolve, reject) => {
+                                req.dbConnectionPool.query('INSERT INTO weather (weather_date, weather_state) VALUES (?, ?)', [parsedDate, state], (error) => {
+                                    if (error) {
+                                        remainingQueries--;
+                                        reject(error);
+                                    } else {
+                                        remainingQueries--;
+                                        resolve();
+                                    }
+                                });
+                            });
+                        } else {
+                            remainingQueries--;
+                            existingDataIsFound = true;
+                        }
+                    } catch (error) {
+                        remainingQueries--;
+                        if (remainingQueries === 0) {
+                            return res.status(500).send({ status: "error", error: 'Internal server error' });
+                        }
+                    }
+                } else {
+                    remainingQueries--;
+                }
+            }
+
+            if (remainingQueries === 0) {
+                await new Promise((resolve, reject) => {
+                    req.dbConnectionPool.commit((err) => {
+                        if (err) {
+                            req.dbConnectionPool.rollback(() => {
+                                reject({ status: "error", error: 'Internal server error' });
+                            });
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+                if (!existingDataIsFound) {
+                    return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
+                } else {
+                    return res.status(200).send({ status: "success", message: 'Weather data inserted successfully with existing weather data days found.' });
                 }
             }
         }
@@ -1961,6 +2008,15 @@ expressRouter.post('/insert-weather', async (req, res) => {
         }
     }
 });
+// Get weather data
+expressRouter.get('/weather', (req, res) => {
+    req.dbConnectionPool.query('SELECT * FROM weather', (err, results) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+        }
+        return res.status(200).send({ status: "success", data: results });
+    })
+})
 
 // Listen SERVER (DEFAULT NODE PORT RUN OR 3000)
 const appPort = process.env.PORT || 3000
