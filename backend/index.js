@@ -237,6 +237,8 @@ expressRouter.post('/register', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -307,6 +309,8 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
         }
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -362,6 +366,8 @@ expressRouter.post('/login', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -389,6 +395,8 @@ expressRouter.post('/loginByToken', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -408,6 +416,8 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -419,6 +429,7 @@ expressRouter.delete('/user', verifyUser, (req, res) => {
         .then(() => deleteUserMediaByUserID(userID, req.dbConnectionPool))
         .then(() => deleteUserByUserID(userID, req.dbConnectionPool))
         .then(() => {
+            req.dbConnectionPool.release();
             return res.status(200).send({ status: "success", message: `User ${userID} deleted` });
         })
         .catch((error) => {
@@ -446,6 +457,8 @@ expressRouter.get('/getUserRole/:id', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -468,6 +481,8 @@ expressRouter.get('/loggedUser/:id', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -489,6 +504,8 @@ expressRouter.post('/checkUserExistsByEmail', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -511,6 +528,8 @@ expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", msg: "Error checking user verified" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -616,6 +635,8 @@ expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -630,6 +651,8 @@ expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -712,6 +735,8 @@ expressRouter.post('/user/verifyEmail/:token', async function (req, res) {
         return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: user.access_token });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -827,6 +852,8 @@ expressRouter.get('/usersID', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -845,6 +872,8 @@ expressRouter.post('/sendContactForm', async (req, res) => {
         return res.status(200).send({ status: "success", msg: "Your message was sent!" });
     } catch (error) {
         return res.status(500).send({ status: "error", msg: "Message couldn't be sent!" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -901,7 +930,7 @@ expressRouter.get('/rooms', (req, res) => {
                                 };
                             }
 
-                            // If no matching media object is found, return the result as is
+                            // If no matching media object is found, return the result as it is
                             return result;
                         });
                         // Return services
@@ -917,6 +946,8 @@ expressRouter.get('/rooms', (req, res) => {
         })
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -938,6 +969,8 @@ expressRouter.get('/room/:id', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -952,6 +985,8 @@ expressRouter.get('/roomsID', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1024,6 +1059,8 @@ expressRouter.get('/plans', (req, res) => {
         })
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1038,6 +1075,8 @@ expressRouter.get('/plansID', (req, res) => {
         });
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1110,6 +1149,8 @@ expressRouter.get('/services', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1131,6 +1172,8 @@ expressRouter.get('/service/:id', (req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1177,6 +1220,8 @@ expressRouter.post('/servicesImages', (req, res) => {
             });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1197,6 +1242,8 @@ expressRouter.get('/paymentmethods', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1261,6 +1308,8 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1292,6 +1341,8 @@ expressRouter.delete('/booking/:bookingID', (req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1328,6 +1379,8 @@ expressRouter.put('/booking', verifyUser, (req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1376,6 +1429,8 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
 
     } catch (error) {
         return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1395,6 +1450,8 @@ expressRouter.post('/createBooking', async (req, res) => {
         return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
         return res.status(500).send({ status: "error", error: `Internal server error: ${error}` });
+    } finally {
+        req.dbConnectionPool.release();
     }
 });
 
@@ -1556,6 +1613,8 @@ expressRouter.get('/bookingsByUser', verifyUser, (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: 'Internal server error' });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1578,6 +1637,8 @@ expressRouter.post('/payment', (req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ status: "error", error: 'Internal server error' });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1592,6 +1653,8 @@ expressRouter.post('/paymentTransaction', (req, res) => {
         })
     } catch (error) {
         return res.status(500).send({ status: "error", error: 'Internal server error' });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1612,6 +1675,8 @@ expressRouter.post('/purchase', async (req, res) => {
         return res.status(200).json({ status: "success", msg: 'stripe', client_secret: client_secret })
     } catch (error) {
         return res.status(200).json({ status: "error", msg: 'stripe', error: error, client_secret: null })
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 expressRouter.post('/cancel-payment', async (req, res) => {
@@ -1627,15 +1692,10 @@ expressRouter.post('/cancel-payment', async (req, res) => {
         return res.status(200).json({ status: "success", msg: 'Payment Intent canceled', canceledPaymentIntent });
     } catch (error) {
         return res.status(200).json({ status: "error", msg: 'Error canceling Payment Intent', error });
+    } finally {
+        req.dbConnectionPool.release();
     }
 });
-// Stripe success or failure responses
-expressRouter.get('/success', (req, res) => {
-    return res.status(200).json({ status: "success", msg: 'Payment successful! Thank you for your purchase.' })
-})
-expressRouter.get('/cancel', (req, res) => {
-    return res.status(200).json({ status: "success", msg: 'Payment cancelled. Your order was not processed.' })
-})
 
 // DELETES FUNCTIONS
 // By user ID
@@ -1761,6 +1821,8 @@ expressRouter.post('/captchaSiteVerify', async (req, res) => {
     } catch (error) {
         console.error("reCAPTCHA verification error:", error);
         res.status(500).json({ success: false });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
@@ -1819,8 +1881,9 @@ expressRouter.post('/insert-weather', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error in try block:', error);
         return res.status(500).send({ status: "error", error: 'Internal server error' });
+    } finally {
+        req.dbConnectionPool.release();
     }
 })
 
