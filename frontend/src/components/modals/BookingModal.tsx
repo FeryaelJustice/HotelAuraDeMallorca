@@ -271,7 +271,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         weatherAPI.get('data/2.5/forecast', { params }).then(res => {
             const forecastFiveDaysList = res.data.list;
             postWeatherDataToDB(res.data.list);
-            
+
             // Esto lo quitaremos y comprobaremos del db al darle a pagar
             const fiveDaysListObj: Weather[] = [];
             forecastFiveDaysList.forEach((forecastDay: any) => {
@@ -314,7 +314,13 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
-                setCurrentStep(BookingSteps.StepPlan);
+                serverAPI.post('/checkUserExists', { email: userPersonalData.email }).then(_ => {
+                    setCurrentStep(BookingSteps.StepPlan);
+                }).catch(error => {
+                    if (error && error.response && error.response.data && error.response.data.message) {
+                        alert(error.response.data.message)
+                    }
+                })
                 break;
             case BookingSteps.StepPlan:
                 if (checkedPlan === 1) {
