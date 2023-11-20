@@ -8,4 +8,3 @@ export { Room } from "./Room";
 export { Service } from "./Service";
 export { User } from "./User";
 export { Guest } from "./Guest";
-export { Weather } from "./Weather";

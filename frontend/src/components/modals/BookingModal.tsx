@@ -6,7 +6,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest, Weather } from './../../models';
+import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest } from './../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
