@@ -270,6 +270,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         };
         weatherAPI.get('data/2.5/forecast', { params }).then(res => {
             const forecastFiveDaysList = res.data.list;
+            postWeatherDataToDB(res.data.list);
+            
+            // Esto lo quitaremos y comprobaremos del db al darle a pagar
             const fiveDaysListObj: Weather[] = [];
             forecastFiveDaysList.forEach((forecastDay: any) => {
                 const day = new Date(forecastDay.dt_txt)
@@ -279,6 +282,16 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             setWeatherFiveDaysForecastList(fiveDaysListObj)
         }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
     }, [cookies])
+
+    async function postWeatherDataToDB(weatherData: any) {
+        try {
+            await serverAPI.post('/insert-weather', {
+                list: weatherData,
+            });
+        } catch (error) {
+            console.error('Error inserting weather data:', error);
+        }
+    }
 
     // Logica de navegacion por el modal
     const goToNextStep = async () => {
@@ -482,7 +495,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     // Logica de navegacion por el modal, paso atrás
     const goToPreviousStep = async () => {
         setComesFromNextSteps(true);
-        
+
         let priceToDiscount = 0;
         let priceResult = 0;
 
@@ -1263,10 +1276,10 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                 </Row>
                                             ))}
                                         </div>) : (
-                                            <div>
-                                                <h4>No services found</h4>
-                                            </div>
-                                        )}
+                                        <div>
+                                            <h4>No services found</h4>
+                                        </div>
+                                    )}
                                 </Row>
 
                                 <div className='bookingNavButtons'>

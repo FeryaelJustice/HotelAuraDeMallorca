@@ -128,21 +128,16 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
                 // Check also on db
-                pool.getConnection((error, connection) => {
-                    if (error) {
-                        return res.status(401).json({ status: "error", msg: "Couldn't connect to db on check user token in db." })
+                req.dbConnectionPool.query('SELECT id, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
+                    if (err) {
+                        return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
                     }
-                    connection.query('SELECT id, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
-                        if (err) {
-                            return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
-                        }
-                        if (result && result.length > 0) {
-                            req.id = decoded.userID;
-                            next();
-                        } else {
-                            return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
-                        }
-                    })
+                    if (result && result.length > 0) {
+                        req.id = decoded.userID;
+                        next();
+                    } else {
+                        return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
+                    }
                 })
             }
         })
@@ -177,270 +172,252 @@ transporter.verify((error, success) => {
 // DONT USE IF WE SERVE IT IN PROXYPASS OF APACHE APPENDING /api to the IP of BACKEND
 app.use('/api/', expressRouter)
 
-// USER
-expressRouter.post('/register', (req, res) => {
+// MIDDLEWARE PARA PROPER CONNECTION HANDLING OF DB
+expressRouter.use((req, res, next) => {
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: 'error', error: 'Internal server error' });
         }
-        try {
-            const data = req.body;
+        req.dbConnectionPool = connection; // Agregamos la conexión al objeto de solicitud
+        next(); // Continuamos con la ejecución de la ruta
+    });
+});
+
+// USER
+expressRouter.post('/register', (req, res) => {
+    try {
+        const data = req.body;
+        const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+        const checkValues = [data.email]
+        req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
+            if (err) {
+                return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
+            }
+            if (resultss.length > 0) {
+                return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+            } else {
+                const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password) VALUES (?, ?, ?, ?)';
+
+                bcrypt.hash(data.password, salt, (err, hash) => {
+                    const values = [data.name, data.surnames, data.email, hash];
+                    req.dbConnectionPool.query(sql, values, (error, results) => {
+                        if (error) {
+                            console.error(error);
+                            return res.status(500).json({ status: "error", msg: "Inserting data error on server" });
+                        }
+                        let userID = results.insertId;
+                        let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                        // res.cookie('token', jwtToken)
+
+                        // Insert default picture to user
+                        req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                            if (err) {
+                                console.error(err)
+                            }
+                        })
+
+                        // Insert user role to user
+                        req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, data.roleID], (err) => {
+                            if (err) {
+                                console.error(err)
+                            }
+                        });
+
+                        req.dbConnectionPool.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
+                            if (err) {
+                                console.error(err)
+                            }
+                        });
+
+                        return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
+                    });
+                })
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
+})
+
+expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
+    try {                    // Decode the QR code from the binary data
+        const qrCodeData = jsQR(req.imageData.pixelData, req.imageWidth, req.imageHeight);
+
+        if (qrCodeData) {
+            // Extracted data from the QR code
+            const extractedData = JSON.parse(qrCodeData.data);
+
             const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-            const checkValues = [data.email]
-            connection.query(checkSQL, checkValues, (err, resultss) => {
+            const checkValues = [extractedData.user_email]
+            req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
                 if (err) {
                     return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
                 }
                 if (resultss.length > 0) {
                     return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
                 } else {
-                    const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password) VALUES (?, ?, ?, ?)';
-
-                    bcrypt.hash(data.password, salt, (err, hash) => {
-                        const values = [data.name, data.surnames, data.email, hash];
-                        connection.query(sql, values, (error, results) => {
-                            if (error) {
-                                console.error(error);
-                                return res.status(500).json({ status: "error", msg: "Inserting data error on server" });
+                    const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
+                    bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
+                        const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified];
+                        req.dbConnectionPool.query(query, values, (err, result) => {
+                            if (err) {
+                                console.error(err);
+                                return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
                             }
-                            let userID = results.insertId;
-                            let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                            // res.cookie('token', jwtToken)
+                            if (result) {
+                                let userID = result.insertId;
+                                let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
 
-                            // Insert default picture to user
-                            connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                                if (err) {
-                                    console.error(err)
-                                }
-                            })
+                                // Insert default picture to user
+                                req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                                    if (err) {
+                                        console.error(err)
+                                    }
+                                })
 
-                            // Insert user role to user
-                            connection.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, data.roleID], (err) => {
-                                if (err) {
-                                    console.error(err)
-                                }
-                            });
+                                // Insert user role to user (client by default: 1)
+                                req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
+                                    if (err) {
+                                        console.error(err)
+                                    }
+                                });
 
-                            connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
-                                if (err) {
-                                    console.error(err)
-                                }
-                            });
+                                req.dbConnectionPool.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
+                                    if (err) {
+                                        console.error(err)
+                                    }
+                                });
 
-                            return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
-                        });
-                    })
+                                sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
+                                    return res.status(200).json({ json, cookieJWT: jwtToken, insertId: userID });
+                                }).catch(jsonError => {
+                                    return res.status(500).send(jsonError);
+                                })
+
+                            } else {
+                                return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
+                            }
+                        })
+                    });
                 }
             })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
+        } else {
+            res.status(400).json({ message: 'No QR code found in the image' });
         }
-    })
-})
-
-expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
-    pool.getConnection(async (err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {                    // Decode the QR code from the binary data
-            const qrCodeData = jsQR(req.imageData.pixelData, req.imageWidth, req.imageHeight);
-
-            if (qrCodeData) {
-                // Extracted data from the QR code
-                const extractedData = JSON.parse(qrCodeData.data);
-
-                const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-                const checkValues = [extractedData.user_email]
-                connection.query(checkSQL, checkValues, (err, resultss) => {
-                    if (err) {
-                        return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
-                    }
-                    if (resultss.length > 0) {
-                        return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
-                    } else {
-                        const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
-                        bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
-                            const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified];
-                            connection.query(query, values, (err, result) => {
-                                if (err) {
-                                    console.error(err);
-                                    return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
-                                }
-                                if (result) {
-                                    let userID = result.insertId;
-                                    let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-
-                                    // Insert default picture to user
-                                    connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                                        if (err) {
-                                            console.error(err)
-                                        }
-                                    })
-
-                                    // Insert user role to user (client by default: 1)
-                                    connection.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
-                                        if (err) {
-                                            console.error(err)
-                                        }
-                                    });
-
-                                    connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
-                                        if (err) {
-                                            console.error(err)
-                                        }
-                                    });
-
-                                    sendConfirmationEmail(connection, userID).then(json => {
-                                        return res.status(200).json({ json, cookieJWT: jwtToken, insertId: userID });
-                                    }).catch(jsonError => {
-                                        return res.status(500).send(jsonError);
-                                    })
-
-                                } else {
-                                    return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
-                                }
-                            })
-                        });
-                    }
-                })
-            } else {
-                res.status(400).json({ message: 'No QR code found in the image' });
-            }
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.post('/login', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let data = req.body;
-            let sql = 'SELECT * FROM app_user WHERE user_email = ?';
-            let values = [data.email];
-            connection.query(sql, values, (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    bcrypt.compare(data.password, results[0].user_password, (error, response) => {
-                        if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
-                        if (response) {
-                            // Check is verified
-                            if (results[0].user_verified === 1) {
-                                // Login
-                                // Generating jwt manually, but we use our db
-                                // const userID = results[0].id;
-                                // let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+    try {
+        let data = req.body;
+        let sql = 'SELECT * FROM app_user WHERE user_email = ?';
+        let values = [data.email];
+        req.dbConnectionPool.query(sql, values, (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                bcrypt.compare(data.password, results[0].user_password, (error, response) => {
+                    if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
+                    if (response) {
+                        // Check is verified
+                        if (results[0].user_verified === 1) {
+                            // Login
+                            // Generating jwt manually, but we use our db
+                            // const userID = results[0].id;
+                            // let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
 
-                                if (!results[0].access_token) {
-                                    // If user hasn't a token, generate jwt token and update the user on db
-                                    const userID = results[0].id;
-                                    const jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
-                                    connection.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (error, result) => {
-                                        if (error) {
-                                            console.log("Error updating access token to user on login which haven't gone one before.")
-                                        }
-                                        if (result) {
-                                            return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
-                                        } else {
-                                            console.log("Error updating access token to user on login which haven't gone one before.")
-                                        }
-                                    })
-                                } else {
-                                    // Return the user of db
-                                    return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
-                                }
+                            if (!results[0].access_token) {
+                                // If user hasn't a token, generate jwt token and update the user on db
+                                const userID = results[0].id;
+                                const jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+                                req.dbConnectionPool.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (error, result) => {
+                                    if (error) {
+                                        console.log("Error updating access token to user on login which haven't gone one before.")
+                                    }
+                                    if (result) {
+                                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                    } else {
+                                        console.log("Error updating access token to user on login which haven't gone one before.")
+                                    }
+                                })
                             } else {
-                                return res.status(500).send({ status: "error", msg: "User not verified" });
+                                // Return the user of db
+                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                             }
                         } else {
-                            return res.status(500).send({ status: "error", msg: "Passwords do not match" });
+                            return res.status(500).send({ status: "error", msg: "User not verified" });
                         }
-                    })
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No email exists" });
-                }
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+                    } else {
+                        return res.status(500).send({ status: "error", msg: "Passwords do not match" });
+                    }
+                })
+            } else {
+                return res.status(500).send({ status: "error", msg: "No email exists" });
+            }
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.post('/loginByToken', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            const token = req.body.token;
-            let sql = 'SELECT * FROM app_user WHERE access_token = ?';
-            let values = [token];
-            connection.query(sql, values, (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    // Check is verified
-                    if (results[0].user_verified === 1) {
-                        // Login
-                        return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
-                    } else {
-                        return res.status(500).send({ status: "error", msg: "User not verified" });
-                    }
+    try {
+        const token = req.body.token;
+        let sql = 'SELECT * FROM app_user WHERE access_token = ?';
+        let values = [token];
+        req.dbConnectionPool.query(sql, values, (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                // Check is verified
+                if (results[0].user_verified === 1) {
+                    // Login
+                    return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                 } else {
-                    return res.status(500).send({ status: "error", msg: "Token not valid" });
+                    return res.status(500).send({ status: "error", msg: "User not verified" });
                 }
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+            } else {
+                return res.status(500).send({ status: "error", msg: "Token not valid" });
+            }
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // Edit by recieving cookie in body or authorization (NOT DIRECTLY WITH BROWSER COOKIES) with verifyUser
 expressRouter.post('/edituser', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let userID = req.id;
-            let data = req.body;
-            let sql = 'UPDATE app_user SET user_name = ?, user_surnames = ? WHERE id = ?';
-            let values = [data.name, data.surnames, userID];
-            connection.query(sql, values, (error) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                return res.status(200).send({ status: "success", msg: 'User updated successfully' });
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        let userID = req.id;
+        let data = req.body;
+        let sql = 'UPDATE app_user SET user_name = ?, user_surnames = ? WHERE id = ?';
+        let values = [data.name, data.surnames, userID];
+        req.dbConnectionPool.query(sql, values, (error) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            }
+            return res.status(200).send({ status: "success", msg: 'User updated successfully' });
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.delete('/user', verifyUser, (req, res) => {
     const userID = req.id;
     deleteBookingByUserID()
-        .then(() => deletePaymentByUserID(userID))
-        .then(() => deleteUserRoleByUserID(userID))
-        .then(() => deleteUserMediaByUserID(userID))
-        .then(() => deleteUserByUserID(userID))
+        .then(() => deletePaymentByUserID(userID, req.dbConnectionPool))
+        .then(() => deleteUserRoleByUserID(userID, req.dbConnectionPool))
+        .then(() => deleteUserMediaByUserID(userID, req.dbConnectionPool))
+        .then(() => deleteUserByUserID(userID, req.dbConnectionPool))
         .then(() => {
             return res.status(200).send({ status: "success", message: `User ${userID} deleted` });
         })
@@ -456,145 +433,116 @@ expressRouter.post('/getLoggedUserID', verifyUser, (req, res) => {
 })
 
 expressRouter.get('/getUserRole/:id', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            connection.query('SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?', [req.params.id], (err, results) => {
-                if (err) {
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "User role found", data: results[0] });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No user role exists with that user id" });
-                }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        req.dbConnectionPool.query('SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?', [req.params.id], (err, results) => {
+            if (err) {
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "User role found", data: results[0] });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No user role exists with that user id" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // get current logged user data without jwt, only by id param
 expressRouter.get('/loggedUser/:id', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let userID = req.params.id;
-            let sql = 'SELECT * FROM app_user WHERE id = ?';
-            let values = [userID];
-            connection.query(sql, values, (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "User found", data: results[0] });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No user exists with that id" });
-                }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        let userID = req.params.id;
+        let sql = 'SELECT * FROM app_user WHERE id = ?';
+        let values = [userID];
+        req.dbConnectionPool.query(sql, values, (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "User found", data: results[0] });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.post('/checkUserExistsByEmail', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let data = req.body;
-            let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-            let checkValues = [data.email]
-            connection.query(checkSQL, checkValues, (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "User found" });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No user exists with that email" });
-                }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        let data = req.body;
+        let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
+        let checkValues = [data.email]
+        req.dbConnectionPool.query(checkSQL, checkValues, (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "User found" });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No user exists with that email" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            connection.query('SELECT user_verified FROM app_user WHERE id = ?', [req.params.id], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    if (results[0].user_verified === 1) {
-                        return res.status(200).send({ status: "success", msg: "User verified" });
-                    } else {
-                        return res.status(200).send({ status: "error", msg: "User not verified" });
-                    }
+    try {
+        req.dbConnectionPool.query('SELECT user_verified FROM app_user WHERE id = ?', [req.params.id], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                if (results[0].user_verified === 1) {
+                    return res.status(200).send({ status: "success", msg: "User verified" });
                 } else {
-                    return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+                    return res.status(200).send({ status: "error", msg: "User not verified" });
                 }
-            })
-        } catch (error) {
-
-        }
-    });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", msg: "Error checking user verified" });
+    }
 })
 
 expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'), (req, res) => {
     const userID = req.body.userID;
 
     // Delete all existing media and user_media associated with the user.
-    function deleteMediaPromise(userID) {
+    function deleteMediaPromise(userID, connection) {
         return new Promise((resolve, reject) => {
             try {
-                pool.getConnection((err, connection) => {
-                    if (err) {
-                        reject(err);
+                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
+                    if (error) {
+                        reject(error);
                     }
-                    connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
-                        if (error) {
-                            reject(error);
-                        }
 
-                        try {
-                            if (results && results != []) {
-                                for (const result of results) {
-                                    connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
-                                        if (error) {
-                                            reject(err);
-                                        }
-                                    });
-                                }
-
-                                resolve();
-                            } else {
-                                reject();
+                    try {
+                        if (results && results != []) {
+                            for (const result of results) {
+                                connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
+                                    if (error) {
+                                        reject(error);
+                                    }
+                                });
                             }
-                        } catch (error) {
-                            reject(error);
+
+                            resolve();
+                        } else {
+                            reject();
                         }
-                    });
+                    } catch (error) {
+                        reject(error);
+                    }
                 });
             } catch (error) {
                 reject(error);
@@ -602,19 +550,14 @@ expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'),
         });
     }
 
-    function deleteUserMediaPromise(userID) {
+    function deleteUserMediaPromise(userID, connection) {
         return new Promise((resolve, reject) => {
-            deleteMediaPromise(userID).then(() => {
-                pool.getConnection((err, connection) => {
-                    if (err) {
-                        reject(err);
+            deleteMediaPromise(userID, connection).then(() => {
+                connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
+                    if (error) {
+                        reject(error);
                     }
-                    connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
-                        if (error) {
-                            reject(error);
-                        }
-                        resolve();
-                    });
+                    resolve();
                 });
             }).catch(_ => {
                 reject('Image existing in db and coulnt be replaced with your new image')
@@ -623,33 +566,28 @@ expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'),
     }
 
     // Insert the new media and user_media records.
-    function insertMediaAndUserMediaPromise(filename, userID) {
+    function insertMediaAndUserMediaPromise(filename, userID, connection) {
         return new Promise((resolve, reject) => {
             try {
-                pool.getConnection((err, connection) => {
+                if (!req.file) {
+                    reject('No file found')
+                }
+                connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', rutaProfilePics + filename], (err, result) => {
                     if (err) {
                         reject(err);
                     }
-                    if (!req.file) {
-                        reject('No file found')
-                    }
-                    connection.query('INSERT INTO media (type, url) VALUES (?, ?)', ['image', rutaProfilePics + filename], (err, result) => {
-                        if (err) {
-                            reject(err);
-                        }
 
-                        try {
-                            const newMediaID = result.insertId;
-                            connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID], (error) => {
-                                if (error) {
-                                    reject(err);
-                                }
-                                resolve();
-                            });
-                        } catch (error) {
-                            reject(error);
-                        }
-                    });
+                    try {
+                        const newMediaID = result.insertId;
+                        connection.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, newMediaID], (error) => {
+                            if (error) {
+                                reject(err);
+                            }
+                            resolve();
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
                 });
             } catch (error) {
                 reject(error);
@@ -659,7 +597,7 @@ expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'),
 
     if (req.file) {
         // Wait for both promises to resolve before sending a response to the client.
-        Promise.all([deleteUserMediaPromise(userID), insertMediaAndUserMediaPromise(req.file.filename, userID)]).then(() => {
+        Promise.all([deleteUserMediaPromise(userID, req.dbConnectionPool), insertMediaAndUserMediaPromise(req.file.filename, userID, req.dbConnectionPool)]).then(() => {
             return res.status(200).json({ status: 'success', message: `Image ${req.file.filename} successfully uploaded` });
         })
     } else {
@@ -668,44 +606,31 @@ expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'),
 });
 
 expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
-    pool.getConnection(async (err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let userID = req.id;
-            connection.query('SELECT url FROM media INNER JOIN user_media ON user_media.media_id = media.id WHERE user_media.user_id = ?', [userID], (err, results) => {
-                if (err) {
-                    console.error('Error acquiring connection from connection:', err);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });
-                }
-                return res.status(200).send({ status: "success", fileURL: results[0] });
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    })
+    try {
+        let userID = req.id;
+        req.dbConnectionPool.query('SELECT url FROM media INNER JOIN user_media ON user_media.media_id = media.id WHERE user_media.user_id = ?', [userID], (err, results) => {
+            if (err) {
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            return res.status(200).send({ status: "success", fileURL: results[0] });
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
-    pool.getConnection(async (err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            const userId = req.params.id;
+    try {
+        const userId = req.params.id;
 
-            sendConfirmationEmail(connection, userId).then(json => {
-                return res.status(200).send(json);
-            }).catch(jsonError => {
-                return res.status(500).send(jsonError);
-            })
-        } catch (error) {
-            return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
-        }
-    });
+        sendConfirmationEmail(req.dbConnectionPool, userId).then(json => {
+            return res.status(200).send(json);
+        }).catch(jsonError => {
+            return res.status(500).send(jsonError);
+        })
+    } catch (error) {
+        return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
+    }
 })
 
 async function sendConfirmationEmail(connection, userId) {
@@ -765,34 +690,29 @@ const updateUserVerificationData = (connection, userId, verificationToken, verif
         }
     });
 };
-expressRouter.post('/user/verifyEmail/:token', function (req, res) {
-    pool.getConnection(async (err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+
+expressRouter.post('/user/verifyEmail/:token', async function (req, res) {
+    try {
+        const { token } = req.params;
+        // Find the user by verification token
+        const user = await getUserByVerificationToken(req.dbConnectionPool, token);
+
+        // Check if the user exists and the token hasn't expired
+        if (!user || user.verification_token_expiry < new Date()) {
+            return res.status(400).json({ status: 'error', message: 'Invalid or expired token.' });
         }
-        try {
-            const { token } = req.params;
-            // Find the user by verification token
-            const user = await getUserByVerificationToken(connection, token);
 
-            // Check if the user exists and the token hasn't expired
-            if (!user || user.verification_token_expiry < new Date()) {
-                return res.status(400).json({ status: 'error', message: 'Invalid or expired token.' });
-            }
+        // Update user verification status
+        await updateUserVerificationStatus(req.dbConnectionPool, user.id, true);
 
-            // Update user verification status
-            await updateUserVerificationStatus(connection, user.id, true);
+        // Clear verification token and expiry
+        await clearVerificationToken(req.dbConnectionPool, user.id);
 
-            // Clear verification token and expiry
-            await clearVerificationToken(connection, user.id);
-
-            // let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
-            return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: user.access_token });
-        } catch (error) {
-            return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
-        }
-    });
+        // let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
+        return res.status(200).json({ status: 'success', message: 'Email verified successfully.', jwt: user.access_token });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+    }
 })
 
 // Utilities for verifying user
@@ -897,23 +817,17 @@ const getUserRoleById = (connection, userId) => {
 };
 
 expressRouter.get('/usersID', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            connection.query('SELECT id FROM app_user', (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                return res.status(200).json({ status: "success", msg: "successful", data: results });
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        req.dbConnectionPool.query('SELECT id FROM app_user', (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            return res.status(200).json({ status: "success", msg: "successful", data: results });
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // CONTACT FORM
@@ -936,615 +850,533 @@ expressRouter.post('/sendContactForm', async (req, res) => {
 
 // ROOMS
 expressRouter.get('/rooms', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let sql = 'SELECT * FROM room';
-            connection.query(sql, [], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    // Results
-                    // Get medias
-                    let roomsMedias = [];
-                    const promises = [];
+    try {
+        let sql = 'SELECT * FROM room';
+        req.dbConnectionPool.query(sql, [], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                // Results
+                // Get medias
+                let roomsMedias = [];
+                const promises = [];
 
-                    for (room of results) {
-                        const planMediaQuery = new Promise((resolve, reject) => {
-                            const roomID = room.id;
-                            connection.query('SELECT media_id FROM room_media WHERE room_id = ?', [roomID], (error, results) => {
-                                if (error) {
-                                    reject(error);
+                for (room of results) {
+                    const planMediaQuery = new Promise((resolve, reject) => {
+                        const roomID = room.id;
+                        req.dbConnectionPool.query('SELECT media_id FROM room_media WHERE room_id = ?', [roomID], (error, results) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                if (results && results.length > 0) {
+                                    req.dbConnectionPool.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                        if (error) {
+                                            reject(error);
+                                        } else {
+                                            roomsMedias.push({ roomID: roomID, mediaURL: mediaResults[0].url });
+                                            resolve();
+                                        }
+                                    });
                                 } else {
-                                    if (results && results.length > 0) {
-                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
-                                            if (error) {
-                                                reject(error);
-                                            } else {
-                                                roomsMedias.push({ roomID: roomID, mediaURL: mediaResults[0].url });
-                                                resolve();
-                                            }
-                                        });
-                                    } else {
-                                        resolve("no rooms media");
-                                    }
+                                    resolve("no rooms media");
                                 }
-                            });
+                            }
                         });
-                        promises.push(planMediaQuery);
-                    }
-                    Promise.all(promises)
-                        .then(() => {
-                            const combinedArray = results.map(result => {
-                                // Find the corresponding media object based on roomID
-                                const mediaObject = roomsMedias.find(media => media.roomID === result.id);
-
-                                // If a matching media object is found, add its properties to the result
-                                if (mediaObject) {
-                                    return {
-                                        ...result,
-                                        imageURL: mediaObject.mediaURL,
-                                    };
-                                }
-
-                                // If no matching media object is found, return the result as is
-                                return result;
-                            });
-                            // Return services
-                            return res.status(200).send({ status: "success", msg: "Rooms found", data: combinedArray });
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
-                        })
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No rooms found" });
+                    });
+                    promises.push(planMediaQuery);
                 }
-            })
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+                Promise.all(promises)
+                    .then(() => {
+                        const combinedArray = results.map(result => {
+                            // Find the corresponding media object based on roomID
+                            const mediaObject = roomsMedias.find(media => media.roomID === result.id);
+
+                            // If a matching media object is found, add its properties to the result
+                            if (mediaObject) {
+                                return {
+                                    ...result,
+                                    imageURL: mediaObject.mediaURL,
+                                };
+                            }
+
+                            // If no matching media object is found, return the result as is
+                            return result;
+                        });
+                        // Return services
+                        return res.status(200).send({ status: "success", msg: "Rooms found", data: combinedArray });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                    })
+            } else {
+                return res.status(500).send({ status: "error", msg: "No rooms found" });
+            }
+        })
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/room/:id', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let id = req.params.id;
-            let sql = 'SELECT * FROM room WHERE id = ?';
-            let values = [id]
-            connection.query(sql, [values], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on querying db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No rooms found" });
-                }
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        let id = req.params.id;
+        let sql = 'SELECT * FROM room WHERE id = ?';
+        let values = [id]
+        req.dbConnectionPool.query(sql, [values], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+            }
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No rooms found" });
+            }
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/roomsID', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            connection.query('SELECT id FROM room', (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                return res.status(200).json({ status: "success", msg: "successful", data: results });
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        req.dbConnectionPool.query('SELECT id FROM room', (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            return res.status(200).json({ status: "success", msg: "successful", data: results });
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // PLANS
 expressRouter.get('/plans', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let sql = 'SELECT * FROM plan';
-            connection.query(sql, [], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    // Results
-                    // Get medias
-                    let plansMedias = [];
-                    const promises = [];
+    try {
+        let sql = 'SELECT * FROM plan';
+        req.dbConnectionPool.query(sql, [], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                // Results
+                // Get medias
+                let plansMedias = [];
+                const promises = [];
 
-                    for (plan of results) {
-                        const planMediaQuery = new Promise((resolve, reject) => {
-                            const planID = plan.id;
-                            connection.query('SELECT media_id FROM plan_media WHERE plan_id = ?', [planID], (error, results) => {
-                                if (error) {
-                                    reject(error);
+                for (plan of results) {
+                    const planMediaQuery = new Promise((resolve, reject) => {
+                        const planID = plan.id;
+                        req.dbConnectionPool.query('SELECT media_id FROM plan_media WHERE plan_id = ?', [planID], (error, results) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                if (results && results.length > 0) {
+                                    req.dbConnectionPool.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                        if (error) {
+                                            reject(error);
+                                        } else {
+                                            plansMedias.push({ planID: planID, mediaURL: mediaResults[0].url });
+                                            resolve();
+                                        }
+                                    });
                                 } else {
-                                    if (results && results.length > 0) {
-                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
-                                            if (error) {
-                                                reject(error);
-                                            } else {
-                                                plansMedias.push({ planID: planID, mediaURL: mediaResults[0].url });
-                                                resolve();
-                                            }
-                                        });
-                                    } else {
-                                        resolve("no plans media");
-                                    }
+                                    resolve("no plans media");
                                 }
-                            });
+                            }
                         });
-                        promises.push(planMediaQuery);
-                    }
-                    Promise.all(promises)
-                        .then(() => {
-                            const combinedArray = results.map(result => {
-                                // Find the corresponding media object based on planID
-                                const mediaObject = plansMedias.find(media => media.planID === result.id);
-
-                                // If a matching media object is found, add its properties to the result
-                                if (mediaObject) {
-                                    return {
-                                        ...result,
-                                        imageURL: mediaObject.mediaURL,
-                                    };
-                                }
-
-                                // If no matching media object is found, return the result as is
-                                return result;
-                            });
-                            // Return services
-                            return res.status(200).send({ status: "success", msg: "Plans found", data: combinedArray });
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
-                        })
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No plans found" });
+                    });
+                    promises.push(planMediaQuery);
                 }
-            })
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+                Promise.all(promises)
+                    .then(() => {
+                        const combinedArray = results.map(result => {
+                            // Find the corresponding media object based on planID
+                            const mediaObject = plansMedias.find(media => media.planID === result.id);
+
+                            // If a matching media object is found, add its properties to the result
+                            if (mediaObject) {
+                                return {
+                                    ...result,
+                                    imageURL: mediaObject.mediaURL,
+                                };
+                            }
+
+                            // If no matching media object is found, return the result as is
+                            return result;
+                        });
+                        // Return services
+                        return res.status(200).send({ status: "success", msg: "Plans found", data: combinedArray });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                    })
+            } else {
+                return res.status(500).send({ status: "error", msg: "No plans found" });
+            }
+        })
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/plansID', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            connection.query('SELECT id FROM plan', (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                return res.status(200).json({ status: "success", msg: "successful", data: results });
-            });
-        } catch (error) {
-            res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        req.dbConnectionPool.query('SELECT id FROM plan', (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            return res.status(200).json({ status: "success", msg: "successful", data: results });
+        });
+    } catch (error) {
+        res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // SERVICES
 expressRouter.get('/services', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let sql = 'SELECT * FROM service';
-            connection.query(sql, [], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    // Results
-                    // Get medias
-                    let servicesMedias = [];
-                    const promises = [];
+    try {
+        let sql = 'SELECT * FROM service';
+        req.dbConnectionPool.query(sql, [], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
+            if (results.length > 0) {
+                // Results
+                // Get medias
+                let servicesMedias = [];
+                const promises = [];
 
-                    for (service of results) {
-                        const serviceMediaQuery = new Promise((resolve, reject) => {
-                            const serviceID = service.id;
-                            connection.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
-                                if (error) {
-                                    reject(error);
+                for (service of results) {
+                    const serviceMediaQuery = new Promise((resolve, reject) => {
+                        const serviceID = service.id;
+                        req.dbConnectionPool.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                if (results && results.length > 0) {
+                                    req.dbConnectionPool.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                        if (error) {
+                                            reject(error);
+                                        } else {
+                                            servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
+                                            resolve();
+                                        }
+                                    });
                                 } else {
-                                    if (results && results.length > 0) {
-                                        connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
-                                            if (error) {
-                                                reject(error);
-                                            } else {
-                                                servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
-                                                resolve();
-                                            }
-                                        });
-                                    } else {
-                                        resolve("no services media");
-                                    }
+                                    resolve("no services media");
                                 }
-                            });
+                            }
                         });
-                        promises.push(serviceMediaQuery);
-                    }
-                    Promise.all(promises)
-                        .then(() => {
-                            const combinedArray = results.map(result => {
-                                // Find the corresponding media object based on serviceID
-                                const mediaObject = servicesMedias.find(media => media.serviceID === result.id);
-
-                                // If a matching media object is found, add its properties to the result
-                                if (mediaObject) {
-                                    return {
-                                        ...result,
-                                        imageURL: mediaObject.mediaURL,
-                                    };
-                                }
-
-                                // If no matching media object is found, return the result as is
-                                return result;
-                            });
-                            // Return services
-                            return res.status(200).send({ status: "success", msg: "Services found", data: combinedArray });
-                        })
-                        .catch(error => {
-                            console.error(error);
-                            return res.status(500).send({ status: "error", msg: "Error in processing data" });
-                        })
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No services found" });
+                    });
+                    promises.push(serviceMediaQuery);
                 }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+                Promise.all(promises)
+                    .then(() => {
+                        const combinedArray = results.map(result => {
+                            // Find the corresponding media object based on serviceID
+                            const mediaObject = servicesMedias.find(media => media.serviceID === result.id);
+
+                            // If a matching media object is found, add its properties to the result
+                            if (mediaObject) {
+                                return {
+                                    ...result,
+                                    imageURL: mediaObject.mediaURL,
+                                };
+                            }
+
+                            // If no matching media object is found, return the result as is
+                            return result;
+                        });
+                        // Return services
+                        return res.status(200).send({ status: "success", msg: "Services found", data: combinedArray });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                    })
+            } else {
+                return res.status(500).send({ status: "error", msg: "No services found" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.get('/service/:id', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            let id = req.params.id;
-            let sql = 'SELECT * FROM service  WHERE id = ?';
-            let values = [id]
-            connection.query(sql, [values], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on querying db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Services found", data: results });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No services found" });
-                }
-            });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+    try {
+        let id = req.params.id;
+        let sql = 'SELECT * FROM service  WHERE id = ?';
+        let values = [id]
+        req.dbConnectionPool.query(sql, [values], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+            }
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "Services found", data: results });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No services found" });
+            }
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.post('/servicesImages', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
+    try {
+        const services = req.body.services;
+        let servicesMedias = [];
+        const promises = [];
 
-        try {
-            const services = req.body.services;
-            let servicesMedias = [];
-            const promises = [];
-
-            for (service of services) {
-                const serviceMediaQuery = new Promise((resolve, reject) => {
-                    const serviceID = service.id;
-                    connection.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
-                        if (error) {
-                            reject(error);
+        for (service of services) {
+            const serviceMediaQuery = new Promise((resolve, reject) => {
+                const serviceID = service.id;
+                req.dbConnectionPool.query('SELECT media_id FROM service_media WHERE service_id = ?', [serviceID], (error, results) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        if (results && results.length > 0) {
+                            req.dbConnectionPool.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
+                                    resolve();
+                                }
+                            });
                         } else {
-                            if (results && results.length > 0) {
-                                connection.query('SELECT url FROM media WHERE id = ?', [results[0].media_id], (error, mediaResults) => {
-                                    if (error) {
-                                        reject(error);
-                                    } else {
-                                        servicesMedias.push({ serviceID: serviceID, mediaURL: mediaResults[0].url });
-                                        resolve();
-                                    }
-                                });
-                            } else {
-                                resolve("no services media");
-                            }
+                            resolve("no services media");
                         }
-                    });
+                    }
                 });
-                promises.push(serviceMediaQuery);
-            }
-            Promise.all(promises)
-                .then(() => {
-                    return res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
-                })
-                .catch(error => {
-                    console.error(error);
-                    return res.status(500).send({ status: "error", msg: "Error in processing data" });
-                })
-                .finally(() => {
-                    //
-                });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
+            });
+            promises.push(serviceMediaQuery);
         }
-    });
+        Promise.all(promises)
+            .then(() => {
+                return res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
+            })
+            .catch(error => {
+                console.error(error);
+                return res.status(500).send({ status: "error", msg: "Error in processing data" });
+            })
+            .finally(() => {
+                //
+            });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 // PAYMENT METHODS
 expressRouter.get('/paymentmethods', (req, res) => {
-    pool.getConnection((err, connection) => {
-        try {
-            let sql = 'SELECT * FROM payment_method'
-
-            if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+    try {
+        let sql = 'SELECT * FROM payment_method'
+        req.dbConnectionPool.query(sql, [], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
-            connection.query(sql, [], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
-                if (results.length > 0) {
-                    return res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
-                } else {
-                    return res.status(500).send({ status: "error", msg: "No payment methods found" });
-                }
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
-        }
-    });
+            if (results.length > 0) {
+                return res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
+            } else {
+                return res.status(500).send({ status: "error", msg: "No payment methods found" });
+            }
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    }
 })
 
 expressRouter.post('/checkBookingAvailability', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
+    try {
+        const { roomID, start_date, end_date } = req.body;
+        const startDate = new Date(start_date).toISOString().slice(0, 11).replace('T', ' ')
+        const endDate = new Date(end_date).toISOString().slice(0, 11).replace('T', ' ')
+        const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r LEFT JOIN booking b ON r.id = b.room_id AND ((b.booking_start_date BETWEEN ? AND ?) OR (b.booking_end_date BETWEEN ? AND ?) OR (b.booking_start_date <= ? AND b.booking_end_date >= ?)) WHERE r.id = ?';
 
-        try {
-            const { roomID, start_date, end_date } = req.body;
-            const startDate = new Date(start_date).toISOString().slice(0, 11).replace('T', ' ')
-            const endDate = new Date(end_date).toISOString().slice(0, 11).replace('T', ' ')
-            const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r LEFT JOIN booking b ON r.id = b.room_id AND ((b.booking_start_date BETWEEN ? AND ?) OR (b.booking_end_date BETWEEN ? AND ?) OR (b.booking_start_date <= ? AND b.booking_end_date >= ?)) WHERE r.id = ?';
+        req.dbConnectionPool.query(sql, [startDate, endDate, startDate, endDate, startDate, endDate, roomID], (err, results) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+            }
 
-            connection.query(sql, [startDate, endDate, startDate, endDate, startDate, endDate, roomID], (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-                }
+            if (results && results.length > 0) {
+                // Esto significa que está ocupada, sino estará a null
+                if (results[0].booking_start_date) {
+                    // Buscar fechas disponibles
+                    const roomAvailabilityStart = results[0].room_availability_start;
+                    const roomAvailabilityEnd = results[0].room_availability_end;
 
-                if (results && results.length > 0) {
-                    // Esto significa que está ocupada, sino estará a null
-                    if (results[0].booking_start_date) {
-                        // Buscar fechas disponibles
-                        const roomAvailabilityStart = results[0].room_availability_start;
-                        const roomAvailabilityEnd = results[0].room_availability_end;
+                    const availableDates = [];
+                    const today = new Date();
 
-                        const availableDates = [];
-                        const today = new Date();
+                    for (let currentDate = new Date(roomAvailabilityStart); currentDate <= roomAvailabilityEnd; currentDate.setDate(currentDate.getDate() + 1)) {
+                        let isDateOccupied = false; // buscando si esta ocupado en las fechas disponibles del room con las del book ya reservado
 
-                        for (let currentDate = new Date(roomAvailabilityStart); currentDate <= roomAvailabilityEnd; currentDate.setDate(currentDate.getDate() + 1)) {
-                            let isDateOccupied = false; // buscando si esta ocupado en las fechas disponibles del room con las del book ya reservado
-
-                            for (const row of results) {
-                                const bookingStartDate = new Date(row.booking_start_date);
-                                const bookingEndDate = new Date(row.booking_end_date);
-                                if (currentDate >= bookingStartDate && currentDate <= bookingEndDate) {
-                                    isDateOccupied = true;
-                                    break; // No need to check further, the date is occupied
-                                }
-                            }
-
-                            if (!isDateOccupied && currentDate >= today && currentDate >= results[0].booking_start_date) {
-                                availableDates.push(currentDate.toISOString().split('T')[0]);
+                        for (const row of results) {
+                            const bookingStartDate = new Date(row.booking_start_date);
+                            const bookingEndDate = new Date(row.booking_end_date);
+                            if (currentDate >= bookingStartDate && currentDate <= bookingEndDate) {
+                                isDateOccupied = true;
+                                break; // No need to check further, the date is occupied
                             }
                         }
 
-                        if (availableDates.length === 0) {
-                            return res.status(200).json({
-                                status: "success",
-                                msg: "No rooms available, they're occupied."
-                            });
-                        } else {
-                            return res.status(200).json({
-                                status: "success",
-                                msg: "OK, rooms occupied but with available dates.",
-                                available: availableDates
-                            });
+                        if (!isDateOccupied && currentDate >= today && currentDate >= results[0].booking_start_date) {
+                            availableDates.push(currentDate.toISOString().split('T')[0]);
                         }
+                    }
+
+                    if (availableDates.length === 0) {
+                        return res.status(200).json({
+                            status: "success",
+                            msg: "No rooms available, they're occupied."
+                        });
                     } else {
-                        return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
+                        return res.status(200).json({
+                            status: "success",
+                            msg: "OK, rooms occupied but with available dates.",
+                            available: availableDates
+                        });
                     }
                 } else {
                     return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
                 }
-            });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-        }
-    })
-
+            } else {
+                return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
+            }
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
 })
 
 // BOOKING
 expressRouter.delete('/booking/:bookingID', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            // Delete booking, only for admins
-            const bookingId = req.params.bookingID;
+    try {
+        // Delete booking, only for admins
+        const bookingId = req.params.bookingID;
 
-            connection.beginTransaction(async (err) => {
+        req.dbConnectionPool.beginTransaction(async (err) => {
+            if (err) {
+                req.dbConnectionPool.rollback();
+                return res.status(500).send({ status: "error", error: "Internal server error" });
+            }
+            req.dbConnectionPool.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
+                console.log(err)
                 if (err) {
-                    connection.rollback();
+                    req.dbConnectionPool.rollback();
                     return res.status(500).send({ status: "error", error: "Internal server error" });
                 }
-                connection.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
-                    console.log(err)
-                    if (err) {
-                        connection.rollback();
-                        return res.status(500).send({ status: "error", error: "Internal server error" });
-                    }
 
-                    connection.commit((err) => {
-                        if (err) {
-                            connection.rollback();
-                        }
-                        return res.status(200).send({ status: "success", msg: "Successfully deleted!" });
-                    });
-                })
-            });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-        }
-    })
+                req.dbConnectionPool.commit((err) => {
+                    if (err) {
+                        req.dbConnectionPool.rollback();
+                    }
+                    return res.status(200).send({ status: "success", msg: "Successfully deleted!" });
+                });
+            })
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
 })
 
 expressRouter.put('/booking', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            // Update booking (only for admins)
-            const userID = req.id;
-            const booking = req.body;
+    try {
+        // Update booking (only for admins)
+        const userID = req.id;
+        const booking = req.body;
 
-            getUserRoleById(connection, userID).then(userRole => {
-                if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
-                    connection.beginTransaction(async (err) => {
+        getUserRoleById(req.dbConnectionPool, userID).then(userRole => {
+            if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
+                req.dbConnectionPool.beginTransaction(async (err) => {
+                    if (err) {
+                        req.dbConnectionPool.rollback();
+                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                    }
+                    req.dbConnectionPool.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate, booking.id], (err) => {
                         if (err) {
-                            connection.rollback();
+                            req.dbConnectionPool.rollback();
                             return res.status(500).send({ status: "error", error: "Internal server error" });
                         }
-                        connection.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate, booking.id], (err) => {
-                            if (err) {
-                                connection.rollback();
-                                return res.status(500).send({ status: "error", error: "Internal server error" });
-                            }
 
-                            connection.commit((err) => {
-                                if (err) {
-                                    connection.rollback();
-                                }
-                                return res.status(200).send({ status: "success", msg: "Successfully updated!" });
-                            });
-                        })
-                    });
-                }
-            }).catch(err => {
-                return res.status(500).send({ status: "error", error: "Internal server error: " + err });
-            });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-        }
-    })
+                        req.dbConnectionPool.commit((err) => {
+                            if (err) {
+                                req.dbConnectionPool.rollback();
+                            }
+                            return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                        });
+                    })
+                });
+            }
+        }).catch(err => {
+            return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
 })
 
 expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            const bookingID = req.body.bookingID;
+    try {
+        const bookingID = req.body.bookingID;
 
-            connection.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
-                if (err) {
-                    return res.status(500).send({ status: "error", error: "Internal server error" });
+        req.dbConnectionPool.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
+            if (err) {
+                return res.status(500).send({ status: "error", error: "Internal server error" });
+            }
+            if (results) {
+                const deadline = new Date(results[0].cancellation_deadline)
+                const currentDate = new Date();
+                // Compare dates
+                if (deadline < currentDate) {
+                    return res.status(500).send({
+                        status: 'error',
+                        error: 'Deadline to cancel this booking is over',
+                    });
                 }
-                if (results) {
-                    const deadline = new Date(results[0].cancellation_deadline)
-                    const currentDate = new Date();
-                    // Compare dates
-                    if (deadline < currentDate) {
-                        return res.status(500).send({
-                            status: 'error',
-                            error: 'Deadline to cancel this booking is over',
-                        });
-                    }
 
-                    connection.beginTransaction(async (err) => {
+                req.dbConnectionPool.beginTransaction(async (err) => {
+                    if (err) {
+                        req.dbConnectionPool.rollback();
+                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                    }
+                    req.dbConnectionPool.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
                         if (err) {
-                            connection.rollback();
+                            req.dbConnectionPool.rollback();
                             return res.status(500).send({ status: "error", error: "Internal server error" });
                         }
-                        connection.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
+
+                        req.dbConnectionPool.commit((err) => {
                             if (err) {
-                                connection.rollback();
-                                return res.status(500).send({ status: "error", error: "Internal server error" });
+                                req.dbConnectionPool.rollback();
                             }
+                            return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                        });
+                    })
+                });
+            } else {
+                return res.status(500).send({ status: "error", error: "Internal server error" });
+            }
+        })
 
-                            connection.commit((err) => {
-                                if (err) {
-                                    connection.rollback();
-                                }
-                                return res.status(200).send({ status: "success", msg: "Successfully updated!" });
-                            });
-                        })
-                    });
-                } else {
-                    return res.status(500).send({ status: "error", error: "Internal server error" });
-                }
-            })
-
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
-        }
-    })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+    }
 })
 
 expressRouter.post('/createBooking', async (req, res) => {
@@ -1555,10 +1387,10 @@ expressRouter.post('/createBooking', async (req, res) => {
         const servicesIDs = Object.keys(selectedServicesIDs).filter((key) => selectedServicesIDs[key]).map(Number);
 
         // Create or select guests
-        const guestIds = await createOrSelectGuests(guests);
+        const guestIds = await createOrSelectGuests(guests, req.dbConnectionPool);
 
         // Create a booking
-        const bookingId = await createBooking(booking, guestIds, servicesIDs);
+        const bookingId = await createBooking(booking, guestIds, servicesIDs, req.dbConnectionPool);
 
         return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
@@ -1567,14 +1399,14 @@ expressRouter.post('/createBooking', async (req, res) => {
 });
 
 // Booking functions
-async function createOrSelectGuests(guests) {
+async function createOrSelectGuests(guests, connection) {
     try {
         const existingGuests = guests.filter(guest => guest.id !== null);
         const existingGuestIds = existingGuests.map(guest => guest.id);
 
         const [guestIdMap, guestsToInsert] = await Promise.all([
-            selectGuestIds(existingGuestIds),
-            insertGuests(guests.filter(guest => guest.id === null))
+            selectGuestIds(existingGuestIds, connection),
+            insertGuests(guests.filter(guest => guest.id === null), connection)
         ]);
 
         // Use a Set to ensure unique values
@@ -1589,25 +1421,20 @@ async function createOrSelectGuests(guests) {
     }
 }
 
-function selectGuestIds(existingGuestIds) {
+function selectGuestIds(existingGuestIds, connection) {
     return new Promise((resolve, reject) => {
         try {
             if (existingGuestIds.length === 0) {
                 resolve([]);
                 return;
             }
-            pool.getConnection(async (err, connection) => {
+            const query = 'SELECT id FROM guest WHERE id IN (?)';
+            connection.query(query, [existingGuestIds], (err, results) => {
                 if (err) {
-                    reject(error);
+                    reject("Error selecting guests");
+                } else {
+                    resolve(results.map(result => result.id));
                 }
-                const query = 'SELECT id FROM guest WHERE id IN (?)';
-                connection.query(query, [existingGuestIds], (err, results) => {
-                    if (err) {
-                        reject("Error selecting guests");
-                    } else {
-                        resolve(results.map(result => result.id));
-                    }
-                });
             });
         } catch (error) {
             reject(error);
@@ -1615,7 +1442,7 @@ function selectGuestIds(existingGuestIds) {
     });
 }
 
-function insertGuests(guestsToInsert) {
+function insertGuests(guestsToInsert, connection) {
     return new Promise((resolve, reject) => {
         try {
             if (guestsToInsert.length === 0) {
@@ -1623,20 +1450,15 @@ function insertGuests(guestsToInsert) {
                 return;
             }
 
-            pool.getConnection(async (err, connection) => {
+            const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
+            const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
+            connection.query(query, [values], (err, result) => {
                 if (err) {
-                    reject(error);
+                    reject("Error creating guests");
+                } else {
+                    const insertedIds = Array(guestsToInsert.length).fill(result.insertId);
+                    resolve(insertedIds);
                 }
-                const values = guestsToInsert.map(guest => [guest.id, guest.name, guest.surnames, guest.email, guest.isAdult, guest.isSystemUser]);
-                const query = 'INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?';
-                connection.query(query, [values], (err, result) => {
-                    if (err) {
-                        reject("Error creating guests");
-                    } else {
-                        const insertedIds = Array(guestsToInsert.length).fill(result.insertId);
-                        resolve(insertedIds);
-                    }
-                });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -1644,48 +1466,41 @@ function insertGuests(guestsToInsert) {
     });
 }
 
-async function createBooking(booking, guestIds, servicesIDs) {
+async function createBooking(booking, guestIds, servicesIDs, connection) {
     return new Promise((resolve, reject) => {
-        pool.getConnection(async (err, connection) => {
-            if (err) {
-                reject("Error acquiring connection from pool");
-            }
+        try {
+            const startDate = moment(booking.startDate).format(dateFormat);
+            const endDate = moment(booking.endDate).format(dateFormat);
+            const query = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
+            const values = [booking.userID, booking.planID, booking.roomID, startDate, endDate];
+            connection.beginTransaction(async (err) => {
+                if (err) {
+                    connection.rollback(() => reject("Transaction start error"));
+                    return;
+                }
 
-            try {
-                const startDate = moment(booking.startDate).format(dateFormat);
-                const endDate = moment(booking.endDate).format(dateFormat);
-                const query = 'INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)';
-                const values = [booking.userID, booking.planID, booking.roomID, startDate, endDate];
-                connection.beginTransaction(async (err) => {
+                connection.query(query, values, async (err, result) => {
                     if (err) {
-                        connection.rollback(() => reject("Transaction start error"));
+                        connection.rollback(() => reject(`Error creating booking: ${err}`));
                         return;
                     }
 
-                    connection.query(query, values, async (err, result) => {
+                    const bookingId = result.insertId;
+
+                    await insertBookingServices(connection, bookingId, servicesIDs);
+                    await insertBookingGuests(connection, bookingId, guestIds);
+
+                    connection.commit((err) => {
                         if (err) {
-                            connection.rollback(() => reject(`Error creating booking: ${err}`));
-                            return;
+                            connection.rollback(() => reject("Transaction commit error"));
                         }
-
-                        const bookingId = result.insertId;
-
-                        await insertBookingServices(connection, bookingId, servicesIDs);
-                        await insertBookingGuests(connection, bookingId, guestIds);
-
-                        connection.commit((err) => {
-                            if (err) {
-                                connection.rollback(() => reject("Transaction commit error"));
-                            }
-                            //
-                            resolve(bookingId);
-                        });
+                        resolve(bookingId);
                     });
                 });
-            } catch (error) {
-                reject(error);
-            }
-        });
+            });
+        } catch (error) {
+            reject(error);
+        }
     });
 }
 
@@ -1717,92 +1532,67 @@ function insertBookingGuests(connection, bookingId, guestIds) {
 }
 
 expressRouter.get('/bookings', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        try {
+    try {
+        req.dbConnectionPool.query('SELECT * FROM booking', (err, results) => {
             if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+                console.error(err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            connection.query('SELECT * FROM booking', (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                return res.status(200).send({ status: "success", msg: "successful", data: results });
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-    });
+            return res.status(200).send({ status: "success", msg: "successful", data: results });
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: 'Internal server error' });
+    }
 })
 
 expressRouter.get('/bookingsByUser', verifyUser, (req, res) => {
-    pool.getConnection((err, connection) => {
-        try {
+    try {
+        req.dbConnectionPool.query('SELECT * FROM booking WHERE user_id = ? AND is_cancelled = 0', [req.id], (err, results) => {
             if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+                console.error(err);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            connection.query('SELECT * FROM booking WHERE user_id = ? AND is_cancelled = 0', [req.id], (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                return res.status(200).send({ status: "success", msg: "successful", data: results });
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-    });
+            return res.status(200).send({ status: "success", msg: "successful", data: results });
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: 'Internal server error' });
+    }
 })
 
 // PAYMENT
 expressRouter.post('/payment', (req, res) => {
-    pool.getConnection((err, connection) => {
-        try {
-            if (err) {
-                console.error('Error acquiring connection from pool:', err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+    try {
+        const data = req.body;
+        let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
+        // Create a Date object from the original string
+        const dateObject = new Date(data.date);
+        // Format the date as 'YYYY-MM-DD'
+        const formattedDate = dateObject.toISOString().split('T')[0];
+        let values = [data.userID, data.bookingID, data.amount, formattedDate, data.paymentMethodID];
+        req.dbConnectionPool.query(sql, values, (error, result) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).send({ status: "error", error: 'Internal server error' });;
             }
-            const data = req.body;
-            let sql = 'INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id) VALUES (?, ?, ?, ?, ?)';
-            // Create a Date object from the original string
-            const dateObject = new Date(data.date);
-            // Format the date as 'YYYY-MM-DD'
-            const formattedDate = dateObject.toISOString().split('T')[0];
-            let values = [data.userID, data.bookingID, data.amount, formattedDate, data.paymentMethodID];
-            connection.query(sql, values, (error, result) => {
-                if (error) {
-                    console.error(error);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });;
-                }
-                return res.status(200).send({ status: "success", insertId: result.insertId });
-            });
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-    });
+            return res.status(200).send({ status: "success", insertId: result.insertId });
+        });
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: 'Internal server error' });
+    }
 })
 
 expressRouter.post('/paymentTransaction', (req, res) => {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-        try {
-            const data = req.body;
-            connection.query('INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)', [data.payment_id, data.transaction_id], (error, result) => {
-                if (error) {
-                    console.error('Error acquiring connection from pool:', error);
-                    return res.status(500).send({ status: "error", error: 'Internal server error' });
-                }
-                return res.status(200).send({ status: "success", insertId: result.insertId });
-            })
-        } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
-        }
-    });
+    try {
+        const data = req.body;
+        req.dbConnectionPool.query('INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)', [data.payment_id, data.transaction_id], (error, result) => {
+            if (error) {
+                return res.status(500).send({ status: "error", error: 'Internal server error' });
+            }
+            return res.status(200).send({ status: "success", insertId: result.insertId });
+        })
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: 'Internal server error' });
+    }
 })
 
 // Stripe
@@ -1849,48 +1639,17 @@ expressRouter.get('/cancel', (req, res) => {
 
 // DELETES FUNCTIONS
 // By user ID
-function deleteUserByUserID(userID) {
-    return new Promise((resolve, reject) => {
-        pool.getConnection((err, connection) => {
-            if (err) {
-                reject(err);
-            } else {
-                try {
-                    const sql = 'DELETE FROM app_user WHERE id = ?';
-                    const values = [userID];
-                    connection.query(sql, values, (err) => {
-                        //
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve();
-                        }
-                    });
-                } catch (error) {
-                    reject(error);
-                }
-            }
-        });
-    });
-}
-
-function deleteBookingByUserID(userID) {
+function deleteUserByUserID(userID, connection) {
     return new Promise((resolve, reject) => {
         try {
-            const sql = 'DELETE FROM booking WHERE user_id = ?';
+            const sql = 'DELETE FROM app_user WHERE id = ?';
             const values = [userID];
-
-            pool.getConnection(async (err, connection) => {
+            connection.query(sql, values, (err) => {
                 if (err) {
-                    reject(error);
+                    reject(err);
+                } else {
+                    resolve();
                 }
-                connection.query(sql, values, (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
             });
         } catch (error) {
             reject(error);
@@ -1898,23 +1657,37 @@ function deleteBookingByUserID(userID) {
     });
 }
 
-function deletePaymentByUserID(userID) {
+function deleteBookingByUserID(userID, connection) {
+    return new Promise((resolve, reject) => {
+        try {
+            const sql = 'DELETE FROM booking WHERE user_id = ?';
+            const values = [userID];
+
+            connection.query(sql, values, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+function deletePaymentByUserID(userID, connection) {
     return new Promise((resolve, reject) => {
         try {
             const sql = 'DELETE FROM payment WHERE user_id = ?';
             const values = [userID];
 
-            pool.getConnection(async (err, connection) => {
+            connection.query(sql, values, (err) => {
                 if (err) {
-                    reject(error);
+                    reject(err);
+                } else {
+                    resolve();
                 }
-                connection.query(sql, values, (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -1922,47 +1695,38 @@ function deletePaymentByUserID(userID) {
     });
 }
 
-function deleteUserRoleByUserID(userID) {
+function deleteUserRoleByUserID(userID, connection) {
     return new Promise((resolve, reject) => {
         try {
             const sql = 'DELETE FROM user_role WHERE user_id = ?';
             const values = [userID];
 
-            pool.getConnection(async (err, connection) => {
+
+            connection.query(sql, values, (err) => {
                 if (err) {
-                    reject(error);
+                    reject(err);
+                } else {
+                    resolve();
                 }
-                connection.query(sql, values, (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            })
+            });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
     });
 }
 
-function deleteUserMediaByUserID(userID) {
+function deleteUserMediaByUserID(userID, connection) {
     return new Promise((resolve, reject) => {
         try {
             const sql = 'DELETE FROM user_media WHERE user_id = ?';
             const values = [userID];
 
-            pool.getConnection(async (err, connection) => {
+            connection.query(sql, values, (err) => {
                 if (err) {
-                    reject(error);
+                    reject(err);
+                } else {
+                    resolve();
                 }
-                connection.query(sql, values, (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
             });
         } catch (error) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
@@ -1997,6 +1761,66 @@ expressRouter.post('/captchaSiteVerify', async (req, res) => {
     } catch (error) {
         console.error("reCAPTCHA verification error:", error);
         res.status(500).json({ success: false });
+    }
+})
+
+// WEATHER
+// Insert weather
+expressRouter.post('/insert-weather', async (req, res) => {
+    try {
+        const weatherData = req.body.list;
+
+        // Extract unique dates from the weather data
+        const uniqueDates = Array.from(new Set(weatherData.map(data => data.dt_txt.split(' ')[0])));
+
+        // Iterate through weather data and insert into the database
+        let remainingQueries = weatherData.length;
+
+        uniqueDates.forEach(date => {
+            const firstOccurrence = weatherData.find(data => data.dt_txt.startsWith(date));
+
+            if (firstOccurrence) {
+                const parsedDate = new Date(firstOccurrence.dt_txt);
+                const state = firstOccurrence.weather[0].description;
+
+                // Check if the date doesn't exist in the database before inserting
+                req.dbConnectionPool.query('SELECT * FROM weather WHERE weather_date = ?', [parsedDate], (error, existingData) => {
+                    if (error) {
+                        console.error('Error executing query:', error);
+                        remainingQueries--;
+                        if (remainingQueries === 0) {
+                            return res.status(500).send({ status: "error", error: 'Internal server error' });
+                        }
+                    } else {
+                        if (existingData.length === 0) {
+                            req.dbConnectionPool.query('INSERT INTO weather (weather_date, weather_state) VALUES (?, ?)', [parsedDate, state], (error) => {
+                                if (error) {
+                                    console.error('Error executing query:', error);
+                                }
+                                remainingQueries--;
+                                if (remainingQueries === 0) {
+                                    return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
+                                }
+                            });
+                        } else {
+                            remainingQueries--;
+                            if (remainingQueries === 0) {
+                                return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
+                            }
+                        }
+                    }
+                });
+            } else {
+                remainingQueries--;
+                if (remainingQueries === 0) {
+                    connection.release();
+                    return res.status(200).send({ status: "success", message: 'Weather data inserted successfully' });
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error in try block:', error);
+        return res.status(500).send({ status: "error", error: 'Internal server error' });
     }
 })
 
