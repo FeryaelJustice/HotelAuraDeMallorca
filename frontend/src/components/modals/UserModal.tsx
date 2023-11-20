@@ -6,7 +6,7 @@ import { useCookies } from 'react-cookie';
 import Alert from 'react-bootstrap/Alert';
 import ReCAPTCHA from "react-google-recaptcha";
 import { User, Role } from './../../models/index';
-import { API_URL_BASE } from './../../services/consts';
+import { API_URL, API_URL_BASE } from './../../services/consts';
 import serverAPI from './../../services/serverAPI';
 import { UserRoles } from '../../constants';
 import './UserModal.css'
@@ -14,6 +14,7 @@ import './UserModal.css'
 import { useTranslation } from "react-i18next";
 import QRCode from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
+// import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface UserModalProps {
     colorScheme: string,
@@ -55,6 +56,17 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
+    const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
+    // const [qrScanResult, setQRScanResult] = useState(null)
+
+    // const qrScanner = new Html5QrcodeScanner("reader", {
+    //     qrbox: {
+    //         width: 250,
+    //         height: 250,
+    //     },
+    //     fps: 5,
+    // }, undefined)
+    // qrScanner.render(qrScanSuccess, qrScanFailure);
 
     useEffect(() => {
         if (cookies.token) {
@@ -127,6 +139,15 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         }
     }
 
+    // QR Camera
+    // function qrScanSuccess(result: any) {
+    //     qrScanner.clear();
+    //     setQRScanResult(result);
+    // }
+    // function qrScanFailure(error: any) {
+    //     console.warn(error)
+    // }
+
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
@@ -197,6 +218,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         user_password: '1234',
         user_verified: 0,
         user_email: userRegister.email,
+        endpointUrl_register: API_URL + '/register',
+        endPointUrl_login: API_URL + '/login',
     };
     const handleFormWantsQRRegister = (e: any) => {
         setFormWantsQRRegister(!formWantsQRRegister);
@@ -478,9 +501,24 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             ) : null}
                         </div>)}
 
-                        <Button variant="primary" type="submit">
-                            {t("modal_user_register_send")}
-                        </Button>
+                        {/* <Form.Group className='mb-3' controlId='qrCodeCamScanner'>
+                            {qrScanResult ? (
+                                <div>
+                                    Success: <a href={qrScanResult}>{qrScanResult}</a>
+                                </div>
+                            ) : (
+                                <div id='reader'></div>
+                            )}
+                        </Form.Group> */}
+
+                        <div style={{
+                            display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                        }}>
+                            <Button type='button' variant='warning' style={{ marginBottom: '12px' }} onClick={() => { setShowQRCameraReader(!showQRCameraReader) }}>Open camera and scan your QR</Button>
+                            <Button variant="primary" type="submit">
+                                {t("modal_user_register_send")}
+                            </Button>
+                        </div>
                     </Form>
                 </div>
             )}
@@ -520,7 +558,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <Button variant="primary" type='submit'>
                                 {t("modal_user_editprofile_send")}
                             </Button>
-                            <Button variant="warning" type='button' onClick={logout} style={{backgroundColor: colorScheme == "light" ? 'purple' : 'yellow',color: colorScheme == "light" ? 'white': 'black'}}>
+                            <Button variant="warning" type='button' onClick={logout} style={{ backgroundColor: colorScheme == "light" ? 'purple' : 'yellow', color: colorScheme == "light" ? 'white' : 'black' }}>
                                 {t("modal_user_editprofile_logout")}
                             </Button>
                             <Button variant='danger' type='button' onClick={deleteAccount}>

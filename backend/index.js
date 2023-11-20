@@ -268,7 +268,6 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
         if (qrCodeData) {
             // Extracted data from the QR code
             const extractedData = JSON.parse(qrCodeData.data);
-
             const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
             const checkValues = [extractedData.user_email]
             req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
