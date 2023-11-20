@@ -282,7 +282,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         const startDateFormat = extractFormattedDate(startDate)
         weatherData.forEach((weatherForecast: any) => {
             const foreDateFormat = extractFormattedDate(weatherForecast.weather_date)
-            console.log(startDateFormat == foreDateFormat && weatherForecast.weather_state == WeatherStates.RAIN)
             if (startDateFormat == foreDateFormat && weatherForecast.weather_state == WeatherStates.RAIN) {
                 canBook = false;
                 return;
