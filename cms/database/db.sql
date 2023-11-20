@@ -53,7 +53,7 @@ CREATE TABLE literal (
     page_id INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_code_page (code, page_id),
+    UNIQUE KEY unique_code_page_lang (code, page_id, lang_code),
     FOREIGN KEY (section_id) REFERENCES section(id),
     FOREIGN KEY (page_id) REFERENCES app_page(id)
 );
@@ -80,7 +80,8 @@ INSERT INTO
 VALUES
     ('Homerti'),
     ('Vacalia'),
-    ('Aura de Mallorca');
+    ('Aura de Mallorca'),
+    ('Intranet Vacalia');
 
 -- INSERTS en la tabla lang
 INSERT INTO
@@ -137,7 +138,11 @@ VALUES
         3,
         'Contact Section',
         NULL
-    );
+    ),
+    (4, 'Title', NULL),
+    (4, 'Header', NULL),
+    (4, 'Nav', 12),
+    (4, 'Contact Section', NULL);
 
 -- INSERTS en la tabla literal
 INSERT INTO
@@ -145,6 +150,13 @@ INSERT INTO
 VALUES
     -- ENGLISH
     (
+        'app_name',
+        'Homerti',
+        'en',
+        1,
+        1
+    ),
+    (
         'title',
         'Welcome to our website.',
         'en',
@@ -164,6 +176,13 @@ VALUES
         'en',
         3,
         1
+    ),
+    (
+        'app_name',
+        'Vacalia',
+        'en',
+        1,
+        2
     ),
     (
         'title',
@@ -187,6 +206,13 @@ VALUES
         2
     ),
     (
+        'app_name',
+        'Aura de Mallorca',
+        'en',
+        1,
+        3
+    ),
+    (
         'title',
         'Welcome to our website.',
         'en',
@@ -206,9 +232,44 @@ VALUES
         'en',
         3,
         3
+    ),
+    (
+        'app_name',
+        'Intranet Vacalia',
+        'en',
+        1,
+        4
+    ),
+    (
+        'title',
+        'Welcome to our website.',
+        'en',
+        1,
+        4
+    ),
+    (
+        'header',
+        'Learn more about us.',
+        'en',
+        2,
+        4
+    ),
+    (
+        'nav',
+        'Contact us for inquiries.',
+        'en',
+        3,
+        4
     ),
     -- ESPAÑOL
     (
+        'app_name',
+        'Homerti',
+        'es',
+        1,
+        1
+    ),
+    (
         'titulo',
         'Welcome to our website.',
         'es',
@@ -228,6 +289,13 @@ VALUES
         'es',
         3,
         1
+    ),
+    (
+        'app_name',
+        'Vacalia',
+        'es',
+        1,
+        2
     ),
     (
         'titulo',
@@ -251,6 +319,13 @@ VALUES
         2
     ),
     (
+        'app_name',
+        'Aura de Mallorca',
+        'es',
+        1,
+        3
+    ),
+    (
         'titulo',
         'Welcome to our website.',
         'es',
@@ -270,9 +345,44 @@ VALUES
         'es',
         3,
         3
+    ),
+    (
+        'app_name',
+        'Intranet Vacalia',
+        'es',
+        1,
+        4
+    ),
+    (
+        'title',
+        'Welcome to our website.',
+        'es',
+        1,
+        4
+    ),
+    (
+        'header',
+        'Learn more about us.',
+        'es',
+        2,
+        4
+    ),
+    (
+        'nav',
+        'Contact us for inquiries.',
+        'es',
+        3,
+        4
     ),
     -- CATALAN
     (
+        'app_name',
+        'Homerti',
+        'ca',
+        1,
+        1
+    ),
+    (
         'titol',
         'Welcome to our website.',
         'ca',
@@ -292,6 +402,13 @@ VALUES
         'ca',
         3,
         1
+    ),
+    (
+        'app_name',
+        'Vacalia',
+        'ca',
+        1,
+        2
     ),
     (
         'titol',
@@ -315,6 +432,13 @@ VALUES
         2
     ),
     (
+        'app_name',
+        'Aura de Mallorca',
+        'ca',
+        1,
+        3
+    ),
+    (
         'titol',
         'Welcome to our website.',
         'ca',
@@ -334,9 +458,44 @@ VALUES
         'ca',
         3,
         3
+    ),
+    (
+        'app_name',
+        'Intranet Vacalia',
+        'ca',
+        1,
+        4
+    ),
+    (
+        'title',
+        'Welcome to our website.',
+        'ca',
+        1,
+        4
+    ),
+    (
+        'header',
+        'Learn more about us.',
+        'ca',
+        2,
+        4
+    ),
+    (
+        'nav',
+        'Contact us for inquiries.',
+        'ca',
+        3,
+        4
     ),
     -- ALEMAN
     (
+        'app_name',
+        'Homerti',
+        'de',
+        1,
+        1
+    ),
+    (
         'titel',
         'Welcome to our website.',
         'de',
@@ -356,6 +515,13 @@ VALUES
         'de',
         3,
         1
+    ),
+    (
+        'app_name',
+        'Vacalia',
+        'de',
+        1,
+        2
     ),
     (
         'titel',
@@ -379,6 +545,13 @@ VALUES
         2
     ),
     (
+        'app_name',
+        'Aura de Mallorca',
+        'de',
+        1,
+        3
+    ),
+    (
         'titel',
         'Welcome to our website.',
         'de',
@@ -398,4 +571,32 @@ VALUES
         'de',
         3,
         3
+    ),
+    (
+        'app_name',
+        'Intranet Vacalia',
+        'de',
+        1,
+        4
+    ),
+    (
+        'title',
+        'Welcome to our website.',
+        'de',
+        1,
+        4
+    ),
+    (
+        'header',
+        'Learn more about us.',
+        'de',
+        2,
+        4
+    ),
+    (
+        'nav',
+        'Contact us for inquiries.',
+        'de',
+        3,
+        4
     );
