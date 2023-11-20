@@ -11,7 +11,7 @@ interface HomeProps {
 
 export const Home = ({ colorScheme }: HomeProps) => {
 
-    console.log(colorScheme)
+    console.log('Color scheme of the app: ' + colorScheme)
 
     // Get env variables nativa de vite pero es SOLO para react
     // console.log(import.meta.env)
