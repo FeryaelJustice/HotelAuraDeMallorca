@@ -358,7 +358,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
                         serverAPI.get('/weather').then(res => {
-                            console.log(checkCanBookBasedOnWeather(res.data.data))
                             if (checkCanBookBasedOnWeather(res.data.data)) {
                                 if (checkedPlan == 2) {
                                     serverAPI.get('/room/' + selectedRoomID).then(async res => {
