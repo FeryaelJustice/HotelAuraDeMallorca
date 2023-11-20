@@ -429,7 +429,7 @@ INSERT INTO
 VALUES
     ('2023-10-27', 'Sunny'),
     ('2023-10-28', 'Clouds'),
-    ('2023-11-29', 'Rainy'),
+    ('2023-11-29', 'Rain'),
     ('2023-11-30', 'Sunny');
 
 -- Payment methods
