@@ -68,11 +68,23 @@ export default {
         handleNewSection() {
             if (this.selectedPageID != -1 && this.newSectionName != '') {
                 axios.post(API_URL + '/sections/new', { data: { pageID: this.selectedPageID, newSectionName: this.newSectionName } }).then(response => {
-                    console.log(response)
-                }).catch(error => { console.log(error)})
+                    if (response && response.status == 200) {
+                        alert("New section created")
+                        this.resetNewSection();
+                    } else {
+                        alert('Error creating new section')
+                    }
+                }).catch(error => {
+                    alert('Error creating new section')
+                    console.log(error)
+                })
             } else {
                 alert('Página o nombre de la sección inválidos')
             }
+        },
+        resetNewSection() {
+            this.selectedPageID = this.pages && this.pages.length > 0 ? this.pages[0].id : -1;
+            this.newSectionName = '';
         }
     },
     mounted() {
