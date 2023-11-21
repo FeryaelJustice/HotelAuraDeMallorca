@@ -119,24 +119,38 @@ export default {
             // Get the page data for the section
             axios.get(API_URL + '/pages/section/' + sectionId).then(response => {
                 this.sectionPage = response.data.data[0]
-                // Get the page sections for the select
-                axios.get(API_URL + '/sections/pageSections/' + this.sectionPage.app_page_id).then(response => {
-                    response.data.data.forEach((section, index) => {
-                        axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + section.id).then(response => {
-                            response.data.data.forEach(async (sectionLiteral) => {
-                                const item = sectionLiteral;
-                                item.editMode = false;
-                                this.items.push(item)
-                                // Deep copy of the original data
-                                this.originalData.push({ ...item });
-                            })
-                        }).catch(error => { console.log(error) })
-                    })
 
+                axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + sectionId).then(response => {
+                    response.data.data.forEach(async (sectionLiteral) => {
+                        const item = sectionLiteral;
+                        item.editMode = false;
+                        this.items.push(item)
+                        // Deep copy of the original data
+                        this.originalData.push({ ...item });
+                    })
                     // Order array objects
                     Object.values(this.items).sort((a, b) => a.section_id - b.section_id)
                     Object.values(this.originalData).sort((a, b) => a.section_id - b.section_id);
                 }).catch(error => { console.log(error) })
+
+                // Get the page sections for the select
+                // axios.get(API_URL + '/sections/pageSections/' + this.sectionPage.app_page_id).then(response => {
+                //     response.data.data.forEach((section, index) => {
+                //         axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + section.id).then(response => {
+                //             response.data.data.forEach(async (sectionLiteral) => {
+                //                 const item = sectionLiteral;
+                //                 item.editMode = false;
+                //                 this.items.push(item)
+                //                 // Deep copy of the original data
+                //                 this.originalData.push({ ...item });
+                //             })
+                //         }).catch(error => { console.log(error) })
+                //     })
+
+                //     // Order array objects
+                //     Object.values(this.items).sort((a, b) => a.section_id - b.section_id)
+                //     Object.values(this.originalData).sort((a, b) => a.section_id - b.section_id);
+                // }).catch(error => { console.log(error) })
             }).catch(error => {
                 console.log(error)
             })
