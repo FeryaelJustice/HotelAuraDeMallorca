@@ -549,7 +549,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             case BookingSteps.StepFillGuests:
                 // Restore price backup of the previous step (we discount what we have on that step)
                 if (checkedPlan == 2) {
-                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay)
+                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepPlan] || totalPriceToPay)
                 } else {
                     priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay
                 }
@@ -565,10 +565,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         const updatedPrices = { ...prevPrices! };
                         updatedPrices[BookingSteps.StepChooseServices] = 0;
                         updatedPrices[BookingSteps.StepChooseRoom] = 0;
+                        updatedPrices[BookingSteps.StepPlan] = 0;
                         return updatedPrices;
                     });
 
-                    setCurrentStep(BookingSteps.StepChooseRoom);
+                    setCurrentStep(BookingSteps.StepPlan);
                 } else {
                     // Empty selected step previous step of where we are price backup
                     setPricesToPayBackup((prevPrices) => {
