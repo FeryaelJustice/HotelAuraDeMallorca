@@ -158,7 +158,7 @@ VALUES
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Welcome.',
         'en',
         1,
         1
@@ -181,84 +181,98 @@ VALUES
         'app_name',
         'Vacalia',
         'en',
-        1,
+        4,
         2
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Welcome.',
         'en',
-        1,
+        4,
         2
     ),
     (
         'header',
         'Learn more about us.',
         'en',
-        2,
+        5,
         2
     ),
     (
         'nav',
         'Contact us for inquiries.',
         'en',
-        3,
+        6,
         2
     ),
     (
         'app_name',
         'Aura de Mallorca',
         'en',
-        1,
+        7,
         3
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Welcome.',
         'en',
-        1,
+        7,
         3
     ),
     (
         'header',
         'Learn more about us.',
         'en',
-        2,
+        8,
         3
     ),
     (
         'nav',
         'Contact us for inquiries.',
         'en',
-        3,
+        9,
+        3
+    ),
+    (
+        'contact',
+        'Contact us.',
+        'en',
+        10,
         3
     ),
     (
         'app_name',
         'Intranet Vacalia',
         'en',
-        1,
+        11,
         4
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Welcome.',
         'en',
-        1,
+        11,
         4
     ),
     (
         'header',
         'Learn more about us.',
         'en',
-        2,
+        12,
         4
     ),
     (
         'nav',
         'Contact us for inquiries.',
         'en',
-        3,
+        13,
+        4
+    ),
+    (
+        'contact',
+        'Contact us.',
+        'en',
+        10,
         4
     ),
     -- ESPAÑOL
@@ -271,21 +285,21 @@ VALUES
     ),
     (
         'titulo',
-        'Welcome to our website.',
+        'Bienvenido.',
         'es',
         1,
         1
     ),
     (
         'encabezamiento',
-        'Learn more about us.',
+        'Saber más sobre nosotros.',
         'es',
         2,
         1
     ),
     (
         'navegacion',
-        'Contact us for inquiries.',
+        'Contáctanos.',
         'es',
         3,
         1
@@ -294,84 +308,98 @@ VALUES
         'app_name',
         'Vacalia',
         'es',
-        1,
+        4,
         2
     ),
     (
         'titulo',
-        'Welcome to our website.',
+        'Bienvenido.',
         'es',
-        1,
+        4,
         2
     ),
     (
         'encabezamiento',
-        'Learn more about us.',
+        'Saber más sobre nosotros.',
         'es',
-        2,
+        5,
         2
     ),
     (
         'navegacion',
-        'Contact us for inquiries.',
+        'Contáctanos',
         'es',
-        3,
+        6,
         2
     ),
     (
         'app_name',
         'Aura de Mallorca',
         'es',
-        1,
+        7,
         3
     ),
     (
         'titulo',
-        'Welcome to our website.',
+        'Bienvenido.',
         'es',
-        1,
+        7,
         3
     ),
     (
         'encabezamiento',
-        'Learn more about us.',
+        'Saber más sobre nosotros.',
         'es',
-        2,
+        8,
         3
     ),
     (
         'navegacion',
-        'Contact us for inquiries.',
+        'Contáctanos.',
         'es',
-        3,
+        9,
+        3
+    ),
+    (
+        'contacto',
+        'Contactanos.',
+        'es',
+        10,
         3
     ),
     (
         'app_name',
         'Intranet Vacalia',
         'es',
-        1,
+        11,
         4
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Bienvenido.',
         'es',
-        1,
+        11,
         4
     ),
     (
         'header',
-        'Learn more about us.',
+        'Saber más sobre nosotros.',
         'es',
-        2,
+        12,
         4
     ),
     (
         'nav',
-        'Contact us for inquiries.',
+        'Contáctanos.',
         'es',
-        3,
+        13,
+        4
+    ),
+    (
+        'contacto',
+        'Contactanos.',
+        'es',
+        14,
         4
     ),
     -- CATALAN
@@ -384,21 +412,21 @@ VALUES
     ),
     (
         'titol',
-        'Welcome to our website.',
+        'Benvingut.',
         'ca',
         1,
         1
     ),
     (
         'encapcalament',
-        'Learn more about us.',
+        'Sebre més sobre nosaltres.',
         'ca',
         2,
         1
     ),
     (
         'navigacio',
-        'Contact us for inquiries.',
+        'Contacteu-nos.',
         'ca',
         3,
         1
@@ -407,84 +435,98 @@ VALUES
         'app_name',
         'Vacalia',
         'ca',
-        1,
+        4,
         2
     ),
     (
         'titol',
-        'Welcome to our website.',
+        'Benvingut.',
         'ca',
-        1,
+        4,
         2
     ),
     (
         'encapcalament',
-        'Learn more about us.',
+        'Sebre més sobre nosaltres.',
         'ca',
-        2,
+        5,
         2
     ),
     (
         'navigacio',
-        'Contact us for inquiries.',
+        'Contacteu-nos.',
         'ca',
-        3,
+        6,
         2
     ),
     (
         'app_name',
         'Aura de Mallorca',
         'ca',
-        1,
+        7,
         3
     ),
     (
         'titol',
-        'Welcome to our website.',
+        'Benvingut.',
         'ca',
-        1,
+        7,
         3
     ),
     (
         'encapcalament',
-        'Learn more about us.',
+        'Sebre més sobre nosaltres.',
         'ca',
-        2,
+        8,
         3
     ),
     (
         'navigacio',
-        'Contact us for inquiries.',
+        'Contacteu-nos.',
         'ca',
-        3,
+        9,
+        3
+    ),
+    (
+        'contacte',
+        'Contacteu-nos.',
+        'ca',
+        10,
         3
     ),
     (
         'app_name',
         'Intranet Vacalia',
         'ca',
-        1,
+        11,
         4
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Benvingut.',
         'ca',
-        1,
+        11,
         4
     ),
     (
         'header',
-        'Learn more about us.',
+        'Sebre més sobre nosaltres.',
         'ca',
-        2,
+        12,
         4
     ),
     (
         'nav',
-        'Contact us for inquiries.',
+        'Contacteu-nos.',
         'ca',
-        3,
+        13,
+        4
+    ),
+    (
+        'contacte',
+        'Contacteu-nos.',
+        'ca',
+        14,
         4
     ),
     -- ALEMAN
@@ -497,21 +539,21 @@ VALUES
     ),
     (
         'titel',
-        'Welcome to our website.',
+        'Willkommen.',
         'de',
         1,
         1
     ),
     (
         'headerr',
-        'Learn more about us.',
+        'Lerne mehr über uns.',
         'de',
         2,
         1
     ),
     (
         'navig',
-        'Contact us for inquiries.',
+        'Kontaktieren Sie uns für Anfragen.',
         'de',
         3,
         1
@@ -520,83 +562,97 @@ VALUES
         'app_name',
         'Vacalia',
         'de',
-        1,
+        4,
         2
     ),
     (
         'titel',
-        'Welcome to our website.',
+        'Willkommen.',
         'de',
-        1,
+        4,
         2
     ),
     (
         'headerr',
-        'Learn more about us.',
+        'Lerne mehr über uns.',
         'de',
-        2,
+        5,
         2
     ),
     (
         'navig',
-        'Contact us for inquiries.',
+        'Kontaktieren Sie uns für Anfragen.',
         'de',
-        3,
+        6,
         2
     ),
     (
         'app_name',
         'Aura de Mallorca',
         'de',
-        1,
+        7,
         3
     ),
     (
         'titel',
-        'Welcome to our website.',
+        'Willkommen.',
         'de',
-        1,
+        8,
         3
     ),
     (
         'headerr',
-        'Learn more about us.',
+        'Lerne mehr über uns.',
         'de',
-        2,
+        9,
         3
     ),
     (
         'navig',
-        'Contact us for inquiries.',
+        'Kontaktieren Sie uns für Anfragen.',
         'de',
-        3,
+        10,
+        3
+    ),
+    (
+        'kontakt',
+        'Kontaktiere uns.',
+        'de',
+        10,
         3
     ),
     (
         'app_name',
         'Intranet Vacalia',
         'de',
-        1,
+        11,
         4
     ),
     (
         'title',
-        'Welcome to our website.',
+        'Willkommen.',
         'de',
-        1,
+        11,
         4
     ),
     (
         'header',
-        'Learn more about us.',
+        'Lerne mehr über uns.',
         'de',
-        2,
+        12,
         4
     ),
     (
         'nav',
-        'Contact us for inquiries.',
+        'Kontaktieren Sie uns für Anfragen.',
         'de',
-        3,
+        13,
+        4
+    ),
+    (
+        'kontakt',
+        'Kontaktiere uns.',
+        'de',
+        14,
         4
     );
