@@ -70,6 +70,11 @@ class TranslationsController extends Controller
         }
     }
 
+    public function getPageLiterals($pageId){
+        $literals = Literal::where('page_id', $pageId)->orderBy('id')->get();
+        return Response::json(['status' => 'success', 'data' => $literals], 200);
+    }
+
     public function getSectionLiterals($pageId, $sectionId)
     {
         $literals = Literal::where('section_id', $sectionId)->where('page_id', $pageId)->orderBy('id')->get();

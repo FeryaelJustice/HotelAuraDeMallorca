@@ -42,6 +42,7 @@ Route::prefix('sections')->group(function () {
 Route::prefix('translations')->group(function () {
     Route::get('', [\App\Http\Controllers\TranslationsController::class, 'getAllTranslations']);
     Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
+    Route::get('/pages/{pageId}', [\App\Http\Controllers\TranslationsController::class, 'getPageLiterals']);
     Route::get('/{pageId}/{sectionId}', [\App\Http\Controllers\TranslationsController::class, 'getSectionLiterals']);
     Route::put('updateLiteral', [\App\Http\Controllers\TranslationsController::class, 'updateTranslation']);
 });
