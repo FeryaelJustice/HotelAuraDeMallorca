@@ -37,12 +37,13 @@ Route::prefix('sections')->group(function () {
     Route::get('', [\App\Http\Controllers\SectionController::class, 'getSections']);
     Route::get('/{id}', [\App\Http\Controllers\SectionController::class, 'getSection']);
     Route::get('/pageSections/{pageId}', [\App\Http\Controllers\SectionController::class, 'getPageSections']);
+    Route::post('new', [\App\Http\Controllers\SectionController::class, 'createSection']);
 });
 
 Route::prefix('translations')->group(function () {
     Route::get('', [\App\Http\Controllers\TranslationsController::class, 'getAllTranslations']);
-    Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
     Route::get('/pages/{pageId}', [\App\Http\Controllers\TranslationsController::class, 'getPageLiterals']);
     Route::get('/{pageId}/{sectionId}', [\App\Http\Controllers\TranslationsController::class, 'getSectionLiterals']);
+    Route::post('create', [\App\Http\Controllers\TranslationsController::class, 'createTranslation']);
     Route::put('updateLiteral', [\App\Http\Controllers\TranslationsController::class, 'updateTranslation']);
 });

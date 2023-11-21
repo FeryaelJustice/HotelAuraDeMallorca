@@ -20,6 +20,20 @@ class SectionController extends Controller
         return Response::json(['status' => 'success', 'data' => $section], 200);
     }
 
+    public function createSection(Request $request){
+        try {
+            $data = $request->all()["data"];
+            $newSection = new Section();
+            $newSection->app_page_id = $data['pageID'];
+            $newSection->section_name = $data['newSectionName'];
+            $newSection->section_parent = null;
+            $newSection->save();
+            return Response::json(['status' => 'success', 'message' => 'Success!'], 200);
+        } catch (\Throwable $th) {
+            return Response::json(['status' => 'error', 'message' => $th], 500);
+        }
+    }
+
     public function getPageSections($pageId)
     {
         $sections = Section::where('app_page_id', $pageId)->get();
