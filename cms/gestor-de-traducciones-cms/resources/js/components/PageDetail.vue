@@ -44,11 +44,11 @@ export default {
         return {
             headers: headers,
             items: [],
+            pages: [],
         }
     },
     methods: {
         rowSelected(item: ClickRowArgument) {
-            console.log(item)
             const id = item.id;
             this.$router.push(`/sections/${id}`)
         }
@@ -56,11 +56,14 @@ export default {
     mounted() {
         // console.log('Pages mounted.')
         const pageId = this.$route.params.id;
-        console.log('Page ID:', pageId);
 
         axios.get(API_URL + '/sections/pageSections/' + pageId).then(response => {
-            console.log(response.data.data)
             this.items = response.data.data;
+        }).catch(error => { console.log(error) })
+
+        // For adding a new section
+        axios.get(API_URL + '/pages').then(response => {
+            this.pages = response.data.data;
         }).catch(error => { console.log(error) })
     }
 }

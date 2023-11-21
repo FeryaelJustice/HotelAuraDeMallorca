@@ -46,7 +46,6 @@ export default {
     },
     methods: {
         rowSelected(item: ClickRowArgument) {
-            console.log(item)
             const id = item.id;
             this.$router.push(`/pages/${id}`)
         }
@@ -54,7 +53,6 @@ export default {
     mounted() {
         // console.log('Pages mounted.')
         axios.get(API_URL + '/pages').then(response => {
-            console.log(response.data.data)
             this.items = response.data.data;
         }).catch(error => { console.log(error) })
     }
