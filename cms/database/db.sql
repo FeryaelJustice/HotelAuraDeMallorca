@@ -53,7 +53,7 @@ CREATE TABLE literal (
     page_id INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_code_page_lang (code, page_id, lang_code),
+    UNIQUE KEY unique_code_page_lang (code, page_id, section_id, lang_code),
     FOREIGN KEY (section_id) REFERENCES section(id),
     FOREIGN KEY (page_id) REFERENCES app_page(id)
 );
