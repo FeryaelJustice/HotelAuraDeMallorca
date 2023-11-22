@@ -39,6 +39,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                <em>Todos los códigos de los literales deben coincidir al insertar (se accederá por el mismo código diferenciando en idiomas)</em>
                                 <div class="language-selection" v-for="language in languages" :key="language.lang_code">
                                     <transition name="fade">
                                         <div v-if="language.lang_code == currentLanguage">
@@ -51,7 +52,7 @@
                                                     :id="'literal_' + language.lang_code + '_code'"
                                                     :name="'literal_' + language.lang_code + '_code'"
                                                     v-model="literals['literal_' + language.lang_code].code"
-                                                    placeholder="código para identificar el literal (en la página y no repetido en ella, en distintas si)"
+                                                    placeholder="Código para identificar el literal (en la página y no repetido en ella, en distintas si)"
                                                     required>
                                                 <label :for="'literal_' + language.lang_code + '_content'">Introduce el
                                                     contenido del literal</label>
@@ -172,6 +173,7 @@ export default {
             if (!this.literals) {
                 return false;
             } else {
+                let codesArray = []; // to check if all codes are the same
                 for (const languageKey of Object.keys(this.literals)) {
                     if (languageKey == '') {
                         return false;
@@ -179,12 +181,22 @@ export default {
                     const languageObject = this.literals[languageKey];
                     for (const propertyName of Object.keys(languageObject)) {
                         const propertyValue = languageObject[propertyName];
+                        if (propertyName == 'code') {
+                            console.log('prop name: ' + propertyName)
+                            console.log('value: ' + propertyValue)
+                            codesArray.push(propertyValue);
+                        }
                         // Do something with the property name and value
                         if (propertyName == '' || propertyValue == '') {
                             return false;
                         }
                         // console.log(`Language: ${languageKey}, Property: ${propertyName}, Value: ${propertyValue}`);
                     }
+                }
+
+                const allEqual = codesArray.every((value) => value === codesArray[0]);
+                if (!allEqual) {
+                    return false;
                 }
             }
             return true;
@@ -216,7 +228,7 @@ export default {
                 )
                 // this.resetForm();
             } else {
-                alert('Debes rellenar todos los literales en todos los idiomas')
+                alert('Debes rellenar todos los literales en todos los idiomas o los códigos de los idiomas no coinciden')
             }
         }
     },
