@@ -99,6 +99,7 @@ CREATE TABLE booking (
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (plan_id) REFERENCES plan(id),
     FOREIGN KEY (room_id) REFERENCES room(id),
+    CONSTRAINT valid_dates CHECK (booking_start_date <= booking_end_date),
     CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
 );
 
