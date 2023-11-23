@@ -356,65 +356,110 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 if (selectedRoomID != null) {
                     // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        serverAPI.get('/weather').then(res => {
-                            if (checkCanBookBasedOnWeather(res.data.data)) {
-                                if (checkedPlan == 2) {
-                                    serverAPI.get('/room/' + selectedRoomID).then(async res => {
-                                        // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                                        // Crear una copia del estado actual
-                                        const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                                        // Establecer todos los valores en true
-                                        Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                                            updatedSelectedServicesIDs[key] = true;
-                                        });
-                                        setSelectedServicesIDs(updatedSelectedServicesIDs)
+                        // Check booking availability
+                        const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
 
-                                        // Update price to all selected services
-                                        let totalServicesPrice = 0;
-                                        for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
-                                            // console.log(`${key}: ${value}`);
-                                            if (value) {
-                                                // Si es true, es que esta seleccionado
-                                                const resp = await serverAPI.get('/service/' + key)
-                                                if (resp) {
-                                                    totalServicesPrice += resp.data.data[0].serv_price;
-                                                }
+                        if (availabilityResponse.data && availabilityResponse.data.status === "success") {
+                            if (availabilityResponse.data.isAvailable) {
+                                // Check if startDate is Today
+                                const extractedStartDate = Array.isArray(startDate) ? startDate[0] : startDate;
+                                const formattedStartDate = extractedStartDate ? new Date(extractedStartDate).toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                }) : 'N/A';
+                                const currentDate = new Date();
+                                const formattedCurrentDate = currentDate.toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                });
+                                const tomorrowDate = new Date();
+                                tomorrowDate.setDate(currentDate.getDate() + 1);
+                                const formattedTomorrowDate = tomorrowDate.toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                });
+
+                                if (formattedStartDate != formattedCurrentDate && formattedStartDate !== formattedTomorrowDate) {
+                                    // Get weather forecast
+                                    serverAPI.get('/weather').then(res => {
+                                        // Check if the startDate is in good weather conditions
+                                        if (checkCanBookBasedOnWeather(res.data.data)) {
+                                            // Check selectedPlan and do some logic depending
+                                            if (checkedPlan == 2) {
+                                                serverAPI.get('/room/' + selectedRoomID).then(async res => {
+                                                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
+                                                    // Crear una copia del estado actual
+                                                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
+                                                    // Establecer todos los valores en true
+                                                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
+                                                        updatedSelectedServicesIDs[key] = true;
+                                                    });
+                                                    setSelectedServicesIDs(updatedSelectedServicesIDs)
+
+                                                    // Update price to all selected services
+                                                    let totalServicesPrice = 0;
+                                                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
+                                                        // console.log(`${key}: ${value}`);
+                                                        if (value) {
+                                                            // Si es true, es que esta seleccionado
+                                                            const resp = await serverAPI.get('/service/' + key)
+                                                            if (resp) {
+                                                                totalServicesPrice += resp.data.data[0].serv_price;
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // If comes from previous step to control the check plan vip
+                                                    if (comesFromNextSteps) {
+                                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
+                                                    } else {
+                                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+                                                    }
+
+                                                    // After the step, backup the step price
+                                                    setPricesToPayBackup({
+                                                        ...pricesToPayBackup!,
+                                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                                        [BookingSteps.StepChooseServices]: totalServicesPrice,
+                                                    });
+                                                }).catch(err => console.error(err))
+
+                                                setCurrentStep(BookingSteps.StepFillGuests);
+                                            } else {
+                                                serverAPI.get('/room/' + selectedRoomID).then(res => {
+                                                    setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+
+                                                    // After the step, backup the step price
+                                                    setPricesToPayBackup({
+                                                        ...pricesToPayBackup!,
+                                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
+                                                    });
+                                                }).catch(err => console.error(err))
+
+                                                setCurrentStep(BookingSteps.StepChooseServices);
                                             }
-                                        }
-
-                                        // If comes from previous step to control the check plan vip
-                                        if (comesFromNextSteps) {
-                                            setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
                                         } else {
-                                            setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
+                                            alert("You can't book a service on booking start date: " + startDate?.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
                                         }
-
-                                        // After the step, backup the step price
-                                        setPricesToPayBackup({
-                                            ...pricesToPayBackup!,
-                                            [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                            [BookingSteps.StepChooseServices]: totalServicesPrice,
-                                        });
-                                    }).catch(err => console.error(err))
-
-                                    setCurrentStep(BookingSteps.StepFillGuests);
+                                    })
                                 } else {
-                                    serverAPI.get('/room/' + selectedRoomID).then(res => {
-                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-
-                                        // After the step, backup the step price
-                                        setPricesToPayBackup({
-                                            ...pricesToPayBackup!,
-                                            [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                        });
-                                    }).catch(err => console.error(err))
-
-                                    setCurrentStep(BookingSteps.StepChooseServices);
+                                    alert('You cannot put the start day of your booking in the day of today or tomorrow!')
                                 }
                             } else {
-                                alert("You can't book a service on booking start date: " + startDate?.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
+                                if (availabilityResponse.data.available) {
+                                    const list = availabilityResponse.data.available.join(' / ');
+                                    alert("Cannot book these dates; they're occupied. List of available dates: " + list);
+                                } else {
+                                    alert("Cannot book these dates; they're occupied");
+                                }
                             }
-                        })
+                        } else {
+                            alert("No rooms available on those dates");
+                        }
+
                     } else {
                         alert('Adults: maximum 10. Children: maximum 10.')
                     }
@@ -598,7 +643,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
 
             if (availabilityResponse.data && availabilityResponse.data.status === "success") {
-                if (!availabilityResponse.data.available) {
+                if (!availabilityResponse.data.isAvailable) {
                     // Check if the user exists
                     let userID = userAllData?.id;
                     if (!cookies.token) {
@@ -615,8 +660,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         alert('Error on payment, try again');
                     }
                 } else {
-                    const list = availabilityResponse.data.available.join(' / ');
-                    alert("Cannot book these dates; they're occupied. List of available dates: " + list);
+                    if (availabilityResponse.data.available) {
+                        const list = availabilityResponse.data.available.join(' / ');
+                        alert("Cannot book these dates; they're occupied. List of available dates: " + list);
+                    } else {
+                        alert("Cannot book these dates; they're occupied");
+                    }
                 }
             } else {
                 alert("No rooms available on those dates");

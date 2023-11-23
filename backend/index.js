@@ -1282,13 +1282,13 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                 // Esto significa que está ocupada, sino estará a null
                 if (results[0].booking_start_date) {
                     // Buscar fechas disponibles
-                    const roomAvailabilityStart = results[0].room_availability_start;
-                    const roomAvailabilityEnd = results[0].room_availability_end;
+                    const roomAvailabilityStart = new Date(results[0].room_availability_start);
+                    const roomAvailabilityEnd = new Date(results[0].room_availability_end);
 
                     const availableDates = [];
                     const today = new Date();
 
-                    for (let currentDate = new Date(roomAvailabilityStart); currentDate <= roomAvailabilityEnd; currentDate.setDate(currentDate.getDate() + 1)) {
+                    for (let currentDate = roomAvailabilityStart; currentDate <= roomAvailabilityEnd; currentDate.setDate(currentDate.getDate() + 1)) {
                         let isDateOccupied = false; // buscando si esta ocupado en las fechas disponibles del room con las del book ya reservado
 
                         for (const row of results) {
@@ -1300,7 +1300,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                             }
                         }
 
-                        if (!isDateOccupied && currentDate >= today && currentDate >= results[0].booking_start_date) {
+                        if (!isDateOccupied && currentDate >= today && currentDate.toISOString().slice(0, 11).replace('T', ' ') >= startDate) {
                             availableDates.push(currentDate.toISOString().split('T')[0]);
                         }
                     }
@@ -1308,20 +1308,22 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                     if (availableDates.length === 0) {
                         return res.status(200).json({
                             status: "success",
+                            isAvailable: false,
                             msg: "No rooms available, they're occupied."
                         });
                     } else {
                         return res.status(200).json({
                             status: "success",
                             msg: "OK, rooms occupied but with available dates.",
+                            isAvailable: false,
                             available: availableDates
                         });
                     }
                 } else {
-                    return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
+                    return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.', isAvailable: true });
                 }
             } else {
-                return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.' });
+                return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.', isAvailable: true });
             }
         });
     } catch (error) {
