@@ -17,10 +17,14 @@ interface AdminProps {
 }
 
 export const Admin = ({ colorScheme }: AdminProps) => {
-
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
 
     // All bookings
     const [bookings, setBookings] = useState<Booking[]>();

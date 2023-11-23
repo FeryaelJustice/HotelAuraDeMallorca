@@ -11,11 +11,16 @@ interface ContactProps {
 }
 
 export const Contact = ({ colorScheme }: ContactProps) => {
-
-    console.log(colorScheme)
-
+    // Dependencies
     const { t } = useTranslation();
     const [cookies, _, removeCookie] = useCookies(['token']);
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
+
+    console.log(colorScheme)
 
     const [email, setEmail] = useState('')
     const [subject, setSubject] = useState('')

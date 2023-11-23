@@ -14,8 +14,14 @@ interface ServicesProps {
 }
 
 export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) => {
+    // Dependencies
     const { t } = useTranslation();
     const [services, setServices] = useState<Service[]>([])
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
 
     useEffect(() => {
         serverAPI.get('/services').then(res => {

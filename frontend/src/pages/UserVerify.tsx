@@ -9,14 +9,20 @@ interface UserVerifyProps {
 
 export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
 
-    console.log(colorScheme)
-
+    // Dependencies
     const navigate = useNavigate();
     const [cookies, setCookie, _] = useCookies(['token', 'cookieConsent']);
 
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
 
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
+    
+    console.log(colorScheme)
+    
     useEffect(() => {
         if (cookies.cookieConsent) {
         serverAPI.post(`user/verifyEmail/${token}`)

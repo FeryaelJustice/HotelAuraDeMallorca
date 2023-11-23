@@ -10,12 +10,18 @@ interface HomeProps {
 }
 
 export const Home = ({ colorScheme }: HomeProps) => {
+    // Dependencies
+    const { t } = useTranslation();
 
-    console.log('Color scheme of the app: ' + colorScheme)
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
 
     // Get env variables nativa de vite pero es SOLO para react
     // console.log(import.meta.env)
-    const { t } = useTranslation();
+
+    console.log('Color scheme of the app: ' + colorScheme)
     return (
         <div>
             <Parallax strength={300} bgImage={Image}>
