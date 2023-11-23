@@ -643,7 +643,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
 
             if (availabilityResponse.data && availabilityResponse.data.status === "success") {
-                if (!availabilityResponse.data.isAvailable) {
+                if (availabilityResponse.data.isAvailable) {
                     // Check if the user exists
                     let userID = userAllData?.id;
                     if (!cookies.token) {

@@ -1267,17 +1267,17 @@ expressRouter.get('/paymentmethods', (req, res) => {
 
 expressRouter.post('/checkBookingAvailability', (req, res) => {
     try {
-        const { roomID, start_date, end_date } = req.body;
+        const { start_date, end_date } = req.body;
         const startDate = new Date(start_date).toISOString().slice(0, 11).replace('T', ' ')
         const endDate = new Date(end_date).toISOString().slice(0, 11).replace('T', ' ')
-        const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r LEFT JOIN booking b ON r.id = b.room_id AND ((b.booking_start_date BETWEEN ? AND ?) OR (b.booking_end_date BETWEEN ? AND ?) OR (b.booking_start_date <= ? AND b.booking_end_date >= ?)) WHERE r.id = ?';
+        const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r INNER JOIN booking b ON r.id = b.room_id AND (b.booking_end_date <= ? AND b.booking_start_date >= ?) WHERE b.is_cancelled = 0';
 
-        req.dbConnectionPool.query(sql, [startDate, endDate, startDate, endDate, startDate, endDate, roomID], (err, results) => {
+        req.dbConnectionPool.query(sql, [endDate, startDate], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
-
+            
             if (results && results.length > 0) {
                 // Esto significa que está ocupada, sino estará a null
                 if (results[0].booking_start_date) {
