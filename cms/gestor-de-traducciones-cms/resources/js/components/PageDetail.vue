@@ -9,6 +9,7 @@
                         <p>Page ID: {{ this.$route.params.id }}</p>
                         <EasyDataTable :headers="headers" :items="items" buttons-pagination show-index
                             @click-row="rowSelected" />
+                        <!--
                         <div class="addSection">
                             <br>
                             <h4>Create a section</h4>
@@ -20,6 +21,7 @@
                             <input type="text" placeholder="Section name" maxlength="500" v-model="newSectionName">
                             <button @click="handleNewSection">Crear sección</button>
                         </div>
+                        -->
                     </div>
                 </div>
             </div>
@@ -39,13 +41,6 @@ const headers: Header[] = [
     { text: "SECTION PARENT ID", value: "section_parent" }
 ];
 
-// const items: Item[] = [
-//     { id: "Stephen Curry", section_name: "GSW" },
-//     { id: "Lebron James", section_name: "LAL" },
-//     { id: "Kevin Durant", section_name: "BKN" },
-//     { id: "Giannis Antetokounmpo", section_name: "MIL" },
-// ];
-
 export default {
     name: 'pages/:id',
     components: {
@@ -55,9 +50,9 @@ export default {
         return {
             headers: headers,
             items: [],
-            pages: [] as Array<{ id: number, app_page_name: string }>,
-            selectedPageID: this.pages && this.pages.length > 0 ? this.pages[0].id : -1,
-            newSectionName: '' as String,
+            // pages: [] as Array<{ id: number, app_page_name: string }>,
+            // selectedPageID: this.pages && this.pages.length > 0 ? this.pages[0].id : -1,
+            // newSectionName: '' as String,
         }
     },
     methods: {
@@ -65,6 +60,7 @@ export default {
             const id = item.id;
             this.$router.push(`/sections/${id}`)
         },
+        /*
         handleNewSection() {
             if (this.selectedPageID != -1 && this.newSectionName != '') {
                 axios.post(API_URL + '/sections/new', { data: { pageID: this.selectedPageID, newSectionName: this.newSectionName } }).then(response => {
@@ -86,6 +82,7 @@ export default {
             this.selectedPageID = this.pages && this.pages.length > 0 ? this.pages[0].id : -1;
             this.newSectionName = '';
         }
+        */
     },
     mounted() {
         // console.log('Pages mounted.')
@@ -96,9 +93,11 @@ export default {
         }).catch(error => { console.log(error) })
 
         // For adding a new section
+        /*
         axios.get(API_URL + '/pages').then(response => {
             this.pages = response.data.data;
         }).catch(error => { console.log(error) })
+        */
     }
 }
 </script>
