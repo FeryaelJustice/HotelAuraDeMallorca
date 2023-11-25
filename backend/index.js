@@ -28,7 +28,12 @@ const multerStorageForUserPic = multer.diskStorage({
         return cb(null, path)
     },
     filename: function (req, file, cb) {
-        return cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .webp
+        // console.log(req.dni)
+        if (req && req.dni) {
+            return cb(null, req.dni + '.webp')
+        } else {
+            return cb(null, file.originalname.replace(fileExtensionRegex, '') + '.webp') //Appending .webp
+        }
     }
 })
 const uploadWithMulterForUserPic = multer({ storage: multerStorageForUserPic })
@@ -130,13 +135,18 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
                 // Check also on db
-                req.dbConnectionPool.query('SELECT id, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
+                req.dbConnectionPool.query('SELECT id, user_dni, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
                     if (err) {
                         return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
                     }
                     if (result && result.length > 0) {
-                        req.id = decoded.userID;
-                        next();
+                        if (result[0].user_verified == 1) {
+                            req.id = decoded.userID;
+                            req.dni = result[0].user_dni;
+                            next();
+                        } else {
+                            return res.status(401).json({ status: "error", msg: "Token is valid, but user is not verified." })
+                        }
                     } else {
                         return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
                     }
@@ -551,8 +561,8 @@ expressRouter.get('/checkUserIsVerified/:id', verifyUser, (req, res) => {
     }
 })
 
-expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'), verifyUser, (req, res) => {
-    const userID = req.body.userID;
+expressRouter.post('/uploadUserImg', verifyUser, uploadWithMulterForUserPic.single('image'), (req, res) => {
+    const userID = req.id;
 
     // Delete all existing media and user_media associated with the user.
     function deleteMediaPromise(userID, connection) {
