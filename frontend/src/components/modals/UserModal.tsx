@@ -42,7 +42,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         if (!cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
             setCurrentUser(new User())
-            setUserEdit({ dni: '', name: '', surnames: '', token: '' });
+            setUserEdit({ name: '', surnames: '', token: '' });
             setUserLogin({ email: "", password: "" })
             setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
         } else {
@@ -75,7 +75,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 const userData = res.data;
                 const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: userData.user_password, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
-                setUserEdit({ dni: modelUserData.dni ? modelUserData.dni : '', name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
+                setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
             }).catch(err => console.error(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
