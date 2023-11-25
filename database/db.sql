@@ -8,14 +8,16 @@ CREATE TABLE app_user (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_name VARCHAR(255),
     user_surnames VARCHAR(255),
-    user_email VARCHAR(255),
+    user_email VARCHAR(255) NOT NULL UNIQUE,
+    user_dni VARCHAR(10) NOT NULL UNIQUE,
     user_password VARCHAR(255),
     user_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(255),
     verification_token_expiry TIMESTAMP,
     access_token VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user UNIQUE (user_email, user_dni)
 );
 
 -- Create the table app_user
@@ -230,6 +232,7 @@ INSERT INTO
         user_name,
         user_surnames,
         user_email,
+        user_dni,
         user_password,
         user_verified,
         verification_token,
@@ -240,6 +243,7 @@ VALUES
         'John Doe',
         'Gonzalez Serr',
         'john@example.com',
+        '34843234A',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
         NULL,
@@ -249,6 +253,7 @@ VALUES
         'Jane Smith',
         'Gonzalez Serr',
         'jane@example.com',
+        '654853234F',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
         NULL,
@@ -258,6 +263,7 @@ VALUES
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
+        '43480312Z',
         '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
         true,
         NULL,

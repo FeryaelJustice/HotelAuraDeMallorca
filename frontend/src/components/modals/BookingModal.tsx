@@ -10,7 +10,7 @@ import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Servic
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
-import { isEmptyOrSpaces, validateEmail } from './../../utils';
+import { isEmptyOrSpaces, validateEmail, validateDNI } from './../../utils';
 import './BookingModal.css'
 import { API_URL_BASE } from './../../services/consts';
 import { WeatherStates } from './../../constants';
@@ -175,6 +175,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         name: res.user_name,
                         surnames: res.user_surnames,
                         email: res.user_email,
+                        dni: res.user_dni,
                         password: res.user_password,
                         verified: res.user_verified,
                     }))
@@ -711,7 +712,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     async function createUser() {
         try {
             if (cookies.cookieConsent) {
-                const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
+                const userToCreate = { email: userPersonalData.email, dni: userPersonalData.dni, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
                 const res = await serverAPI.post('/register', userToCreate);
 
                 setCookie('token', res.data.cookieJWT);
@@ -806,12 +807,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     }
 
     // Step Personal data Form
-    const [userPersonalData, setUserPersonalData] = useState({ name: '', surnames: '', email: '' });
-    const [userPersonalDataErrors, setUserPersonalDataErrors] = useState({ nameError: '', surnamesError: '', emailError: '' });
+    const [userPersonalData, setUserPersonalData] = useState({ name: '', dni: '', surnames: '', email: '' });
+    const [userPersonalDataErrors, setUserPersonalDataErrors] = useState({ nameError: '', dniError: '', surnamesError: '', emailError: '' });
 
     const validatePersonalDataForm = () => {
-        const { name, surnames, email } = userPersonalData;
-        const newErrors = { nameError: '', surnamesError: '', emailError: '' }
+        const { name, surnames, email, dni } = userPersonalData;
+        const newErrors = { nameError: '', surnamesError: '', emailError: '', dniError: '' }
 
         if (isEmptyOrSpaces(name)) {
             newErrors.nameError = 'Please enter a valid name'
@@ -821,6 +822,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
         if (!validateEmail(email)) {
             newErrors.emailError = 'Please enter a valid email'
+        }
+        if (!validateDNI(dni)) {
+            newErrors.dniError = 'Please enter a valid email'
         }
 
         return newErrors;
@@ -833,7 +837,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         //let form = event.currentTarget;
         const formErrors = validatePersonalDataForm();
 
-        if (formErrors.nameError == '' && formErrors.surnamesError == '' && formErrors.emailError == '') {
+        if (formErrors.nameError == '' && formErrors.surnamesError == '' && formErrors.emailError == '' && formErrors.dniError == '') {
             goToNextStep();
         } else {
             setUserPersonalDataErrors(formErrors)
@@ -1053,8 +1057,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             // Si ya esta logeado, no pedir los datos personales
             setCurrentStep(BookingSteps.StepPlan)
         }
-        setUserPersonalData({ name: '', surnames: '', email: '' });
-        setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '' })
+        setUserPersonalData({ name: '', surnames: '', email: '', dni: '' });
+        setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '', dniError: '' })
         setGuests([
             new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
         ]);

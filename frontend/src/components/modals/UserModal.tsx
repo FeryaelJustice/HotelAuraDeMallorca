@@ -42,9 +42,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         if (!cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
             setCurrentUser(new User())
-            setUserEdit({ name: '', surnames: '', token: '' });
+            setUserEdit({ dni: '', name: '', surnames: '', token: '' });
             setUserLogin({ email: "", password: "" })
-            setUserRegister({ email: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
+            setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
         } else {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
         }
@@ -73,9 +73,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
             getAllLoggedUserData().then(res => {
                 const userData = res.data;
-                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, password: userData.user_password, verified: userData.user_verified })
+                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: userData.user_password, verified: userData.user_verified })
                 setCurrentUser(modelUserData)
-                setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
+                setUserEdit({ dni: modelUserData.dni ? modelUserData.dni : '', name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
             }).catch(err => console.error(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
@@ -155,7 +155,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 } else {
                     if (cookies.cookieConsent) {
                         setCookie('token', res.data.cookieJWT)
-                        console.log("logged successfully" + res)
                     } else {
                         alert("You didn't consent to use cookies, couldn't login")
                     }
@@ -180,17 +179,15 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         // Verify captcha to backend
         const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
-            console.log('captcha verified successfully')
             setCaptchaLoginValid(true)
         } else {
-            console.log('captcha failed')
             setCaptchaLoginValid(true)
         }
     }
 
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
-    const [userRegister, setUserRegister] = useState({ email: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
+    const [userRegister, setUserRegister] = useState({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
     // QR
     const [formWantsQRRegister, setFormWantsQRRegister] = useState(false);
@@ -200,6 +197,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         user_password: '1234',
         user_verified: 0,
         user_email: userRegister.email,
+        user_dni: userRegister.dni,
         endpointUrl_register: API_URL + '/register',
         endPointUrl_login: API_URL + '/login',
     };
@@ -239,7 +237,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     serverAPI.post('/register', userRegister).then(res => {
                         // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
                         // setCookie('token', res.data.cookieJWT)
-                        console.log('registered successfully' + res)
 
                         // After successful registration, send a request to generate and send a confirmation email
                         serverAPI.get(`/user/sendConfirmationEmail/${res.data.insertId}`, { headers: { 'Authorization': res.data.cookieJWT } })
@@ -292,10 +289,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         // Verify captcha to backend
         const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
         if (isHuman) {
-            console.log('captcha verified successfully')
             setCaptchaRegisterValid(true)
         } else {
-            console.log('captcha failed')
             setCaptchaRegisterValid(false)
         }
     }
@@ -321,7 +316,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 formData.append("image", imagePic);
                 formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '')
 
-                serverAPI.post('/uploadUserImg', formData).then(_ => {
+                serverAPI.post('/uploadUserImg', formData, { headers: { 'Authorization': cookies.token } }).then(_ => {
                     // retrieve profile pic and put
                     serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                         const reader = new FileReader();
@@ -344,8 +339,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 }
             })
         } else {
-            console.log(form.checkValidity())
-            console.log(userEdit)
             alert('Something went wrong')
         }
     }
@@ -423,6 +416,15 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                         </Form.Group>
 
+                        <Form.Group className="mb-3" controlId="formDNI">
+                            <Form.Label>{t("modal_user_register_dni_label")}</Form.Label>
+                            <Form.Control type="text" minLength={9} maxLength={9} name='dni' placeholder={t("modal_user_register_dni_placeholder")} pattern="[0-9]{8}[A-Za-z]{1}" title="8 numbers and 1 character" onChange={handleRegisterChange} required />
+                            <Form.Text className="text-muted">
+                                {t("modal_user_register_dni_description")}
+                            </Form.Text>
+                            <Form.Control.Feedback type='invalid'>Please put a valid DNI</Form.Control.Feedback>
+                        </Form.Group>
+
                         {!formWantsQRRegister ? (
                             <div>
                                 <Form.Group className="mb-3" controlId="formName">
@@ -452,7 +454,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         ) : (
                             <div>
                                 <Form.Group className='mb-3'>
-                                    {userRegister.email != '' && (
+                                    {userRegister.email != '' && userRegister.dni != '' && (
                                         <div>
                                             <QRCode value={JSON.stringify(qrData)} size={128} />
                                             <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={140} height={140} alt='uploaded image picture QR' style={{ marginLeft: '20px', verticalAlign: 'none' }} />

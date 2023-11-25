@@ -130,7 +130,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
     }
 
     const deleteBooking = () => {
-        serverAPI.delete('/booking/' + selectedBookingId).then(res => {
+        serverAPI.delete('/booking/' + selectedBookingId, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
             clearData()
             navigate("/")
@@ -142,8 +142,8 @@ export const Admin = ({ colorScheme }: AdminProps) => {
             <h1>Sección de administrador</h1>
             <div className='admin_bookingSection'>
                 <h2>Bookings</h2>
-                <div className='adminSelectBooking' style={{display: 'flex'}}>
-                    <label htmlFor="selectBooking" style={{marginRight:'10px'}}>Select a Booking:</label>
+                <div className='adminSelectBooking' style={{ display: 'flex' }}>
+                    <label htmlFor="selectBooking" style={{ marginRight: '10px' }}>Select a Booking:</label>
                     <select id='selectBooking' name='selectBooking' value={selectedBookingId} onChange={handleBookingIDSelectChange}>
                         <option value="">Select a Booking</option>
                         {bookings?.map((booking) => (

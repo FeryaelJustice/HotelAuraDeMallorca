@@ -216,10 +216,10 @@ expressRouter.post('/register', (req, res) => {
             if (resultss.length > 0) {
                 return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
             } else {
-                const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password) VALUES (?, ?, ?, ?)';
+                const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_dni, user_password) VALUES (?, ?, ?, ?, ?)';
 
                 bcrypt.hash(data.password, salt, (err, hash) => {
-                    const values = [data.name, data.surnames, data.email, hash];
+                    const values = [data.name, data.surnames, data.email, data.dni, hash];
                     req.dbConnectionPool.query(sql, values, (error, results) => {
                         if (error) {
                             console.error(error);
@@ -277,9 +277,9 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                 if (resultss.length > 0) {
                     return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
                 } else {
-                    const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_password, user_verified) VALUES (?, ?, ?, ?, ?)';
+                    const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_dni, user_password, user_verified) VALUES (?, ?, ?, ?, ?, ?)';
                     bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
-                        const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, hash, extractedData.user_verified];
+                        const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, extractedData.user_dni, hash, extractedData.user_verified];
                         req.dbConnectionPool.query(query, values, (err, result) => {
                             if (err) {
                                 console.error(err);
@@ -362,14 +362,14 @@ expressRouter.post('/login', (req, res) => {
                                         console.log("Error updating access token to user on login which haven't gone one before.")
                                     }
                                     if (result) {
-                                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
                                     } else {
                                         console.log("Error updating access token to user on login which haven't gone one before.")
                                     }
                                 })
                             } else {
                                 // Return the user of db
-                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
                             }
                         } else {
                             return res.status(500).send({ status: "error", msg: "User not verified" });
@@ -551,7 +551,7 @@ expressRouter.get('/checkUserIsVerified/:id', verifyUser, (req, res) => {
     }
 })
 
-expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'), (req, res) => {
+expressRouter.post('/uploadUserImg', uploadWithMulterForUserPic.single('image'), verifyUser, (req, res) => {
     const userID = req.body.userID;
 
     // Delete all existing media and user_media associated with the user.
@@ -1277,7 +1277,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                 console.error(err);
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
-            
+
             if (results && results.length > 0) {
                 // Esto significa que está ocupada, sino estará a null
                 if (results[0].booking_start_date) {
@@ -1334,7 +1334,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
 })
 
 // BOOKING
-expressRouter.delete('/booking/:bookingID', (req, res) => {
+expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
     try {
         // Delete booking, only for admins
         const bookingId = req.params.bookingID;

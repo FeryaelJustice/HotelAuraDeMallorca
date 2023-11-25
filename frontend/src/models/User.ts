@@ -3,6 +3,7 @@ export class User {
   name: string | null = null;
   surnames: string | null = null;
   email: string | null = null;
+  dni: string | null = null;
   password: string | null = null;
   verified: boolean | null = null;
 
@@ -12,6 +13,7 @@ export class User {
       this.name = user.name;
       this.surnames = user.surnames;
       this.email = user.email;
+      this.dni = user.dni;
       this.password = user.password;
       this.verified = user.verified;
     }
