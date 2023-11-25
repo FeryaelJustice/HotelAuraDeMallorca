@@ -564,50 +564,42 @@ expressRouter.get('/checkUserIsVerified/:id', verifyUser, (req, res) => {
 expressRouter.post('/uploadUserImg', verifyUser, uploadWithMulterForUserPic.single('image'), (req, res) => {
     const userID = req.id;
 
-    // Delete all existing media and user_media associated with the user.
-    function deleteMediaPromise(userID, connection) {
-        return new Promise((resolve, reject) => {
-            try {
-                connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
-                    if (error) {
-                        reject(error);
-                    }
-
-                    try {
-                        if (results && results != []) {
-                            for (const result of results) {
-                                connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
-                                    if (error) {
-                                        reject(error);
-                                    }
-                                });
-                            }
-
-                            resolve();
-                        } else {
-                            reject();
-                        }
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
     function deleteUserMediaPromise(userID, connection) {
         return new Promise((resolve, reject) => {
-            deleteMediaPromise(userID, connection).then(() => {
-                connection.query('DELETE FROM user_media WHERE user_id = ?', [userID], (error) => {
-                    if (error) {
-                        reject(error);
-                    }
+            connection.query('SELECT media_id FROM user_media WHERE user_id = ?', [userID], (error, results) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                // Filter the results to keep only those with media_id not equal to '1'
+                // const filteredResults = results.filter(result => result.media_id !== 1);
+
+                if (results.length > 0) {
+                    // Create an array of Promises for deletion
+                    const deletePromises = results.map(result => {
+                        return new Promise((resolveDelete, rejectDelete) => {
+                            connection.query('DELETE FROM media WHERE id = ?', [result.media_id], (error) => {
+                                if (error) {
+                                    rejectDelete(error);
+                                } else {
+                                    resolveDelete();
+                                }
+                            });
+                        });
+                    });
+
+                    // Wait for all delete Promises to resolve
+                    Promise.all(deletePromises)
+                        .then(() => {
+                            connection.commit();
+                            resolve()
+                        })
+                        .catch(error => reject(error));
+                } else {
+                    // No records to delete
                     resolve();
-                });
-            }).catch(_ => {
-                reject('Image existing in db and coulnt be replaced with your new image')
+                }
             });
         });
     }

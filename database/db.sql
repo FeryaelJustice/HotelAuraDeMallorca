@@ -182,7 +182,7 @@ CREATE TABLE user_media (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE service_media (
@@ -192,7 +192,7 @@ CREATE TABLE service_media (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (service_id) REFERENCES service(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE room_media (
@@ -202,7 +202,7 @@ CREATE TABLE room_media (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (room_id) REFERENCES room(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 CREATE TABLE plan_media (
@@ -212,7 +212,7 @@ CREATE TABLE plan_media (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (plan_id) REFERENCES plan(id),
-    FOREIGN KEY (media_id) REFERENCES media(id)
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
 -- RESTRICTIONS
@@ -463,7 +463,6 @@ VALUES
 INSERT INTO
     media (type, url)
 VALUES
-    ('image', 'media/img/defaultImage.webp'),
     ('image', 'media/img/home-main.webp'),
     ('image', 'media/img/home-secondary.webp'),
     ('image', 'media/img/home-tertiary.webp'),
@@ -477,14 +476,17 @@ VALUES
     ('image', 'media/img/room.webp'),
     ('image', 'media/img/room-vip.webp'),
     ('image', 'media/img/plan-basic.webp'),
-    ('image', 'media/img/plan-vip.webp');
+    ('image', 'media/img/plan-vip.webp'),
+    ('image', 'media/img/defaultImage.webp');
 
+/*
 INSERT INTO
     user_media (user_id, media_id)
 VALUES
     (1, 1),
     (2, 1),
     (3, 1);
+*/
 
 INSERT INTO
     service_media (service_id, media_id)
