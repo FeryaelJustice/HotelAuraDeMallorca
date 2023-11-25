@@ -135,7 +135,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             removeCookie('token');
         });
         if (loggedUserID) {
-            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
@@ -710,35 +710,37 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     async function createUser() {
         try {
-            const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
-            const res = await serverAPI.post('/register', userToCreate);
-
             if (cookies.cookieConsent) {
+                const userToCreate = { email: userPersonalData.email, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
+                const res = await serverAPI.post('/register', userToCreate);
+
                 setCookie('token', res.data.cookieJWT);
+                // Send confirmation email
+                await sendConfirmationEmail(res.data.insertId, res.data.cookieJWT);
+
+                const newUserAllData: User = {
+                    id: res.data.insertId,
+                    ...userToCreate,
+                    verified: false
+                };
+
+                // Update the state with the new userAllData
+                setUserAllData(newUserAllData);
+
+                return res.data.insertId;
+            } else {
+                alert('No se pudo crear el usuario ni enviar email de confirmación')
+                return null;
             }
-
-            // Send confirmation email
-            await sendConfirmationEmail(res.data.insertId);
-
-            const newUserAllData: User = {
-                id: res.data.insertId,
-                ...userToCreate,
-                verified: false
-            };
-
-            // Update the state with the new userAllData
-            setUserAllData(newUserAllData);
-
-            return res.data.insertId;
         } catch (error) {
             console.error('Error creating user:', error);
             return null;
         }
     }
 
-    async function sendConfirmationEmail(userId: number) {
+    async function sendConfirmationEmail(userId: number, cookieJWT: string) {
         try {
-            const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`);
+            const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`, { headers: { 'Authorization': cookieJWT } });
             console.log('Confirmation email sent successfully', response);
         } catch (error) {
             console.error('Error sending confirmation email:', error);

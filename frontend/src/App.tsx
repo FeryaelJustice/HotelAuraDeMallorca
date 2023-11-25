@@ -32,16 +32,16 @@ function App() {
 
   // User has bookings
   const [userHasBookings, setUserHasBookings] = useState(false);
-  
+
   // Color scheme
   const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  
+
   // Translations
   const { t } = useTranslation();
 
   // Cookies
   const [cookies, _, removeCookie] = useCookies(['token', 'cookieConsent']);
-  
+
   // Logged user role
   const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
@@ -133,12 +133,12 @@ function App() {
       removeCookie('token');
     });
     if (loggedUserID) {
-      const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
+      const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
         removeCookie('token')
         console.error(err)
       });
       if (getLoggedUserData) {
-        const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
+        const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } })
         setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
         return getLoggedUserData.data;
       }

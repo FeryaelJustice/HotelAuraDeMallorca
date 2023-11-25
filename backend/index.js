@@ -461,7 +461,7 @@ expressRouter.post('/getLoggedUserID', verifyUser, (req, res) => {
     return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.id })
 })
 
-expressRouter.get('/getUserRole/:id', (req, res) => {
+expressRouter.get('/getUserRole/:id', verifyUser, (req, res) => {
     try {
         req.dbConnectionPool.query('SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?', [req.params.id], (err, results) => {
             if (err) {
@@ -481,7 +481,7 @@ expressRouter.get('/getUserRole/:id', (req, res) => {
 })
 
 // get current logged user data without jwt, only by id param
-expressRouter.get('/loggedUser/:id', (req, res) => {
+expressRouter.get('/loggedUser/:id', verifyUser, (req, res) => {
     try {
         let userID = req.params.id;
         let sql = 'SELECT * FROM app_user WHERE id = ?';
@@ -527,7 +527,7 @@ expressRouter.post('/checkUserExistsByEmail', (req, res) => {
     }
 })
 
-expressRouter.get('/checkUserIsVerified/:id', (req, res) => {
+expressRouter.get('/checkUserIsVerified/:id', verifyUser, (req, res) => {
     try {
         req.dbConnectionPool.query('SELECT user_verified FROM app_user WHERE id = ?', [req.params.id], (error, results) => {
             if (error) {
@@ -658,7 +658,7 @@ expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
     }
 })
 
-expressRouter.get('/user/sendConfirmationEmail/:id', async (req, res) => {
+expressRouter.get('/user/sendConfirmationEmail/:id', verifyUser, async (req, res) => {
     try {
         const userId = req.params.id;
 

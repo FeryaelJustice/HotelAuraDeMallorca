@@ -68,7 +68,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             removeCookie('token');
         });
         if (loggedUserID) {
-            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });

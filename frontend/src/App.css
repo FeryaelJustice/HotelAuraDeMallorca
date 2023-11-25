@@ -49,8 +49,8 @@ header a {
 }
 
 .user-icon-phone:hover {
-  color: #FFFFFF !important;
-  background-color: #B5B5B5 !important;
+  color: #ffffff !important;
+  background-color: #b5b5b5 !important;
 }
 
 .logged-icon {
@@ -66,7 +66,7 @@ header a {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .logged-icon span {
@@ -130,13 +130,13 @@ nav a {
 
 #nav .is-active,
 #nav-menu .is-active {
-  color: #2A33EF;
+  color: #2a33ef;
   font-weight: bold;
 }
 
 #nav .is-active-light,
 #nav-menu .is-active-light {
-  color: #8F94F5;
+  color: #8f94f5;
   font-weight: bold;
 }
 
@@ -232,16 +232,16 @@ nav a {
 }
 
 .footer-right a {
-  color: #0148B2;
+  color: #0148b2;
   /* contrast accessibility */
 }
 
-.footer-right-legal{
+.footer-right-legal {
   flex-direction: row !important;
   font-size: 0.68rem;
 }
 
-.footer-right-legal span{
+.footer-right-legal span {
   margin-left: 10px;
 }
 
@@ -270,7 +270,7 @@ p {
 
 hr {
   height: 4px;
-  background: #FFFFFF;
+  background: #ffffff;
   padding: 0;
   margin: 0;
 }
@@ -341,7 +341,7 @@ button:focus-visible {
   width: fit-content;
   margin-top: 30px;
   border-radius: 8px;
-  padding:6px;
+  padding: 6px;
 }
 
 .contactPage {
@@ -379,7 +379,7 @@ button:focus-visible {
   background-color: #000000;
   padding: 4%;
   border-radius: 20px;
-  border: 2px dashed #FFFFFF;
+  border: 2px dashed #ffffff;
 }
 
 .contactForm .input {
@@ -461,7 +461,8 @@ button:focus-visible {
   }
 }
 
-@media screen and (max-width: 1000px) {.footer-right-legal {
+@media screen and (max-width: 1000px) {
+  .footer-right-legal {
     flex-direction: column !important;
     font-size: 0.6rem;
   }

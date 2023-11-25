@@ -59,7 +59,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                 <Container>
                     <Row className="mt-12">
                         <Col>
-                            <h1 className='servicesPageTitle' style={{ backgroundColor: 'black' }}>{t("services_title")}</h1>
+                            <h1 className='servicesPageTitle' style={{ backgroundColor: 'black', border: '1px groove #0ffff0' }}>{t("services_title")}</h1>
                         </Col>
                     </Row>
                     <br />
@@ -69,7 +69,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                             <div>
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
-                                        <Card style={{height: '360px', cursor: 'pointer', backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', backgroundPositionY: 'center', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                        <Card style={{height: '360px', cursor: 'pointer', backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', backgroundPositionY: 'center', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '2px dashed #ffffff' }}
                                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                                             onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '', service.description ? service.description : '')}
                                         >

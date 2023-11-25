@@ -14,7 +14,7 @@ import './UserModal.css'
 import { useTranslation } from "react-i18next";
 import QRCode from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
-import { QrScanner } from '@yudiel/react-qr-scanner';
+// import { QrScanner } from '@yudiel/react-qr-scanner';
 
 interface UserModalProps {
     colorScheme: string,
@@ -56,7 +56,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
     const captchaKey = process.env.reCAPTCHA_SITE_KEY
     const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
-    const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
+    // const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
 
     useEffect(() => {
         if (cookies.token) {
@@ -118,12 +118,12 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             removeCookie('token');
         });
         if (loggedUserID) {
-            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID).catch(err => {
+            const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
                 console.error(err)
             });
             if (getLoggedUserData) {
-                const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID)
+                const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } })
                 setCurrentUserRole(new Role({ id: userRole.data.data.id, name: userRole.data.data.name }))
                 return getLoggedUserData.data;
             }
@@ -205,7 +205,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     };
     const handleFormWantsQRRegister = (e: any) => {
         setFormWantsQRRegister(!formWantsQRRegister);
-        setShowQRCameraReader(true)
+        // setShowQRCameraReader(true)
         console.log(e.type)
     }
     const [imagePicQR, setImagePicQR] = useState<string | ArrayBuffer | null>()
@@ -242,7 +242,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         console.log('registered successfully' + res)
 
                         // After successful registration, send a request to generate and send a confirmation email
-                        serverAPI.get(`/user/sendConfirmationEmail/${res.data.insertId}`)
+                        serverAPI.get(`/user/sendConfirmationEmail/${res.data.insertId}`, { headers: { 'Authorization': res.data.cookieJWT } })
                             .then(response => {
                                 alert('An email has been sent to your mail to verify your account!')
                                 console.log('Confirmation email sent successfully', response);
@@ -452,12 +452,16 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         ) : (
                             <div>
                                 <Form.Group className='mb-3'>
-                                    <QRCode value={JSON.stringify(qrData)} size={128} />
-                                    <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={140} height={140} alt='uploaded image picture QR' style={{ marginLeft: '20px', verticalAlign: 'none' }} />
-                                    <br />
-                                    <br />
-                                    <Form.Label htmlFor=''>Upload your QR</Form.Label>
-                                    <Form.Control type='file' accept='image/*' name='qrPreview' id="qrPreview" onChange={handlePicQRChange} />
+                                    {userRegister.email != '' && (
+                                        <div>
+                                            <QRCode value={JSON.stringify(qrData)} size={128} />
+                                            <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={140} height={140} alt='uploaded image picture QR' style={{ marginLeft: '20px', verticalAlign: 'none' }} />
+                                            <br />
+                                            <br />
+                                            <Form.Label htmlFor=''>Upload your QR</Form.Label>
+                                            <Form.Control type='file' accept='image/*' name='qrPreview' id="qrPreview" onChange={handlePicQRChange} />
+                                        </div>
+                                    )}
                                 </Form.Group>
                             </div>
                         )}
@@ -484,21 +488,21 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             ) : null}
                         </div>)}
 
-                        {showQRCameraReader && (
-                            <div style={{width:'200px', height: '200px'}}>
+                        {/*showQRCameraReader && (
+                            <div style={{ width: '200px', height: '200px' }}>
                                 <QrScanner
                                     onDecode={(result) => console.log(result)}
                                     onError={(error) => console.log(error?.message)}
                                 />
                             </div>
-                        )}
+                        )*/}
 
                         <div style={{
                             display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
                         }}>
-                            {formWantsQRRegister && (
+                            {/*formWantsQRRegister && (
                                 <Button type='button' variant='warning' style={{ marginBottom: '12px' }} onClick={() => { setShowQRCameraReader(!showQRCameraReader) }}>{!showQRCameraReader ? `Open` : `Close`} your camera {!showQRCameraReader && `and scan your QR`}</Button>
-                            )}
+                            )*/}
                             <Button variant="primary" type="submit">
                                 {t("modal_user_register_send")}
                             </Button>
