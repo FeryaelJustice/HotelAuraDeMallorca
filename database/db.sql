@@ -47,7 +47,7 @@ CREATE TABLE user_role (
     role_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES role(id),
     CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
@@ -443,10 +443,10 @@ VALUES
 INSERT INTO
     payment_method (payment_method_name)
 VALUES
-    ('Stripe'),
-    ('Paypal');
+    ('Stripe');
 
 -- Payment (transacciones)
+/*
 INSERT INTO
     payment (
         user_id,
@@ -456,8 +456,8 @@ INSERT INTO
         payment_method_id
     )
 VALUES
-    (1, 1, 50.00, '2023-10-23', 1),
-    (2, 2, 150.00, '2023-11-10', 2);
+    (1, 1, 50.00, '2023-10-23', 1);
+*/
 
 -- MEDIAS
 INSERT INTO
