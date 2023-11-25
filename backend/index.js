@@ -881,7 +881,7 @@ expressRouter.post('/sendContactForm', async (req, res) => {
         let formData = req.body;
         const info = await transporter.sendMail({
             from: formData.email, // sender address
-            to: ["'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'", "'Fernando Homerti' <fernando.gonzalez@homerti.com>'"], // list of receivers
+            to: process.env.MAIL_CONTACT_RECEIVERS, // list of receivers
             subject: formData.subject, // Subject line
             text: formData.message, // plain text body
             html: "<pre>" + formData.message + "</pre>", // html body
