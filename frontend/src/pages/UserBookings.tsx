@@ -21,7 +21,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
-    
+
     window.scrollTo({
         top: 0,
         behavior: 'smooth',
@@ -38,6 +38,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
     const [selectedBookingId, setSelectedBookingId] = useState<number>(-1);
     const [selectedBookingStartDate, setSelectedBookingStartDate] = useState<Value>();
     const [selectedBookingEndDate, setSelectedBookingEndDate] = useState<Value>();
+    const [selectedBookingIsCancelled, setSelectedBookingIsCancelled] = useState<boolean>(false);
 
     // One time async
     useEffect(() => {
@@ -47,7 +48,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         serverAPI.get(API_URL + '/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
             let bookingsRes: Booking[] = [];
             res.data.data.forEach((booking: any) => {
-                bookingsRes.push(new Booking({ id: booking.id, userID: booking.user_id, planID: booking.plan_id, roomID: booking.room_id, startDate: booking.booking_start_date, endDate: booking.booking_end_date }))
+                bookingsRes.push(new Booking({ id: booking.id, userID: booking.user_id, planID: booking.plan_id, roomID: booking.room_id, startDate: booking.booking_start_date, endDate: booking.booking_end_date, isCancelled: booking.is_cancelled }))
             })
             setBookings(bookingsRes)
         }).catch(err => console.log(err))
@@ -81,6 +82,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         endDate.setDate(endDate.getDate() + 1)
         setSelectedBookingStartDate(startDate)
         setSelectedBookingEndDate(endDate)
+        setSelectedBookingIsCancelled(selected?.isCancelled ? selected.isCancelled : false)
     };
 
     // Form actions
@@ -92,7 +94,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         }
         serverAPI.put('/cancelBookingByUser', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
-            removeBooking();
+            // removeBooking();
         }).catch(error => {
             console.error(error)
             if (error && error.response && error.response.data) {
@@ -106,6 +108,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         })
     }
 
+    /*
     function removeBooking() {
         // Use filter to create a new array without the selected booking
         const updatedBookings = bookings?.filter(booking => booking.id !== selectedBookingId);
@@ -113,6 +116,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         // Reset selectedBookingId to indicate that nothing is selected
         setSelectedBookingId(-1);
     };
+    */
 
     const getPlanName = (bookingPlanId: any) => {
         const matchingPlan = plans?.find((plan) => plan.id === bookingPlanId);
@@ -126,7 +130,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
 
     return (
         <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
-            <h1 style={{margin: '20px', paddingTop: '20px'}}>Administra tus reservas</h1>
+            <h1 style={{ margin: '20px', paddingTop: '20px' }}>Administra tus reservas</h1>
             <div className='user_bookingSection' style={{ display: 'flex', justifyContent: 'start', alignContent: 'center', margin: '20px' }}>
                 {bookings && bookings.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '200px' }}>
@@ -142,12 +146,12 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
                         </select>
                         <hr />
                         {selectedBookingId != -1 && (
-                            <div className='user_booking' style={{marginTop: '10px'}}>
+                            <div className='user_booking' style={{ marginTop: '10px' }}>
                                 <h3>ID: {selectedBookingId}</h3>
                                 <p>Plan: {getPlanName(bookings.find((booking) => booking.id === selectedBookingId)?.planID)}</p>
                                 <p>Room: {getRoomName(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)}</p>
-                                <Form id="userDisplayBookingData" className='userDisplayBookingData' style={{display: 'flex'}}>
-                                    <Form.Group className="mb-3" controlId="bookingStartDate" style={{marginRight: '10%'} }>
+                                <Form id="userDisplayBookingData" className='userDisplayBookingData' style={{ display: 'flex' }}>
+                                    <Form.Group className="mb-3" controlId="bookingStartDate" style={{ marginRight: '10%' }}>
                                         <Form.Label>Book Start Date</Form.Label>
                                         <Calendar value={selectedBookingStartDate} />
                                     </Form.Group>
@@ -159,7 +163,11 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
                                 </Form>
                                 <Form id='userEditBookingForm' className='userEditBookingForm' onSubmit={handleUserEditBookingFormSubmit}>
                                     <Form.Group className="mb-3" controlId="cancelledBooking" style={{ display: 'flex', flexDirection: 'row' }}>
-                                        <Button aria-label='Cancel booking button' variant='danger' type='submit'>Cancelar la reserva</Button>
+                                        {!selectedBookingIsCancelled ? (
+                                            <Button aria-label='Cancel booking button' variant='danger' type='submit'>Cancelar la reserva</Button>
+                                        ) : (
+                                            <p>Reserva cancelada</p>
+                                        )}
                                     </Form.Group>
                                 </Form>
                                 <hr />

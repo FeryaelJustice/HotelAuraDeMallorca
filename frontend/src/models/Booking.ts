@@ -5,6 +5,7 @@ export class Booking {
   roomID: number | null = null;
   startDate: Date | null = null;
   endDate: Date | null = null;
+  isCancelled: boolean | null = null;
 
   constructor(booking?: Booking) {
     if (booking) {
@@ -14,6 +15,7 @@ export class Booking {
       this.roomID = booking.roomID;
       this.startDate = booking.startDate;
       this.endDate = booking.endDate;
+      this.isCancelled = booking.isCancelled;
     }
   }
 }

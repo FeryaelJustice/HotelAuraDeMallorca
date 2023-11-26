@@ -1270,8 +1270,13 @@ expressRouter.get('/paymentmethods', (req, res) => {
 expressRouter.post('/checkBookingAvailability', (req, res) => {
     try {
         const { start_date, end_date } = req.body;
-        const startDate = new Date(start_date).toISOString().slice(0, 11).replace('T', ' ')
-        const endDate = new Date(end_date).toISOString().slice(0, 11).replace('T', ' ')
+        // Añadimos un dia por la diferencia de timezone al recibir los datos y la base de datos
+        const startDateAsDate = new Date(start_date)
+        startDateAsDate.setDate(startDateAsDate.getDate() + 1)
+        const endDateAsDate = new Date(end_date)
+        endDateAsDate.setDate(endDateAsDate.getDate() + 1)
+        const startDate = startDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
+        const endDate = endDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
         const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r INNER JOIN booking b ON r.id = b.room_id AND (b.booking_end_date <= ? AND b.booking_start_date >= ?) WHERE b.is_cancelled = 0';
 
         req.dbConnectionPool.query(sql, [endDate, startDate], (err, results) => {
@@ -1626,7 +1631,8 @@ expressRouter.get('/bookings', verifyUser, (req, res) => {
 
 expressRouter.get('/bookingsByUser', verifyUser, (req, res) => {
     try {
-        req.dbConnectionPool.query('SELECT * FROM booking WHERE user_id = ? AND is_cancelled = 0', [req.id], (err, results) => {
+        // AND is_cancelled = 0
+        req.dbConnectionPool.query('SELECT * FROM booking WHERE user_id = ?', [req.id], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).send({ status: "error", error: 'Internal server error' });;

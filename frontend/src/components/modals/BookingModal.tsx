@@ -759,6 +759,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 roomID: selectedRoomID,
                 startDate: startDate as Date,
                 endDate: endDate as Date,
+                isCancelled: false
             });
 
             const bookingData = {

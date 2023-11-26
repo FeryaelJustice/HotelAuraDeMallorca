@@ -51,7 +51,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
         serverAPI.get('/bookings', { headers: { 'Authorization': cookies.token } }).then(res => {
             let bookingsRes: Booking[] = [];
             res.data.data.forEach((booking: any) => {
-                bookingsRes.push(new Booking({ id: booking.id, userID: booking.user_id, planID: booking.plan_id, roomID: booking.room_id, startDate: booking.booking_start_date, endDate: booking.booking_end_date }))
+                bookingsRes.push(new Booking({ id: booking.id, userID: booking.user_id, planID: booking.plan_id, roomID: booking.room_id, startDate: booking.booking_start_date, endDate: booking.booking_end_date, isCancelled: booking.is_cancelled }))
             })
             setBookings(bookingsRes)
 
