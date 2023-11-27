@@ -9,3 +9,6 @@ TENER LA BDD creada antes de arrancar, sea en xampp o en el hosting.
 
 ANTES DE ARRANCAR, CONFIGURAR LA DB:
 Primero ejecutar los SQL: database/db_noinserts_first y después database/datadump_second
+
+*Made by: Fernando GS for Homerti*
+-> Contact: [Fernando GS](mailto:nano9gs@hotmail.es)
