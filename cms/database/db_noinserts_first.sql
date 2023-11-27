@@ -1,7 +1,8 @@
 -- Create the database
-CREATE DATABASE IF NOT EXISTS gestortraducciones;
+-- CREATE DATABASE IF NOT EXISTS gestortraducciones;
 
-USE gestortraducciones;
+-- USE gestortraducciones;
+USE translator;
 
 -- Create the table users
 CREATE TABLE users (

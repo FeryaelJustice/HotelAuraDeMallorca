@@ -20,8 +20,10 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `gestortraducciones`
 --
-CREATE DATABASE IF NOT EXISTS `gestortraducciones` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `gestortraducciones`;
+-- CREATE DATABASE IF NOT EXISTS `gestortraducciones` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+-- USE `gestortraducciones`;
+
+USE translator;
 
 --
 -- Volcado de datos para la tabla `users`
