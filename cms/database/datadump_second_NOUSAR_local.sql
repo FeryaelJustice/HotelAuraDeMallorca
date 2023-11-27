@@ -17,7 +17,15 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
-USE translator;
+USE `gestortraducciones`;
+
+--
+-- Volcado de datos para la tabla `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `remember_token`, `updated_at`, `created_at`) VALUES
+(1, 'Fer', 'fer@example.com', '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC', '234DyA6CgY1gq1tqq6By35MoVxddMYekXrqyRJkvU6N9GOzEqE90GgUK0TLq', '2023-11-24 07:39:16', '2023-11-22 07:44:45');
+COMMIT;
 
 --
 -- Volcado de datos para la tabla `app_page`

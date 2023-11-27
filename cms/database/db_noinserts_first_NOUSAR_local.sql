@@ -1,7 +1,18 @@
 -- Create the database
--- CREATE DATABASE IF NOT EXISTS translator;
+CREATE DATABASE IF NOT EXISTS gestortraducciones;
 
-USE translator;
+USE gestortraducciones;
+
+-- Create the table users
+CREATE TABLE users (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    name VARCHAR(60),
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    remember_token VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Create the table app_page
 CREATE TABLE app_page (
