@@ -404,11 +404,13 @@ INSERT INTO
         plan_id,
         room_id,
         booking_start_date,
-        booking_end_date
+        booking_end_date,
+        cancellation_deadline,
+        is_cancelled
     )
 VALUES
-    (1, 1, 1, '2023-10-20', '2023-10-25'),
-    (2, 2, 2, '2023-11-01', '2023-11-10');
+    (1, 1, 1, '2023-10-20', '2023-10-25', null, 1),
+    (2, 2, 2, '2023-11-01', '2023-11-10', null, 1);
 
 -- Servicios asociados a reservas
 INSERT INTO
