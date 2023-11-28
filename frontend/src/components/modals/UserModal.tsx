@@ -532,6 +532,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 <Form.Control type='file' accept='image/*' onChange={handleProfilePicChange} />
                             </Form.Group>
 
+                            <div>
+                                <p><strong>DNI:</strong> {currentUser.dni}</p>
+                            </div>
+
                             <Form.Group className="mb-3" controlId="formName">
                                 <Form.Label>{t("modal_user_editprofile_name_label")}</Form.Label>
                                 <Form.Control type="text" name='name' placeholder={t("modal_user_editprofile_name_placeholder")} onChange={handleSaveEditChange} value={userEdit.name ? userEdit.name : ''} minLength={1} maxLength={100} />
