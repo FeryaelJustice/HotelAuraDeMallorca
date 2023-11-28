@@ -127,6 +127,26 @@ CREATE TABLE booking_guest (
     FOREIGN KEY (guest_id) REFERENCES guest(id)
 );
 
+-- Create the table promotions
+CREATE TABLE promotion (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    code VARCHAR(255) UNIQUE NOT NULL,
+    discount_price DECIMAL(5, 2) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_date DATE,
+    end_date DATE
+);
+
+-- Create the table booking_promotion
+CREATE TABLE booking_promotion (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    booking_id INT,
+    promotion_id INT,
+    FOREIGN KEY (booking_id) REFERENCES booking(id),
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id)
+);
+
 -- Create the table weather
 CREATE TABLE weather (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -539,6 +559,53 @@ INSERT INTO
 VALUES
     (1, 14),
     (2, 15);
+
+-- Insert promotion
+INSERT INTO
+    promotion (
+        code,
+        discount_price,
+        name,
+        description,
+        start_date,
+        end_date
+    )
+VALUES
+    (
+        'BLACKFRIDAY',
+        20.00,
+        'Black Friday',
+        'Exclusive Black Friday discount!',
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL 4 DAY
+    ),
+    (
+        'SUMMER2023',
+        15.00,
+        'Summer Discount',
+        'Get 15% off on your stay!',
+        CURRENT_DATE + INTERVAL 10 DAY,
+        CURRENT_DATE + INTERVAL 14 DAY
+    ),
+    (
+        'WEEKENDGETAWAY',
+        10.00,
+        'Weekend Getaway',
+        'Enjoy a 10% discount for weekend stays!',
+        CURRENT_DATE + INTERVAL 12 DAY,
+        CURRENT_DATE + INTERVAL 16 DAY
+    );
+
+-- Insert promotion
+INSERT INTO
+    booking_promotion (
+        booking_id,
+        promotion_id
+    )
+VALUES
+    (1, 1),
+    (2, 1),
+    (3, 1);
 
 -- PROCEDIMIENTOS
 /*

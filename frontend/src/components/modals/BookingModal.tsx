@@ -6,7 +6,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
-import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest } from './../../models';
+import { Booking, Payment, PaymentMethod, PaymentTransaction, Plan, Room, Service, User, Guest, Promotion } from './../../models';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useCookies } from 'react-cookie';
@@ -41,6 +41,7 @@ enum BookingSteps {
     StepChooseRoom,
     StepChooseServices,
     StepFillGuests,
+    StepPromoCode,
     StepPaymentMethod,
     StepConfirmation,
 }
@@ -127,6 +128,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
+    const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>(""); // the promo code that user puts on payment and will apply
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -265,6 +268,16 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             //     fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
             // });
         }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
+
+        // Get promotions
+        serverAPI.get('/promotions').then(res => {
+            let promos = res.data.data;
+            let retrievedPromos: Promotion[] = [];
+            promos.forEach((prm: any) => {
+                retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
+            })
+            setPromotions(retrievedPromos);
+        }).catch(err => console.error(err))
     }, [cookies])
 
     async function postWeatherDataToDB(weatherData: any) {
@@ -507,10 +520,13 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
 
                 if (countAdults == adults && countChildren == children) {
-                    setCurrentStep(BookingSteps.StepPaymentMethod);
+                    setCurrentStep(BookingSteps.StepPromoCode);
                 } else {
                     alert("Adults and children are not matching in number with a previous step! Please make it match or change the number of adults/children!")
                 }
+                break;
+            case BookingSteps.StepPromoCode:
+                setCurrentStep(BookingSteps.StepPaymentMethod);
                 break;
             case BookingSteps.StepPaymentMethod:
                 // Migrado a usarlo directamente en un método en los propios forms de stripe, paypal o whatever
@@ -627,8 +643,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     setCurrentStep(BookingSteps.StepChooseServices);
                 }
                 break;
-            case BookingSteps.StepPaymentMethod:
+            case BookingSteps.StepPromoCode:
                 setCurrentStep(BookingSteps.StepFillGuests);
+                break;
+            case BookingSteps.StepPaymentMethod:
+                setCurrentStep(BookingSteps.StepPromoCode);
                 break;
             case BookingSteps.StepConfirmation:
                 alert("You can't turn back, you already did the booking!")
@@ -651,12 +670,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         userID = await createUser();
                     }
 
+                    // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
+                    const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
+                    const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
+                    const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
+
                     // Process payment
                     const clientSecret = await doPayment(paymentData);
 
                     if (clientSecret && clientSecret !== undefined && clientSecret !== null && clientSecret !== '') {
                         // Make the booking
-                        await doBooking(userID, clientSecret);
+                        await doBooking(userID, clientSecret, updatedPrice, promoID);
                     } else {
                         alert('Error on payment, try again');
                     }
@@ -750,7 +774,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     }
 
     // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
-    async function doBooking(user_id: any, paymentTransactionID: any) {
+    async function doBooking(user_id: any, paymentTransactionID: any, updatedPrice: number, promoID: number) {
         try {
             const booking = new Booking({
                 id: null,
@@ -772,12 +796,18 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const bookingResponse = await serverAPI.post('/createBooking', bookingData);
 
             if (bookingResponse.data.status === "success") {
+                // Insert promo applied with booking if its the case
+                if (promoID != -1) {
+                    // Promo was found
+                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId });
+                }
+
                 // Make the API call for payment
                 const payment = new Payment({
                     id: null,
                     userID: user_id,
                     bookingID: bookingResponse.data.insertId,
-                    amount: totalPriceToPay,
+                    amount: updatedPrice,
                     date: new Date(),
                     paymentMethodID: checkedPaymentMethod
                 });
@@ -1050,6 +1080,54 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const paymentMethodSelected = (paymentMethodID: any) => {
         setCheckedPaymentMethod(paymentMethodID);
     };
+
+    // FUNCTIONS TO CHECK FOR PROMOS
+
+    // Get the discount percentage for a promotion
+    async function getPromoDiscount(promoId: number): Promise<number> {
+        try {
+            const response = await serverAPI.get(`/get-promo-discount/${promoId}`);
+            return response.data.data.discount;
+        } catch (error) {
+            console.error('Error getting promo discount:', error);
+            return 0;
+        }
+    }
+    async function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
+        let updatedTotalPrice = totalPriceToPay;
+        let appliedPromoId: number = -1;
+
+        if (userSelectedPromoCode != "") {
+            // Find the promotion with the selected promo code
+            const selectedPromo = promotions.find(promo => promo.code === userSelectedPromoCode);
+
+            if (selectedPromo) {
+                // Check if the promo is active for the current day
+                const currentDate = new Date();
+                const promoStartDate = selectedPromo.start_date ? new Date(selectedPromo.start_date) : null;
+                const promoEndDate = selectedPromo.end_date ? new Date(selectedPromo.end_date) : null;
+
+                // Ensure promoStartDate and promoEndDate are defined before further processing
+                if (promoStartDate && promoEndDate) {
+                    // Convert dates to "YYYY-MM-DD" format
+                    const currentDateString = currentDate.toISOString().slice(0, 10);
+                    const promoStartDateString = promoStartDate?.toISOString().slice(0, 10);
+                    const promoEndDateString = promoEndDate?.toISOString().slice(0, 10);
+
+                    if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
+                        // Apply the discount to the total price
+                        const discount = await getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1);
+                        updatedTotalPrice -= (totalPriceToPay * discount) / 100;
+                        updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
+                        // Set the applied promo ID
+                        appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
+                    }
+                }
+            }
+        }
+        return { updatedTotalPrice, appliedPromoId };
+    }
+
 
     // RESET
     const resetBookingModal = () => {
@@ -1453,6 +1531,42 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                         </div>
                                     </Form>
                                 </Container>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {
+                    currentStep === BookingSteps.StepPromoCode && (
+                        <div>
+                            <h2>Promo code (optional)</h2>
+                            <br />
+                            <div className='payment-promocode'>
+                                <Form id='promoCodeForm' noValidate onSubmit={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    goToNextStep();
+                                }}>
+                                    <Form.Label>Promo code:</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="promoCode"
+                                        placeholder='Promotion code'
+                                        maxLength={255}
+                                        value={userSelectedPromoCode}
+                                        onChange={(e) => setUserSelectedPromoCode(e.target.value)}
+                                    />
+                                    <div className='bookingNavButtons'>
+                                        <Button variant="secondary" type='button' onClick={goToPreviousStep}>
+                                            {t("modal_booking_previousstep")}
+                                        </Button>
+
+                                        <Button variant='primary' type='submit'>
+                                            {t("modal_booking_nextstep")}
+                                        </Button>
+                                    </div>
+                                </Form>
+                                <br />
                             </div>
                         </div>
                     )

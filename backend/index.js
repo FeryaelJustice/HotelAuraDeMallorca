@@ -2040,6 +2040,36 @@ expressRouter.get('/weather', (req, res) => {
     })
 })
 
+// PROMOTIONS
+// Get promos
+expressRouter.get('/promotions', (req, res) => {
+    req.dbConnectionPool.query('SELECT * FROM promotion', (err, results) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+        }
+        return res.status(200).send({ status: "success", data: results });
+    })
+})
+expressRouter.get('/get-promo-discount/:id', (req, res) => {
+    let promoID = req.params.id;
+    req.dbConnectionPool.query('SELECT discount_price FROM promotion WHERE id = ?', [promoID], (err, results) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+        }
+        return res.status(200).send({ status: "success", data: { discount: results[0].discount_price } });
+    })
+})
+expressRouter.post('/saveBookingWithPromoApplied', (req, res) => {
+    let promoID = req.body.promoID;
+    let bookingID = req.body.bookingID;
+    req.dbConnectionPool.query('INSERT INTO booking_promotion (booking_id, promotion_id) VALUES (?, ?)', [bookingID, promoID], (err, result) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+        }
+        return res.status(200).send({ status: "success", data: { insertedID: result.insertId } });
+    })
+})
+
 // Listen SERVER (DEFAULT NODE PORT RUN OR 3000)
 const appPort = process.env.PORT || 3000
 
