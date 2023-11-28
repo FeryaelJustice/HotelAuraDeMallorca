@@ -15,6 +15,7 @@ CREATE TABLE app_user (
     verification_token VARCHAR(255),
     verification_token_expiry TIMESTAMP,
     access_token VARCHAR(255) DEFAULT NULL,
+    isEnabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT unique_user UNIQUE (user_email, user_dni)
@@ -98,7 +99,7 @@ CREATE TABLE booking (
     is_cancelled BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
     FOREIGN KEY (plan_id) REFERENCES plan(id),
     FOREIGN KEY (room_id) REFERENCES room(id),
     CONSTRAINT valid_dates CHECK (booking_start_date <= booking_end_date),

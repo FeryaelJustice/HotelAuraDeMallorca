@@ -183,6 +183,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         dni: res.user_dni,
                         password: res.user_password,
                         verified: res.user_verified,
+                        enabled: res.user_enabled
                     }))
                 }).catch(err => console.log(err));
             } catch (err) {
@@ -759,7 +760,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 const newUserAllData: User = {
                     id: res.data.insertId,
                     ...userToCreate,
-                    verified: false
+                    verified: false,
+                    enabled: true,
                 };
 
                 // Update the state with the new userAllData

@@ -134,7 +134,7 @@ const verifyUser = (req, res, next) => {
                 return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
             } else {
                 // Check also on db
-                req.dbConnectionPool.query('SELECT id, user_dni, user_verified FROM app_user WHERE access_token = ?', [token], (err, result) => {
+                req.dbConnectionPool.query('SELECT id, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1', [token], (err, result) => {
                     if (err) {
                         return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
                     }
@@ -199,7 +199,7 @@ expressRouter.use((req, res, next) => {
 expressRouter.post('/checkUserExists', (req, res) => {
     try {
         const { email } = req.body;
-        req.dbConnectionPool.query('SELECT * FROM app_user WHERE user_email = ?', [email], (err, results) => {
+        req.dbConnectionPool.query('SELECT id FROM app_user WHERE user_email = ?', [email], (err, results) => {
             if (err) {
                 return res.status(500).json({ status: "error", message: "Error checking for existing users" })
             }
@@ -216,14 +216,14 @@ expressRouter.post('/checkUserExists', (req, res) => {
 expressRouter.post('/register', (req, res) => {
     try {
         const data = req.body;
-        const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-        const checkValues = [data.email]
+        const checkSQL = 'SELECT * FROM app_user WHERE user_email = ? OR user_dni = ?'
+        const checkValues = [data.email, data.dni]
         req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
             if (err) {
-                return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
+                return res.status(500).json({ status: "error", message: "Error checking for existing emails and dni" })
             }
             if (resultss.length > 0) {
-                return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+                return res.status(500).json({ status: "error", message: "Existing email OR DNI found in DB, use another email or DNI!" })
             } else {
                 const sql = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_dni, user_password) VALUES (?, ?, ?, ?, ?)';
 
@@ -277,8 +277,8 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
         if (qrCodeData) {
             // Extracted data from the QR code
             const extractedData = JSON.parse(qrCodeData.data);
-            const checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-            const checkValues = [extractedData.user_email]
+            const checkSQL = 'SELECT * FROM app_user WHERE user_email = ? OR user_dni = ?'
+            const checkValues = [extractedData.user_email, extractedData.user_dni]
             req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
                 if (err) {
                     return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
@@ -344,7 +344,7 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
 expressRouter.post('/login', (req, res) => {
     try {
         let data = req.body;
-        let sql = 'SELECT * FROM app_user WHERE user_email = ?';
+        let sql = 'SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1';
         let values = [data.email];
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
@@ -401,7 +401,7 @@ expressRouter.post('/login', (req, res) => {
 expressRouter.post('/loginByToken', (req, res) => {
     try {
         const token = req.body.token;
-        let sql = 'SELECT * FROM app_user WHERE access_token = ?';
+        let sql = 'SELECT * FROM app_user WHERE access_token = ? AND isEnabled = 1';
         let values = [token];
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
@@ -450,11 +450,10 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
 
 expressRouter.delete('/user', verifyUser, (req, res) => {
     const userID = req.id;
-    deleteBookingByUserID()
+    deleteUserByUserID(userID, req.dbConnectionPool)
         .then(() => deletePaymentByUserID(userID, req.dbConnectionPool))
         .then(() => deleteUserRoleByUserID(userID, req.dbConnectionPool))
         .then(() => deleteUserMediaByUserID(userID, req.dbConnectionPool))
-        .then(() => deleteUserByUserID(userID, req.dbConnectionPool))
         .then(() => {
             req.dbConnectionPool.release();
             return res.status(200).send({ status: "success", message: `User ${userID} deleted` });
@@ -493,7 +492,7 @@ expressRouter.get('/getUserRole/:id', verifyUser, (req, res) => {
 expressRouter.get('/loggedUser/:id', verifyUser, (req, res) => {
     try {
         let userID = req.params.id;
-        let sql = 'SELECT * FROM app_user WHERE id = ?';
+        let sql = 'SELECT id, user_name, user_surnames, user_email, user_dni, isEnabled, user_verified, created_at, updated_at FROM app_user WHERE id = ? AND isEnabled = 1';
         let values = [userID];
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
@@ -504,29 +503,6 @@ expressRouter.get('/loggedUser/:id', verifyUser, (req, res) => {
                 return res.status(200).send({ status: "success", msg: "User found", data: results[0] });
             } else {
                 return res.status(500).send({ status: "error", msg: "No user exists with that id" });
-            }
-        })
-    } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
-    } finally {
-        req.dbConnectionPool.release();
-    }
-})
-
-expressRouter.post('/checkUserExistsByEmail', (req, res) => {
-    try {
-        let data = req.body;
-        let checkSQL = 'SELECT id FROM app_user WHERE user_email = ?'
-        let checkValues = [data.email]
-        req.dbConnectionPool.query(checkSQL, checkValues, (error, results) => {
-            if (error) {
-                console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
-            }
-            if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "User found" });
-            } else {
-                return res.status(500).send({ status: "error", msg: "No user exists with that email" });
             }
         })
     } catch (error) {

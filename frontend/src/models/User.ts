@@ -6,6 +6,7 @@ export class User {
   dni: string | null = null;
   password: string | null = null;
   verified: boolean | null = null;
+  enabled: boolean | null = null;
 
   constructor(user?: User) {
     if (user) {
@@ -16,6 +17,7 @@ export class User {
       this.dni = user.dni;
       this.password = user.password;
       this.verified = user.verified;
+      this.enabled = user.enabled;
     }
   }
 }
