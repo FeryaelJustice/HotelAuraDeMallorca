@@ -409,8 +409,33 @@ INSERT INTO
         is_cancelled
     )
 VALUES
-    (1, 1, 1, '2023-10-20', '2023-10-25', null, 1),
-    (2, 2, 2, '2023-11-01', '2023-11-10', null, 1);
+    (
+        1,
+        1,
+        1,
+        CURDATE() + INTERVAL 3 DAY,
+        CURDATE() + INTERVAL 6 DAY,
+        CURDATE() + INTERVAL 2 DAY,
+        0
+    ),
+    (
+        2,
+        1,
+        2,
+        CURDATE() + INTERVAL 7 DAY,
+        CURDATE() + INTERVAL 9 DAY,
+        CURDATE() + INTERVAL 6 DAY,
+        0
+    ),
+    (
+        3,
+        1,
+        1,
+        CURDATE() + INTERVAL 11 DAY,
+        CURDATE() + INTERVAL 14 DAY,
+        CURDATE() + INTERVAL 10 DAY,
+        0
+    );
 
 -- Servicios asociados a reservas
 INSERT INTO
@@ -418,7 +443,8 @@ INSERT INTO
 VALUES
     (1, 1),
     (1, 2),
-    (2, 3);
+    (2, 3),
+    (3, 5);
 
 -- Guests asociados a reservas, como los adultos y niños que hay
 INSERT INTO
@@ -426,8 +452,8 @@ INSERT INTO
 VALUES
     (1, 1),
     (1, 2),
-    (1, 3),
-    (2, 3);
+    (2, 2),
+    (3, 3);
 
 -- Condiciones meteorológicas
 INSERT INTO
@@ -449,18 +475,17 @@ VALUES
 
 -- Payment (transacciones)
 /*
-INSERT INTO
-    payment (
-        user_id,
-        booking_id,
-        payment_amount,
-        payment_date,
-        payment_method_id
-    )
-VALUES
-    (1, 1, 50.00, '2023-10-23', 1);
-*/
-
+ INSERT INTO
+ payment (
+ user_id,
+ booking_id,
+ payment_amount,
+ payment_date,
+ payment_method_id
+ )
+ VALUES
+ (1, 1, 50.00, '2023-10-23', 1);
+ */
 -- MEDIAS
 INSERT INTO
     media (type, url)
@@ -482,14 +507,13 @@ VALUES
     ('image', 'media/img/defaultImage.webp');
 
 /*
-INSERT INTO
-    user_media (user_id, media_id)
-VALUES
-    (1, 1),
-    (2, 1),
-    (3, 1);
-*/
-
+ INSERT INTO
+ user_media (user_id, media_id)
+ VALUES
+ (1, 1),
+ (2, 1),
+ (3, 1);
+ */
 INSERT INTO
     service_media (service_id, media_id)
 VALUES
@@ -522,11 +546,9 @@ VALUES
  UPDATE app_user SET AUTO_INCREMENT = maxId;
  END; //
  */
-
 -- TRIGGERS
 -- Cancellation date on booking
-DELIMITER // 
-CREATE TRIGGER before_booking_insert BEFORE
+DELIMITER / / CREATE TRIGGER before_booking_insert BEFORE
 INSERT
     ON booking FOR EACH ROW BEGIN
 SET
@@ -540,4 +562,4 @@ END IF;
 
 END;
 
-//
+/ /
