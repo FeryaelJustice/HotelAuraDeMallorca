@@ -533,6 +533,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             </Form.Group>
 
                             <div>
+                                <p><strong>{t("modal_user_login_email_label")}</strong>: {currentUser.email}</p>
                                 <p><strong>DNI:</strong> {currentUser.dni}</p>
                             </div>
 
