@@ -1507,7 +1507,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
                 {(currentStep !== BookingSteps.StepPersonalData && currentStep !== BookingSteps.StepConfirmation) && (
                     // Show the current price to pay in all steps
-                    <p>Price to pay: {totalPriceToPay}</p>
+                    <p>{t("priceToPay")} {totalPriceToPay}</p>
                 )}
             </div>
         </BaseModal >

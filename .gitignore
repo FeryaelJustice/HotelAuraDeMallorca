@@ -6,9 +6,6 @@ backend/node_modules/
 backend/.env
 backend/package-lock.json
 
-cms/gestor-de-traducciones-cms/package-lock.json
-cms/gestor-de-traducciones-cms/composer.lock
-
 # Logs
 logs
 *.log
@@ -34,9 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Stripe
-stripe.exe
-
 # CMS
-./cms/gestor-de-traducciones-cms/package-lock.json
-./cms/gestor-de-traducciones-cms/composer.lock
+cms/gestor-de-traducciones-cms/package-lock.json
+cms/gestor-de-traducciones-cms/composer.lock
