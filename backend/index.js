@@ -450,10 +450,11 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
 
 expressRouter.delete('/user', verifyUser, (req, res) => {
     const userID = req.id;
-    deleteUserByUserID(userID, req.dbConnectionPool)
+    deleteBookingByUserID(userID, req.dbConnectionPool)
         .then(() => deletePaymentByUserID(userID, req.dbConnectionPool))
         .then(() => deleteUserRoleByUserID(userID, req.dbConnectionPool))
         .then(() => deleteUserMediaByUserID(userID, req.dbConnectionPool))
+        .then(() => deleteUserByUserID(userID, req.dbConnectionPool))
         .then(() => {
             req.dbConnectionPool.release();
             return res.status(200).send({ status: "success", message: `User ${userID} deleted` });

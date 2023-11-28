@@ -48,8 +48,8 @@ CREATE TABLE user_role (
     role_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES role(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL,
     CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
 
@@ -99,9 +99,9 @@ CREATE TABLE booking (
     is_cancelled BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
-    FOREIGN KEY (plan_id) REFERENCES plan(id),
-    FOREIGN KEY (room_id) REFERENCES room(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE SET NULL,
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE SET NULL,
     CONSTRAINT valid_dates CHECK (booking_start_date <= booking_end_date),
     CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
 );
@@ -113,8 +113,8 @@ CREATE TABLE booking_service (
     service_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (service_id) REFERENCES service(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE SET NULL,
+    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE SET NULL
 );
 
 -- Create the table booking_guests
@@ -124,8 +124,8 @@ CREATE TABLE booking_guest (
     guest_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (guest_id) REFERENCES guest(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE SET NULL,
+    FOREIGN KEY (guest_id) REFERENCES guest(id) ON DELETE SET NULL
 );
 
 -- Create the table promotions
@@ -144,8 +144,8 @@ CREATE TABLE booking_promotion (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
     promotion_id INT,
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (promotion_id) REFERENCES promotion(id)
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE SET NULL,
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
 );
 
 -- Create the table user_booking_count
@@ -154,7 +154,7 @@ CREATE TABLE user_booking_count (
     user_id INT,
     booking_count INT DEFAULT 0,
     UNIQUE KEY (user_id),
-    FOREIGN KEY (user_id) REFERENCES app_user(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL
 );
 
 -- Create the table user_promotion (link user to promotions to check validity only for that user)
@@ -163,8 +163,8 @@ CREATE TABLE user_promotion (
     user_id INT,
     promotion_id INT,
     isUsed BOOLEAN DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (promotion_id) REFERENCES promotion(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
 );
 
 -- Create the table weather
@@ -194,9 +194,9 @@ CREATE TABLE payment (
     payment_method_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
-    FOREIGN KEY (booking_id) REFERENCES booking(id),
-    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE SET NULL,
+    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id) ON DELETE SET NULL
 );
 
 -- Create the table payment_transaction (link payments to real transactions from payment platforms)
@@ -221,7 +221,7 @@ CREATE TABLE user_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE NO ACTION,
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
@@ -231,7 +231,7 @@ CREATE TABLE service_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (service_id) REFERENCES service(id),
+    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE NO ACTION,
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
@@ -241,7 +241,7 @@ CREATE TABLE room_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (room_id) REFERENCES room(id),
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE NO ACTION,
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
@@ -251,7 +251,7 @@ CREATE TABLE plan_media (
     media_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (plan_id) REFERENCES plan(id),
+    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE NO ACTION,
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
