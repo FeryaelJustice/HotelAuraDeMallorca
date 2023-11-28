@@ -28,7 +28,6 @@ const multerStorageForUserPic = multer.diskStorage({
         return cb(null, path)
     },
     filename: function (req, file, cb) {
-        // console.log(req.dni)
         if (req && req.dni) {
             return cb(null, req.dni + '.webp')
         } else {
@@ -700,7 +699,6 @@ async function sendConfirmationEmail(connection, userId) {
                 html: `<html><body>Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a></body></html>`, // HTML body
             });
 
-            console.log(info)
             console.log("Message sent: %s", info.messageId);
 
             resolve({ status: 'success', msg: 'Email confirmation sent!' });
@@ -1365,7 +1363,6 @@ expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
                 return res.status(500).send({ status: "error", error: "Internal server error" });
             }
             req.dbConnectionPool.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
-                console.log(err)
                 if (err) {
                     req.dbConnectionPool.rollback();
                     return res.status(500).send({ status: "error", error: "Internal server error" });

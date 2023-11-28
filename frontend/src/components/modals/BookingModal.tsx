@@ -130,6 +130,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>(""); // the promo code that user puts on payment and will apply
+    const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1); // the selected promo id retrieved with the promo code
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -526,6 +527,14 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
                 break;
             case BookingSteps.StepPromoCode:
+                // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
+                const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
+                const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
+                const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
+
+                setTotalPriceToPay(updatedPrice)
+                setUserSelectedPromoID(promoID)
+
                 setCurrentStep(BookingSteps.StepPaymentMethod);
                 break;
             case BookingSteps.StepPaymentMethod:
@@ -557,9 +566,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             case BookingSteps.StepChooseRoom:
                 // Restore price backup of the previous step (we discount what we have on that step)
                 if (checkedPlan == 2) {
-                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepPlan] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay)
+                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepPlan] || 0) + (pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0)
                 } else {
-                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPlan] || totalPriceToPay
+                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPlan] || 0
                 }
                 priceResult = totalPriceToPay - priceToDiscount;
 
@@ -590,7 +599,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 break;
             case BookingSteps.StepChooseServices:
                 // Restore price backup of the previous step (we discount what we have on that step)
-                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay;
+                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseRoom] || 0;
                 priceResult = totalPriceToPay - priceToDiscount;
 
                 if (priceResult >= 0) {
@@ -611,9 +620,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             case BookingSteps.StepFillGuests:
                 // Restore price backup of the previous step (we discount what we have on that step)
                 if (checkedPlan == 2) {
-                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || totalPriceToPay) + (pricesToPayBackup?.[BookingSteps.StepPlan] || totalPriceToPay)
+                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || 0) + (pricesToPayBackup?.[BookingSteps.StepPlan] || 0)
                 } else {
-                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseServices] || totalPriceToPay
+                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0
                 }
                 priceResult = totalPriceToPay - priceToDiscount;
 
@@ -647,6 +656,13 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepPaymentMethod:
+                // Para volver a promo codes, restauramos lo descontado
+                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPromoCode] || 0;
+                priceResult = totalPriceToPay + priceToDiscount; // in this case, we sum because the promo was a discount, not an addition to the price
+
+                if (priceResult >= 0) {
+                    setTotalPriceToPay(priceResult);
+                }
                 setCurrentStep(BookingSteps.StepPromoCode);
                 break;
             case BookingSteps.StepConfirmation:
@@ -671,16 +687,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     }
 
                     // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
-                    const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
-                    const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
-                    const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
+                    // const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
+                    // const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
+                    // const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
 
                     // Process payment
                     const clientSecret = await doPayment(paymentData);
 
                     if (clientSecret && clientSecret !== undefined && clientSecret !== null && clientSecret !== '') {
                         // Make the booking
-                        await doBooking(userID, clientSecret, updatedPrice, promoID);
+                        await doBooking(userID, clientSecret, totalPriceToPay, userSelectedPromoID);
+                        // await doBooking(userID, clientSecret, updatedPrice, promoID);
                     } else {
                         alert('Error on payment, try again');
                     }
@@ -1117,6 +1134,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
                         // Apply the discount to the total price
                         const discount = await getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1);
+
+                        setPricesToPayBackup({
+                            ...pricesToPayBackup!,
+                            [BookingSteps.StepPromoCode]: (totalPriceToPay * discount) / 100,
+                        });
+
                         updatedTotalPrice -= (totalPriceToPay * discount) / 100;
                         updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
                         // Set the applied promo ID
