@@ -814,7 +814,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 // Insert promo applied with booking if its the case
                 if (promoID != -1) {
                     // Promo was found
-                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId }, { headers: { 'Authorization': cookies.token } });
+                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId });
                 }
 
                 // Make the API call for payment
