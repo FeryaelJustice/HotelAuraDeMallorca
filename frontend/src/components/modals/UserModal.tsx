@@ -81,7 +81,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 serverAPI.post('/userPresentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
                     console.log('Successfully updated user bookings count: ' + res.data)
                 })
-            }).catch(err => console.error(err))
+            }).catch(err => console.log(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
@@ -113,7 +113,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 // Remove cookies
                 logout();
             }
-        }).catch(err => console.error(err))
+        }).catch(err => console.log(err))
     }
 
     // Get JWT user data
@@ -125,7 +125,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
-                console.error(err)
+                console.log(err)
             });
             if (getLoggedUserData) {
                 const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } })
@@ -165,7 +165,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     }
                 }
             }).catch(err => {
-                console.error(err)
+                console.log(err)
                 if (err.response.data && err.response.data.msg) {
                     alert(err.response.data.msg)
                 }
@@ -252,13 +252,13 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 onClose();
                             })
                             .catch(error => {
-                                console.error('Error sending confirmation email', error);
+                                console.log('Error sending confirmation email', error);
                                 if (error.response.data) {
                                     alert(error.response.data.msg)
                                 }
                             });
                     }).catch(err => {
-                        console.error(err)
+                        console.log(err)
                         if (err.response.data && err.response.data.message) {
                             alert(err.response.data.message)
                         }
@@ -275,7 +275,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 resetUserModal();
                 onClose();
             }).catch(err => {
-                console.error(err)
+                console.log(err)
                 if (err.response.data && err.response.data.message) {
                     alert(err.response.data.message)
                 }
@@ -338,7 +338,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 resetUserModal();
                 onClose();
             }).catch(err => {
-                console.error(err)
+                console.log(err)
                 if (err.response.data && err.response.data.msg) {
                     alert(err.response.data.msg)
                 }

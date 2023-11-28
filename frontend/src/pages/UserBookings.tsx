@@ -96,7 +96,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
             alert(res.data.msg)
             // removeBooking();
         }).catch(error => {
-            console.error(error)
+            console.log(error)
             if (error && error.response && error.response.data) {
                 if (error.response.data.message) {
                     alert(error.response.data.message)

@@ -57,7 +57,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                     let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
                     setUserPhotoURL(picURL);
                 }
-            }).catch((err: any) => console.error(err))
+            }).catch((err: any) => console.log(err))
         }
     }, [cookies])
 

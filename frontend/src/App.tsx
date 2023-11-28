@@ -135,7 +135,7 @@ function App() {
     if (loggedUserID) {
       const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
         removeCookie('token')
-        console.error(err)
+        console.log(err)
       });
       if (getLoggedUserData) {
         const userRole = await serverAPI.get('/getUserRole/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } })

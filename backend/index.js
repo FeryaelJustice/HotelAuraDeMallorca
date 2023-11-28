@@ -1526,11 +1526,11 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
 
             // Check if the booking count is 5 (logic of generate promotion for user)
             if (bookingCount === 5) {
-                req.dbConnectionPool.query('SELECT COUNT(*) as count FROM user_promotion WHERE user_id = ?', [userID], (error, results) => {
+                req.dbConnectionPool.query('SELECT COUNT(*) as count FROM user_promotion WHERE user_id = ? AND isUsed = 0', [userID], (error, results) => {
                     if (error) {
                         return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
                     }
-                    if (results && results.length > 0) {
+                    if (results && results[0].count > 0) {
                         return res.status(401).json({ status: "error", msg: 'User already has a unique promo code associated' });
                     } else {
                         // Generate a new promotion
@@ -1546,36 +1546,45 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
                         req.dbConnectionPool.query(
                             'INSERT INTO promotion (code, discount_price, name, description, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
                             [promoCode, discountPrice, promoName, promoDescription, startDate, endDate],
-                            async (error, result) => {
+                            (error, result) => {
                                 if (error) {
                                     return res.status(500).json({ status: "Internal Server Error" })
                                 }
                                 const promotionId = result.insertId;
 
                                 // Link the generated promo to the user in the user_promotion table
-                                await req.dbConnectionPool.query(
+                                req.dbConnectionPool.query(
                                     'INSERT INTO user_promotion (user_id, promotion_id) VALUES (?, ?)',
-                                    [userID, promotionId]
+                                    [userID, promotionId],
+                                    (error) => {
+                                        if (error) {
+                                            return res.status(500).json({ status: "Internal Server Error: " + error })
+                                        }
+                                        return res.status(200).json({
+                                            status: 'success',
+                                            msg: 'Booking count updated successfully',
+                                            promotion: {
+                                                promoCode,
+                                                discountPrice,
+                                                promoName,
+                                                promoDescription,
+                                                startDate,
+                                                endDate,
+                                                promotionId
+                                            }
+                                        });
+                                    }
                                 );
 
-                                return res.status(200).json({
-                                    status: 'success',
-                                    msg: 'Booking count updated successfully',
-                                    promotion: {
-                                        promoCode,
-                                        discountPrice,
-                                        promoName,
-                                        promoDescription,
-                                        startDate,
-                                        endDate,
-                                        promotionId
-                                    }
-                                });
                             }
                         );
-                        return res.status(401).json({ status: "error", msg: 'User already has a unique promo code associated' });
                     }
                 })
+            } else {
+                return res.status(200).json({
+                    status: 'success',
+                    msg: 'Booking count updated successfully'
+                });
             }
         })
 
@@ -2156,7 +2165,7 @@ expressRouter.get('/get-promo-discount/:id', (req, res) => {
         return res.status(200).send({ status: "success", data: { discount: results[0].discount_price } });
     })
 })
-expressRouter.post('/saveBookingWithPromoApplied', (req, res) => {
+expressRouter.post('/saveBookingWithPromoApplied', verifyUser, (req, res) => {
     let promoID = req.body.promoID;
     let bookingID = req.body.bookingID;
     req.dbConnectionPool.query('INSERT INTO booking_promotion (booking_id, promotion_id) VALUES (?, ?)', [bookingID, promoID], (err, result) => {
@@ -2166,18 +2175,23 @@ expressRouter.post('/saveBookingWithPromoApplied', (req, res) => {
         return res.status(200).send({ status: "success", data: { insertedID: result.insertId } });
     })
 })
-expressRouter.post('/is-an-user-associated-promo', (req, res) => {
+expressRouter.post('/getUserAssociatedPromos', (req, res) => {
     let userID = req.body.userID;
-    let promoID = req.body.promoID;
-    req.dbConnectionPool.query('SELECT * FROM user_promotion WHERE user_id = ? AND promotion_id = ?', [userID, promoID], (err, results) => {
+    req.dbConnectionPool.query('SELECT * FROM user_promotion WHERE user_id = ?', [userID], (err, results) => {
         if (err) {
             return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
-        if (results && results.length > 0) {
-            return res.status(200).send(true);
-        } else {
-            return res.status(200).send(false);
+        return res.status(200).send({ status: "success", results });
+    })
+})
+expressRouter.post('/setUserPromoUsed', verifyUser, (req, res) => {
+    let promoID = req.body.promoID;
+    let userID = req.body.userID;
+    req.dbConnectionPool.query('UPDATE user_promotion SET isUsed = 1 WHERE user_id = ? AND promotion_id = ?', [userID, promoID], (err) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
+        return res.status(200).send({ status: "success" });
     })
 })
 

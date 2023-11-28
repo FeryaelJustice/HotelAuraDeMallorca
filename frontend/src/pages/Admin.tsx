@@ -56,7 +56,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
             setBookings(bookingsRes)
 
             getFieldsData();
-        }).catch(err => console.error(err))
+        }).catch(err => console.log(err))
     }, [])
 
     function clearData() {
@@ -126,7 +126,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
         }
         serverAPI.put('/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
-        }).catch(err => console.error(err))
+        }).catch(err => console.log(err))
     }
 
     const deleteBooking = () => {
@@ -134,7 +134,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
             alert(res.data.msg)
             clearData()
             navigate("/")
-        }).catch(err => console.error(err))
+        }).catch(err => console.log(err))
     }
 
     return (

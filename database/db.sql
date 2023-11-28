@@ -161,7 +161,7 @@ CREATE TABLE user_promotion (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
     promotion_id INT,
-    UNIQUE KEY (user_id),
+    isUsed BOOLEAN DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES app_user(id),
     FOREIGN KEY (promotion_id) REFERENCES promotion(id)
 );

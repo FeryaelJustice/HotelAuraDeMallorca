@@ -131,6 +131,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>(""); // the promo code that user puts on payment and will apply
     const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1); // the selected promo id retrieved with the promo code
+    const [userSelectedPromoIsAssociatedWithUser, setUserSelectedPromoIsAssociatedWithUser] = useState<boolean>(false);
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -141,7 +142,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
-                console.error(err)
+                console.log(err)
             });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
@@ -183,9 +184,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         password: res.user_password,
                         verified: res.user_verified,
                     }))
-                }).catch(err => console.error(err));
+                }).catch(err => console.log(err));
             } catch (err) {
-                console.error(err);
+                console.log(err);
             }
         } else {
             setUserAllData(new User())
@@ -209,7 +210,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             // Update the state with the object
             setSelectedServicesIDs(selectedServicesObject);
         }).catch
-            (err => console.error(err))
+            (err => console.log(err))
 
         // Rooms
         serverAPI.get('/rooms').then(res => {
@@ -220,7 +221,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             })
             setRooms(retrievedRooms)
         }).catch
-            (err => console.error(err))
+            (err => console.log(err))
 
         // Plans
         serverAPI.get('/plans').then(res => {
@@ -240,7 +241,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 },
             })
         }).catch
-            (err => console.error(err))
+            (err => console.log(err))
 
         // Payment methods
         serverAPI.get('/paymentmethods').then(res => {
@@ -251,7 +252,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             })
             setPaymentMethods(retrievedPaymentMethods)
         }).catch
-            (err => console.error(err))
+            (err => console.log(err))
 
         // Weather information (5 days)
         const params = {
@@ -278,7 +279,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
             })
             setPromotions(retrievedPromos);
-        }).catch(err => console.error(err))
+        }).catch(err => console.log(err))
     }, [cookies])
 
     async function postWeatherDataToDB(weatherData: any) {
@@ -287,7 +288,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 list: weatherData,
             });
         } catch (error) {
-            console.error('Error inserting weather data:', error);
+            console.log('Error inserting weather data:', error);
         }
     }
 
@@ -440,7 +441,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                         [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
                                                         [BookingSteps.StepChooseServices]: totalServicesPrice,
                                                     });
-                                                }).catch(err => console.error(err))
+                                                }).catch(err => console.log(err))
 
                                                 setCurrentStep(BookingSteps.StepFillGuests);
                                             } else {
@@ -452,7 +453,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                         ...pricesToPayBackup!,
                                                         [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
                                                     });
-                                                }).catch(err => console.error(err))
+                                                }).catch(err => console.log(err))
 
                                                 setCurrentStep(BookingSteps.StepChooseServices);
                                             }
@@ -708,7 +709,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 alert("No rooms available on those dates");
             }
         } catch (error: any) {
-            console.error('Error during the booking process:', error);
+            console.log('Error during the booking process:', error);
             if (error && error.response && error.response.data) {
                 if (error.response.data.message) {
                     alert(error.response.data.message)
@@ -728,7 +729,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const response = await serverAPI.post('/purchase', { data: paymentData });
             return response.data.client_secret;
         } catch (error) {
-            console.error('Error processing payment:', error);
+            console.log('Error processing payment:', error);
             throw error;
         }
     }
@@ -770,7 +771,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 return null;
             }
         } catch (error) {
-            console.error('Error creating user:', error);
+            console.log('Error creating user:', error);
             return null;
         }
     }
@@ -780,7 +781,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`, { headers: { 'Authorization': cookieJWT } });
             console.log('Confirmation email sent successfully', response);
         } catch (error) {
-            console.error('Error sending confirmation email:', error);
+            console.log('Error sending confirmation email:', error);
             setBookingFinalMessage(prev => prev + "Error sending confirmation email / ");
         }
     }
@@ -811,7 +812,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 // Insert promo applied with booking if its the case
                 if (promoID != -1) {
                     // Promo was found
-                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId });
+                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId }, { headers: { 'Authorization': cookies.token } });
                 }
 
                 // Make the API call for payment
@@ -835,6 +836,12 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
                     if (paymentTransResponse) {
                         // If everything went well, proceed to the next screen and empty data on the next screen
+
+                        if (userSelectedPromoIsAssociatedWithUser) {
+                            // Set promo associated with user to be used
+                            await serverAPI.post('/setUserPromoUsed', { promoID: userSelectedPromoID, userID: userAllData?.id }, { headers: { 'Authorization': cookies.token } });
+                        }
+
                         if (!cookies.token) {
                             // If there are no cookies, it means that the user from the first screen has registered
                             setBookingFinalMessage(prevMsg => prevMsg + 'Your user has been registered, and a confirmation email has been sent / ');
@@ -844,7 +851,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
             }
         } catch (error) {
-            console.error('Error making the booking:', error);
+            console.log('Error making the booking:', error);
             throw error;
         }
     }
@@ -1059,7 +1066,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     const newUserAsGuest = new Guest({ id: user.id, name: user.user_name, surnames: user.user_surnames, email: user.user_email, isAdult: isUserGuestAdult, isSystemUser: true })
                     setGuests([newUserAsGuest, ...guests]);
                     setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
-                }).catch(err => console.error(err));
+                }).catch(err => console.log(err));
             } else {
                 const newUserAsGuest = new Guest({ id: null, name: userPersonalData.name, surnames: userPersonalData.surnames, email: userPersonalData.email, isAdult: isUserGuestAdult, isSystemUser: true })
                 setGuests([newUserAsGuest, ...guests]);
@@ -1101,66 +1108,134 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const response = await serverAPI.get(`/get-promo-discount/${promoId}`);
             return response.data.data.discount;
         } catch (error) {
-            console.error('Error getting promo discount:', error);
+            console.log('Error getting promo discount:', error);
             return 0;
         }
     }
-    function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
+    async function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
         // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value (default totalPriceToPay or -1 in appliedPromoId)
 
         let updatedTotalPrice = totalPriceToPay;
         let appliedPromoId: number = -1;
+        let selectedPromoIsAssociatedWithUser = false;
 
         if (userSelectedPromoCode != "") {
             // Find the promotion with the selected promo code
             const selectedPromo = promotions.find(promo => promo.code === userSelectedPromoCode);
 
             if (selectedPromo) {
-                serverAPI.post('/is-an-user-associated-promo', { userID: userAllData?.id, promoID: selectedPromo?.id }).then(res => {
-                    const isAnUserAssociatedPromo = res.data;
-                    // Check if the promo is active for the current day
+                try {
+                    // Make parallel requests to getUserAssociatedPromos and getPromoDiscount
+                    const [userPromosResponse, discount] = await Promise.all([
+                        serverAPI.post('/getUserAssociatedPromos', { userID: userAllData?.id }),
+                        getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1),
+                    ]);
+
+                    const promoDiscountOfTotalPrice = (totalPriceToPay * discount) / 100
+                    const userAssociatedPromos: Promotion[] = userPromosResponse.data.results;
+
+                    // With userSelectedPromoIsAssociatedWithUser we control if we apply the promotion of user of one time and set it to used, or use a normal promotion code with dates
+
                     const currentDate = new Date();
                     const promoStartDate = selectedPromo.start_date ? new Date(selectedPromo.start_date) : null;
                     const promoEndDate = selectedPromo.end_date ? new Date(selectedPromo.end_date) : null;
 
-                    // Ensure promoStartDate and promoEndDate are defined before further processing
-                    if (promoStartDate && promoEndDate) {
-                        // Convert dates to "YYYY-MM-DD" format
-                        const currentDateString = currentDate.toISOString().slice(0, 10);
-                        const promoStartDateString = promoStartDate?.toISOString().slice(0, 10);
-                        const promoEndDateString = promoEndDate?.toISOString().slice(0, 10);
+                    // We check user associated promos
+                    userAssociatedPromos.forEach(async (userPromo: any) => {
+                        // Retrieved user associated promo and selected global promo from all retrieved promos are matching
+                        if ((userPromo.promotion_id === selectedPromo.id) && !userSelectedPromoIsAssociatedWithUser) {
+                            // User has this promotion
+                            // We check it's not used
+                            if (!userPromo.isUsed) {
+                                selectedPromoIsAssociatedWithUser = true;
+                                setUserSelectedPromoIsAssociatedWithUser(selectedPromoIsAssociatedWithUser)
+                                // Ensure promoStartDate and promoEndDate are defined before further processing
+                                if (promoStartDate && promoEndDate) {
+                                    // Convert dates to "YYYY-MM-DD" format from db
+                                    const currentDateString = currentDate.toISOString().slice(0, 10);
+                                    const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
+                                    const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
 
-                        // Check if promo is in dates or the promo is for the user
-                        if ((promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) || isAnUserAssociatedPromo) {
-                            // Apply the discount to the total price
-                            getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1).then(discount => {
+                                    // Check if promo is in dates or the promo is for the user
+                                    if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
+                                        // Backup the discount
+                                        setPricesToPayBackup({
+                                            ...pricesToPayBackup!,
+                                            [BookingSteps.StepPromoCode]: promoDiscountOfTotalPrice,
+                                        });
+
+                                        // Apply the discount to the total price
+                                        updatedTotalPrice -= promoDiscountOfTotalPrice;
+                                        updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
+                                        // Set the applied promo ID
+                                        appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
+
+                                        // Set promo associated with user to be used
+                                        // await serverAPI.post('/setUserPromoUsed', { promoID: appliedPromoId, userID: userAllData?.id }, { headers: { 'Authorization': cookies.token } });
+                                    }
+                                } else {
+                                    // If dates not properly defined, we don't do anything
+                                    setPricesToPayBackup({
+                                        ...pricesToPayBackup!,
+                                        [BookingSteps.StepPromoCode]: 0,
+                                    });
+                                }
+                            } else {
+                                // If used, we don't do anything
                                 setPricesToPayBackup({
                                     ...pricesToPayBackup!,
-                                    [BookingSteps.StepPromoCode]: (totalPriceToPay * discount) / 100,
+                                    [BookingSteps.StepPromoCode]: 0,
+                                });
+                            }
+                        }
+                    });
+
+                    // If we didn't find user associated promos matching this selected promo
+                    if (!selectedPromoIsAssociatedWithUser) {
+                        // User hasn't this promotion
+
+                        // Ensure promoStartDate and promoEndDate are defined before further processing
+                        if (promoStartDate && promoEndDate) {
+                            // Convert dates to "YYYY-MM-DD" format
+                            const currentDateString = currentDate.toISOString().slice(0, 10);
+                            const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
+                            const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
+
+                            // Check if promo is in dates or the promo is for the user
+                            if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
+                                // Backup the discount
+                                setPricesToPayBackup({
+                                    ...pricesToPayBackup!,
+                                    [BookingSteps.StepPromoCode]: promoDiscountOfTotalPrice,
                                 });
 
-                                updatedTotalPrice -= (totalPriceToPay * discount) / 100;
+                                // Apply the discount to the total price
+                                updatedTotalPrice -= promoDiscountOfTotalPrice;
                                 updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
                                 // Set the applied promo ID
                                 appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
-                            }).catch(err => {
-                                console.log(err);
-                            })
+                            }
+                        } else {
+                            // If dates not properly defined, we don't do anything
+                            setPricesToPayBackup({
+                                ...pricesToPayBackup!,
+                                [BookingSteps.StepPromoCode]: 0,
+                            });
                         }
-                    } else {
-                        setPricesToPayBackup({
-                            ...pricesToPayBackup!,
-                            [BookingSteps.StepPromoCode]: 0,
-                        });
                     }
-                }).catch(err => {
-                    console.log(err);
-                })
+
+                } catch (error) {
+                    setPricesToPayBackup({
+                        ...pricesToPayBackup!,
+                        [BookingSteps.StepPromoCode]: 0,
+                    });
+                    console.log(error);
+                }
             }
         }
+
         return { updatedTotalPrice, appliedPromoId };
     }
-
 
     // RESET
     const resetBookingModal = () => {

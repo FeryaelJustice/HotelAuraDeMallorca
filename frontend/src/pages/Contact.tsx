@@ -30,7 +30,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
         if (cookies.token) {
             getAllLoggedUserData().then((data) => {
                 setEmail(data.data.user_email)
-            }).catch((error) => { console.error(error); });
+            }).catch((error) => { console.log(error); });
         }
     }, []);
 
@@ -46,7 +46,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             alert(response.data.msg)
             emptyForm();
         }).catch(error => {
-            console.error(error)
+            console.log(error)
             if (error.response.data && error.response.data.msg) {
                 alert(error.response.data.msg)
             }
@@ -70,7 +70,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token')
-                console.error(err)
+                console.log(err)
             });
             if (getLoggedUserData) {
                 return getLoggedUserData.data;
