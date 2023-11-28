@@ -1277,14 +1277,22 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
         endDateAsDate.setDate(endDateAsDate.getDate() + 1)
         const startDate = startDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
         const endDate = endDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
-        const sql = 'SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date FROM room r INNER JOIN booking b ON r.id = b.room_id AND (b.booking_end_date <= ? AND b.booking_start_date >= ?) WHERE b.is_cancelled = 0';
+        const sql = `SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date 
+                    FROM room r
+                    INNER JOIN booking b ON r.id = b.room_id
+                    WHERE b.is_cancelled = 0
+                    AND (
+                        (b.booking_start_date BETWEEN ? AND ?) OR
+                        (b.booking_end_date BETWEEN ? AND ?)
+                    )
+                    `;
 
-        req.dbConnectionPool.query(sql, [endDate, startDate], (err, results) => {
+        req.dbConnectionPool.query(sql, [startDate, endDate, startDate, endDate], (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
-
+            console.log(results)
             if (results && results.length > 0) {
                 // Esto significa que está ocupada, sino estará a null
                 if (results[0].booking_start_date) {
@@ -1319,11 +1327,16 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                             msg: "No rooms available, they're occupied."
                         });
                     } else {
+                        // return res.status(200).json({
+                        //     status: "success",
+                        //     msg: "OK, rooms occupied but with available dates.",
+                        //     isAvailable: false,
+                        //     available: availableDates
+                        // });
                         return res.status(200).json({
                             status: "success",
-                            msg: "OK, rooms occupied but with available dates.",
                             isAvailable: false,
-                            available: availableDates
+                            msg: "No rooms available for these dates, they're occupied."
                         });
                     }
                 } else {

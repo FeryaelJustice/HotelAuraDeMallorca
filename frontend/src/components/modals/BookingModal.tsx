@@ -825,7 +825,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             newErrors.emailError = 'Please enter a valid email'
         }
         if (!validateDNI(dni)) {
-            newErrors.dniError = 'Please enter a valid email'
+            newErrors.dniError = 'Please enter a valid dni/id'
         }
 
         return newErrors;
@@ -1114,6 +1114,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                 </Form.Text>
                                 <Form.Control.Feedback type='invalid'>
                                     {userPersonalDataErrors.emailError}
+                                </Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3" controlId="formDNI">
+                                <Form.Label>{t("modal_booking_personaldata_dni_label")}</Form.Label>
+                                <Form.Control type="text" name="dni" minLength={9} maxLength={9} pattern="[0-9]{8}[A-Za-z]{1}" placeholder={t("modal_booking_personaldata_dni_placeholder")} value={userPersonalData.dni} onChange={handlePersonalDataChange} isInvalid={!!userPersonalDataErrors.dniError} required />
+                                <Form.Text className="text-muted">
+                                    {t("modal_booking_personaldata_dni_description")}
+                                </Form.Text>
+                                <Form.Control.Feedback type='invalid'>
+                                    {userPersonalDataErrors.dniError}
                                 </Form.Control.Feedback>
                             </Form.Group>
 

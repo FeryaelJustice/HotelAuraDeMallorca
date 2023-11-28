@@ -24,15 +24,15 @@ function validateDNI(dni) {
         return false;
     }
 
-    // Extract the numeric part of the DNI
-    const numericPart = dni.slice(0, 8);
+    // Extract the letter part of the DNI
+    const letterPart = dni.slice(8, 9);
 
-    // Calculate the letter corresponding to the numeric part
-    const letterIndex = parseInt(numericPart) % 23;
+    // const letterIndex = parseInt(numericPart) % 23;
     const validLetters = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    const isValid = validLetters.includes(letterPart.toUpperCase());
 
     // Check if the calculated letter matches the last letter of the DNI
-    return validLetters.charAt(letterIndex) === dni.charAt(8).toUpperCase();
+    return isValid;
 
 }
 
