@@ -147,6 +147,25 @@ CREATE TABLE booking_promotion (
     FOREIGN KEY (promotion_id) REFERENCES promotion(id)
 );
 
+-- Create the table user_booking_count
+CREATE TABLE user_booking_count (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id INT,
+    booking_count INT DEFAULT 0,
+    UNIQUE KEY (user_id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id)
+);
+
+-- Create the table user_promotion (link user to promotions to check validity only for that user)
+CREATE TABLE user_promotion (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id INT,
+    promotion_id INT,
+    UNIQUE KEY (user_id),
+    FOREIGN KEY (user_id) REFERENCES app_user(id),
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id)
+);
+
 -- Create the table weather
 CREATE TABLE weather (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,

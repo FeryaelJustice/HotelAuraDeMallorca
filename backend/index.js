@@ -1484,6 +1484,10 @@ expressRouter.post('/createBooking', async (req, res) => {
         // Create a booking
         const bookingId = await createBooking(booking, guestIds, servicesIDs, req.dbConnectionPool);
 
+        if (bookingId) {
+            await addBookingCountToUser(booking.userID, req.dbConnectionPool);
+        }
+
         return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
         return res.status(500).send({ status: "error", error: `Internal server error: ${error}` });
@@ -1491,6 +1495,36 @@ expressRouter.post('/createBooking', async (req, res) => {
         req.dbConnectionPool.release();
     }
 });
+
+// Counter of bookings of user
+async function addBookingCountToUser(userID, connectionPool) {
+    try {
+        const query = 'INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE booking_count = booking_count + 1';
+        const values = [userID];
+        await connectionPool.query(query, values);
+    } catch (error) {
+        throw error;
+    }
+}
+
+expressRouter.post('/updateUserBookingCount', verifyUser, async (req, res) => {
+    let userID = req.body.userID;
+    try {
+        // Get the count of bookings for the user
+        const results = await req.dbConnectionPool.query('SELECT COUNT(*) as bookingCount FROM booking WHERE user_id = ?', [userID]);
+        const bookingCount = results.values[0];
+
+        // Update the booking count in user_booking_count table
+        await req.dbConnectionPool.query(
+            'INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, ?) ON DUPLICATE KEY UPDATE booking_count = ?',
+            [userID, bookingCount, bookingCount]
+        );
+
+        res.status(200).json({ status: "success", msg: 'Booking count updated successfully' });
+    } catch (error) {
+        res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+    }
+})
 
 // Booking functions
 async function createOrSelectGuests(guests, connection) {
