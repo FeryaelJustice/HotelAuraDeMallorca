@@ -1507,24 +1507,90 @@ async function addBookingCountToUser(userID, connectionPool) {
     }
 }
 
-expressRouter.post('/updateUserBookingCount', verifyUser, async (req, res) => {
+// Updates user booking count, and if it is 5, present the user with a unique promo associated with him
+expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
     let userID = req.body.userID;
     try {
         // Get the count of bookings for the user
-        const results = await req.dbConnectionPool.query('SELECT COUNT(*) as bookingCount FROM booking WHERE user_id = ?', [userID]);
-        const bookingCount = results.values[0];
+        req.dbConnectionPool.query('SELECT COUNT(*) as count FROM booking WHERE user_id = ?', [userID], async (error, results) => {
+            if (error) {
+                return res.status(500).json({ status: "Internal Server Error" })
+            }
+            const bookingCount = results[0].count;
 
-        // Update the booking count in user_booking_count table
-        await req.dbConnectionPool.query(
-            'INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, ?) ON DUPLICATE KEY UPDATE booking_count = ?',
-            [userID, bookingCount, bookingCount]
-        );
+            // Update the booking count in user_booking_count table
+            await req.dbConnectionPool.query(
+                'INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, ?) ON DUPLICATE KEY UPDATE booking_count = ?',
+                [userID, bookingCount, bookingCount]
+            );
 
-        res.status(200).json({ status: "success", msg: 'Booking count updated successfully' });
+            // Check if the booking count is 5 (logic of generate promotion for user)
+            if (bookingCount === 5) {
+                req.dbConnectionPool.query('SELECT COUNT(*) as count FROM user_promotion WHERE user_id = ?', [userID], (error, results) => {
+                    if (error) {
+                        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+                    }
+                    if (results && results.length > 0) {
+                        return res.status(401).json({ status: "error", msg: 'User already has a unique promo code associated' });
+                    } else {
+                        // Generate a new promotion
+                        const promoCode = generateUniquePromoCode();
+                        const discountPrice = 50; // 50% discount
+                        const promoName = "Unique 50% discount promotion only for you!"
+                        const promoDescription = "This 50% discount is only for you and it's valid only from today to 7 days from now!"
+                        const startDate = new Date(); // Current date
+                        const endDate = new Date();
+                        endDate.setDate(endDate.getDate() + 7); // 7 days from today
+
+                        // Insert the new promotion into the promotion table
+                        req.dbConnectionPool.query(
+                            'INSERT INTO promotion (code, discount_price, name, description, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
+                            [promoCode, discountPrice, promoName, promoDescription, startDate, endDate],
+                            async (error, result) => {
+                                if (error) {
+                                    return res.status(500).json({ status: "Internal Server Error" })
+                                }
+                                const promotionId = result.insertId;
+
+                                // Link the generated promo to the user in the user_promotion table
+                                await req.dbConnectionPool.query(
+                                    'INSERT INTO user_promotion (user_id, promotion_id) VALUES (?, ?)',
+                                    [userID, promotionId]
+                                );
+
+                                return res.status(200).json({
+                                    status: 'success',
+                                    msg: 'Booking count updated successfully',
+                                    promotion: {
+                                        promoCode,
+                                        discountPrice,
+                                        promoName,
+                                        promoDescription,
+                                        startDate,
+                                        endDate,
+                                        promotionId
+                                    }
+                                });
+                            }
+                        );
+                        return res.status(401).json({ status: "error", msg: 'User already has a unique promo code associated' });
+                    }
+                })
+            }
+        })
+
     } catch (error) {
-        res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
     }
 })
+
+function generateUniquePromoCode() {
+    const prefix = 'PROMO';
+    const randomComponent = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const suffix = new Date().getTime().toString(36).toUpperCase();
+
+    return `${prefix}-${randomComponent}-${suffix}`;
+}
 
 // Booking functions
 async function createOrSelectGuests(guests, connection) {

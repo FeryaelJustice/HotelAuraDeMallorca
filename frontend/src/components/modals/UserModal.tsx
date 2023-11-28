@@ -78,7 +78,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
 
                 // Update user bookings count
-                serverAPI.post('/updateUserBookingCount', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
+                serverAPI.post('/userPresentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
                     console.log('Successfully updated user bookings count: ' + res.data)
                 })
             }).catch(err => console.error(err))
