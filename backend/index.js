@@ -1292,7 +1292,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                 console.error(err);
                 return res.status(500).json({ status: "error", msg: "Error on connecting db" });
             }
-            console.log(results)
+
             if (results && results.length > 0) {
                 // Esto significa que está ocupada, sino estará a null
                 if (results[0].booking_start_date) {
