@@ -686,11 +686,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         userID = await createUser();
                     }
 
-                    // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
-                    // const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
-                    // const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
-                    // const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
-
                     // Process payment
                     const clientSecret = await doPayment(paymentData);
 
@@ -1110,7 +1105,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             return 0;
         }
     }
-    async function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
+    function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
+        // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value (default totalPriceToPay or -1 in appliedPromoId)
+
         let updatedTotalPrice = totalPriceToPay;
         let appliedPromoId: number = -1;
 
@@ -1119,33 +1116,46 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             const selectedPromo = promotions.find(promo => promo.code === userSelectedPromoCode);
 
             if (selectedPromo) {
-                // Check if the promo is active for the current day
-                const currentDate = new Date();
-                const promoStartDate = selectedPromo.start_date ? new Date(selectedPromo.start_date) : null;
-                const promoEndDate = selectedPromo.end_date ? new Date(selectedPromo.end_date) : null;
+                serverAPI.post('/is-an-user-associated-promo', { userID: userAllData?.id, promoID: selectedPromo?.id }).then(res => {
+                    const isAnUserAssociatedPromo = res.data;
+                    // Check if the promo is active for the current day
+                    const currentDate = new Date();
+                    const promoStartDate = selectedPromo.start_date ? new Date(selectedPromo.start_date) : null;
+                    const promoEndDate = selectedPromo.end_date ? new Date(selectedPromo.end_date) : null;
 
-                // Ensure promoStartDate and promoEndDate are defined before further processing
-                if (promoStartDate && promoEndDate) {
-                    // Convert dates to "YYYY-MM-DD" format
-                    const currentDateString = currentDate.toISOString().slice(0, 10);
-                    const promoStartDateString = promoStartDate?.toISOString().slice(0, 10);
-                    const promoEndDateString = promoEndDate?.toISOString().slice(0, 10);
+                    // Ensure promoStartDate and promoEndDate are defined before further processing
+                    if (promoStartDate && promoEndDate) {
+                        // Convert dates to "YYYY-MM-DD" format
+                        const currentDateString = currentDate.toISOString().slice(0, 10);
+                        const promoStartDateString = promoStartDate?.toISOString().slice(0, 10);
+                        const promoEndDateString = promoEndDate?.toISOString().slice(0, 10);
 
-                    if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
-                        // Apply the discount to the total price
-                        const discount = await getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1);
+                        // Check if promo is in dates or the promo is for the user
+                        if ((promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) || isAnUserAssociatedPromo) {
+                            // Apply the discount to the total price
+                            getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1).then(discount => {
+                                setPricesToPayBackup({
+                                    ...pricesToPayBackup!,
+                                    [BookingSteps.StepPromoCode]: (totalPriceToPay * discount) / 100,
+                                });
 
+                                updatedTotalPrice -= (totalPriceToPay * discount) / 100;
+                                updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
+                                // Set the applied promo ID
+                                appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
+                            }).catch(err => {
+                                console.log(err);
+                            })
+                        }
+                    } else {
                         setPricesToPayBackup({
                             ...pricesToPayBackup!,
-                            [BookingSteps.StepPromoCode]: (totalPriceToPay * discount) / 100,
+                            [BookingSteps.StepPromoCode]: 0,
                         });
-
-                        updatedTotalPrice -= (totalPriceToPay * discount) / 100;
-                        updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
-                        // Set the applied promo ID
-                        appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
                     }
-                }
+                }).catch(err => {
+                    console.log(err);
+                })
             }
         }
         return { updatedTotalPrice, appliedPromoId };

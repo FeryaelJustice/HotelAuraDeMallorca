@@ -2131,7 +2131,7 @@ expressRouter.post('/insert-weather', async (req, res) => {
 expressRouter.get('/weather', (req, res) => {
     req.dbConnectionPool.query('SELECT * FROM weather', (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: results });
     })
@@ -2142,7 +2142,7 @@ expressRouter.get('/weather', (req, res) => {
 expressRouter.get('/promotions', (req, res) => {
     req.dbConnectionPool.query('SELECT * FROM promotion', (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: results });
     })
@@ -2151,7 +2151,7 @@ expressRouter.get('/get-promo-discount/:id', (req, res) => {
     let promoID = req.params.id;
     req.dbConnectionPool.query('SELECT discount_price FROM promotion WHERE id = ?', [promoID], (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: { discount: results[0].discount_price } });
     })
@@ -2161,9 +2161,23 @@ expressRouter.post('/saveBookingWithPromoApplied', (req, res) => {
     let bookingID = req.body.bookingID;
     req.dbConnectionPool.query('INSERT INTO booking_promotion (booking_id, promotion_id) VALUES (?, ?)', [bookingID, promoID], (err, result) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });;
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: { insertedID: result.insertId } });
+    })
+})
+expressRouter.post('/is-an-user-associated-promo', (req, res) => {
+    let userID = req.body.userID;
+    let promoID = req.body.promoID;
+    req.dbConnectionPool.query('SELECT * FROM user_promotion WHERE user_id = ? AND promotion_id = ?', [userID, promoID], (err, results) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        if (results && results.length > 0) {
+            return res.status(200).send(true);
+        } else {
+            return res.status(200).send(false);
+        }
     })
 })
 
