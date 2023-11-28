@@ -270,30 +270,35 @@ VALUES
         CURRENT_TIMESTAMP
     );
 
+-- isSystemUser: indica si el guest existe en el sistema como app_user
 INSERT INTO
     guest (
         guest_name,
         guest_surnames,
         guest_email,
-        isAdult
+        isAdult,
+        isSystemUser
     )
 VALUES
     (
         'John Doe',
         'Gonzalez Serr',
         'john@example.com',
+        1,
         1
     ),
     (
         'Jane Smith',
         'Gonzalez Serr',
         'jane@example.com',
-        0
+        0,
+        1
     ),
     (
         'Fer',
         'Gonzalez Serr',
         'fer@example.com',
+        1,
         1
     );
 
