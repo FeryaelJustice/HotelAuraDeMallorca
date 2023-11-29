@@ -31,6 +31,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# CMS
-cms/gestor-de-traducciones-cms/package-lock.json
-cms/gestor-de-traducciones-cms/composer.lock
+# Translator
+translator/package-lock.json
+translator/composer.lock
+translator/node_modules
+translator/vendor
+translator/.env
