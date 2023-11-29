@@ -10,6 +10,15 @@
                             this.sectionPage.name }}</b>'
                         </p>
 
+                        <label for="langFilter">Filter by: language -></label>
+                        <select id="langFilter" name="langFilter" v-model="langFilter">
+                            <option value="">Select a language</option>
+                            <option v-for="lang in langs" :key="lang.lang_code" :value="lang.lang_code">{{ lang.lang_name }}</option>
+                        </select>
+
+                        <br/>
+                        <br/>
+
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
                             <thead>
                                 <tr>
@@ -21,13 +30,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(item, index) in items" :key="item.id">
+                                <tr v-for="(item, index) in filteredItems" :key="item.id">
                                     <td>{{ item.id }}</td>
                                     <td>
-                                        <template v-if="!item.editMode">{{ item.code }}</template>
+                                        {{ item.code }}
+                                        <!-- <template v-if="!item.editMode">{{ item.code }}</template>
                                         <template v-else>
                                             <input type="text" v-model="item.code" placeholder="Código del literal" />
-                                        </template>
+                                        </template> -->
                                     </td>
                                     <td>
                                         <template v-if="!item.editMode">{{ item.content }}</template>
@@ -65,6 +75,19 @@ export default {
             sectionPage: {}, // data de la pagina a la que pertenece la seccion
             items: [], // items de la tabla (literales)
             originalData: [], // Added to store the original data for each row
+            langs: [], // Added to store the languages
+            langFilter: '', // Added to filter the languages
+        }
+    },
+    computed: {
+        filteredItems() {
+            // If no language filter is selected, return all items
+            if (!this.langFilter) {
+                return this.items;
+            }
+
+            // Filter items based on the selected language
+            return this.items.filter(item => item.lang_code === this.langFilter);
         }
     },
     methods: {
@@ -111,6 +134,11 @@ export default {
     },
 
     mounted() {
+        // Get langs
+        axios.get(API_URL + '/languages').then(response => {
+            this.langs = response.data.data;
+        }).catch(error => { console.log(error) })
+
         const sectionId = this.$route.params.id;
 
         // Get section data
