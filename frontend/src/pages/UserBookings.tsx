@@ -97,6 +97,7 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
         }
         serverAPI.put('/cancelBookingByUser', data, { headers: { 'Authorization': cookies.token } }).then(res => {
             alert(res.data.msg)
+            window.location.reload();
             // removeBooking();
         }).catch(error => {
             console.log(error)

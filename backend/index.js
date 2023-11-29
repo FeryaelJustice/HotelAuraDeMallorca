@@ -1453,6 +1453,32 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
     }
 })
 
+expressRouter.post('/duplicateBooking', verifyUser, (req, res) => {
+    const booking = req.body;
+    const startDateAsDate = new Date(booking.startDate)
+    startDateAsDate.setDate(startDateAsDate.getDate() + 1)
+    const endDateAsDate = new Date(booking.endDate)
+    endDateAsDate.setDate(endDateAsDate.getDate() + 1)
+    const startDate = startDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
+    const endDate = endDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
+
+    req.dbConnectionPool.beginTransaction((err) => {
+        if (err) {
+            req.dbConnectionPool.rollback();
+            return res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+        const sql = "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, is_cancelled = 0 WHERE id = ?";
+        req.dbConnectionPool.query(sql, [startDate, endDate, booking.id], (err) => {
+            if (err) {
+                req.dbConnectionPool.rollback();
+                return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+            }
+            req.dbConnectionPool.commit();
+            return res.status(200).send({ status: "200", msg: "Successfully updated!" });
+        })
+    })
+})
+
 expressRouter.post('/createBooking', async (req, res) => {
     try {
         const data = req.body;
@@ -1602,9 +1628,9 @@ expressRouter.post('/userPunishmentCheck', (req, res) => {
                                 await req.dbConnectionPool.rollback();
                                 return res.status(500).json({ status: "Internal Server Error" })
                             }
-                            
+
                             await req.dbConnectionPool.commit();
-                            
+
                             return res.status(200).json({
                                 status: 'success',
                                 msg: 'User punishment checked successfully and user was disabled',
