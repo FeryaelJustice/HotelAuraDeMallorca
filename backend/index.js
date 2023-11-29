@@ -258,7 +258,12 @@ expressRouter.post('/register', (req, res) => {
                             }
                         });
 
-                        return res.status(200).json({ status: "success", msg: "", cookieJWT: jwtToken, insertId: results.insertId });
+                        sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
+                            return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
+                        }).catch(jsonError => {
+                            return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
+                        })
+
                     });
                 })
             }
@@ -319,9 +324,9 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                 });
 
                                 sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                                    return res.status(200).json({ json, cookieJWT: jwtToken, insertId: userID });
+                                    return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
                                 }).catch(jsonError => {
-                                    return res.status(500).send(jsonError);
+                                    return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
                                 })
 
                             } else {

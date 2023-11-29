@@ -232,31 +232,21 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const handleRegisterSubmit = (event: React.ChangeEvent<HTMLFormElement>) => {
         event.preventDefault();
         event.stopPropagation();
+        let form = event.currentTarget;
 
-        if (!formWantsQRRegister) {
-            let form = event.currentTarget;
-            setRegisterValidated(form.checkValidity());
-            if ((registerValidated && captchaRegisterValid) || import.meta.env.MODE == 'development') {
-                if (userRegister.password === userRegister.repeatpassword) {
+        // Check if Email or DNI exists
+        serverAPI.post('/checkUserExists', { email: userRegister.email, dni: userRegister.dni }).then(_ => {
+            let formValidity = true;
+            let passwordsMatching = userRegister.password === userRegister.repeatpassword;
+            formValidity = ((form.checkValidity() && captchaRegisterValid) || import.meta.env.MODE == 'development') && (passwordsMatching)
+            setRegisterValidated(formValidity);
+            if (formValidity) {
+                if (!formWantsQRRegister) {
                     // api call
                     serverAPI.post('/register', userRegister).then(res => {
-                        // Esto redirigirá al edit profile por el listener, cuidado ya que esto no lo hacemos hasta que se verifique
-                        // setCookie('token', res.data.cookieJWT)
-
-                        // After successful registration, send a request to generate and send a confirmation email
-                        serverAPI.get(`/user/sendConfirmationEmail/${res.data.insertId}`, { headers: { 'Authorization': res.data.cookieJWT } })
-                            .then(response => {
-                                alert('An email has been sent to your mail to verify your account!')
-                                console.log('Confirmation email sent successfully', response);
-                                resetUserModal();
-                                onClose();
-                            })
-                            .catch(error => {
-                                console.log('Error sending confirmation email', error);
-                                if (error.response.data) {
-                                    alert(error.response.data.msg)
-                                }
-                            });
+                        alert(res.data.msg)
+                        resetUserModal();
+                        onClose();
                     }).catch(err => {
                         console.log(err)
                         if (err.response.data && err.response.data.message) {
@@ -264,23 +254,29 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         }
                     })
                 } else {
+                    serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
+                        alert(res.data.msg)
+                        resetUserModal();
+                        onClose();
+                    }).catch(err => {
+                        console.log(err)
+                        if (err.response.data && err.response.data.message) {
+                            alert(err.response.data.message)
+                        }
+                    })
+                }
+            } else {
+                if (!passwordsMatching) {
                     alert("Passwords don't match!")
-                    setRegisterValidated(false)
+                } else {
+                    alert("Form not valid!")
                 }
             }
-        } else {
-            serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
-                alert('An email has been sent to your mail to verify your account!')
-                console.log('Confirmation email sent successfully', res);
-                resetUserModal();
-                onClose();
-            }).catch(err => {
-                console.log(err)
-                if (err.response.data && err.response.data.message) {
-                    alert(err.response.data.message)
-                }
-            })
-        }
+        }).catch(error => {
+            if (error && error.response && error.response.data && error.response.data.message) {
+                alert(error.response.data.message)
+            }
+        })
     }
 
     const onRegisterCaptchaChange = async (token: string | null) => {
