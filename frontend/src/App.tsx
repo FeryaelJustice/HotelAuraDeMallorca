@@ -9,13 +9,14 @@ import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
 import ViewImageModal from './components/modals/ViewImageModal';
+import DuplicateBookingModal from './components/modals/DuplicateBookingModal';
 import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
 import CookieConsent from "react-cookie-consent";
 import { useCookies } from 'react-cookie';
 import serverAPI from './services/serverAPI';
 import { UserRoles } from "./constants";
-import { Role } from './models/index';
+import { Role, Booking } from './models/index';
 
 import summerParty from './assets/music/summer-party.mp3'
 import { API_URL } from './services/consts';
@@ -29,6 +30,9 @@ function App() {
   // Image preview modal
   const [isImageViewModalOpen, setIsImageViewModalOpen] = useState(false);
   const [imagePreviewData, setImagePreviewData] = useState({});
+  // Duplicate booking modal
+  const [isDuplicateBookingModalOpen, setIsDuplicateBookingModalOpen] = useState(false);
+  const [duplicateBookingData, setDuplicatedBookingData] = useState<Booking>(new Booking());
 
   // User has bookings
   const [userHasBookings, setUserHasBookings] = useState(false);
@@ -126,6 +130,17 @@ function App() {
     setIsImageViewModalOpen(false);
   }
 
+  // Duplicate booking modal
+  const openDuplicateBookingModal = (booking: Booking) => {
+    setIsDuplicateBookingModalOpen(true);
+    setDuplicatedBookingData(booking)
+  }
+
+  const closeDuplicateBookingModal = () => {
+    setIsDuplicateBookingModalOpen(false);
+  }
+
+
   // Get JWT user data to set user role for app (currently used in header only)
   async function getAllLoggedUserData() {
     const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
@@ -158,7 +173,7 @@ function App() {
               <Route path="/services" element={<Services colorScheme={colorScheme} openImagePreviewModal={openImagePreviewModal} />} />
               <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
               <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
-              <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} />} />
+              <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} openDuplicateBookingModal={openDuplicateBookingModal} />} />
               <Route path="/admin" element={<Admin colorScheme={colorScheme} />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/legal-notice" element={<LegalNotice />} />
@@ -171,6 +186,7 @@ function App() {
             <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
             <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
             <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />
+            <DuplicateBookingModal show={isDuplicateBookingModalOpen} onClose={closeDuplicateBookingModal} colorScheme={colorScheme} bookingData={duplicateBookingData} />
 
             <CookieConsent location='bottom' buttonText='Sure, I accept!' cookieName='cookieConsent' enableDeclineButton style={{ background: "#2B373B" }} buttonStyle={{ color: "#4e503b", fontSize: "13px" }} expires={150}>
               {t("app_name")} uses cookies to its basic funcionality and to enhance the user experience.

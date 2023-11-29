@@ -14,10 +14,11 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 interface UserBookingsProps {
     colorScheme: string,
-    userHasBookings: boolean
+    userHasBookings: boolean,
+    openDuplicateBookingModal: (booking: Booking) => void,
 }
 
-export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps) => {
+export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookingModal }: UserBookingsProps) => {
     // Dependencies
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
@@ -36,6 +37,7 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
 
     // Current data of selected booking
     const [selectedBookingId, setSelectedBookingId] = useState<number>(-1);
+    const [selectedBooking, setSelectedBooking] = useState<Booking>(new Booking());
     const [selectedBookingStartDate, setSelectedBookingStartDate] = useState<Value>();
     const [selectedBookingEndDate, setSelectedBookingEndDate] = useState<Value>();
     const [selectedBookingIsCancelled, setSelectedBookingIsCancelled] = useState<boolean>(false);
@@ -76,13 +78,14 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
         const id = parseInt(e.target.value, 10);
         setSelectedBookingId(isNaN(id) ? -1 : id);
 
-        const selected = bookings?.find((booking) => booking.id == id);
-        const startDate = new Date(selected?.startDate ? selected.startDate : new Date());
-        const endDate = new Date(selected?.endDate ? selected.endDate : new Date());
+        const selectedBk = bookings?.find((booking) => booking.id == id);
+        setSelectedBooking(selectedBk ? selectedBk : new Booking())
+        const startDate = new Date(selectedBk?.startDate ? selectedBk.startDate : new Date());
+        const endDate = new Date(selectedBk?.endDate ? selectedBk.endDate : new Date());
         endDate.setDate(endDate.getDate() + 1)
         setSelectedBookingStartDate(startDate)
         setSelectedBookingEndDate(endDate)
-        setSelectedBookingIsCancelled(selected?.isCancelled ? selected.isCancelled : false)
+        setSelectedBookingIsCancelled(selectedBk?.isCancelled ? selectedBk.isCancelled : false)
     };
 
     // Form actions
@@ -166,7 +169,11 @@ export const UserBookings = ({ colorScheme, userHasBookings }: UserBookingsProps
                                         {!selectedBookingIsCancelled ? (
                                             <Button aria-label='Cancel booking button' variant='danger' type='submit'>Cancelar la reserva</Button>
                                         ) : (
-                                            <p>Reserva cancelada</p>
+                                            <div>
+                                                <p>Reserva cancelada</p>
+                                                <Button aria-label='Duplicate booking button' variant='primary' onClick={() => { openDuplicateBookingModal(selectedBooking ? selectedBooking : new Booking()) }}>Duplicar la reserva</Button>
+                                            </div>
+
                                         )}
                                     </Form.Group>
                                 </Form>
