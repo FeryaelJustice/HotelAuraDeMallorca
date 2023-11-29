@@ -7,6 +7,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import serverAPI from './../services/serverAPI';
 import { Booking } from '../models';
+import { useTranslation } from "react-i18next";
 
 // Calendar properties
 type ValuePiece = Date | null;
@@ -18,6 +19,7 @@ interface AdminProps {
 
 export const Admin = ({ colorScheme }: AdminProps) => {
     // Dependencies
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
 
@@ -139,13 +141,14 @@ export const Admin = ({ colorScheme }: AdminProps) => {
 
     return (
         <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
-            <h1>Sección de administrador</h1>
-            <div className='admin_bookingSection'>
-                <h2>Bookings</h2>
+            <h1 style={{ margin: '20px', paddingTop: '20px' }}>{t("userAdmin_title")}</h1>
+            <div className='admin_bookingSection' style={{ display: 'flex', justifyContent: 'start', flexDirection: 'column', alignContent: 'center', margin: '20px' }}>
+                <h2>{t("bookings")}</h2>
                 <div className='adminSelectBooking' style={{ display: 'flex' }}>
-                    <label htmlFor="selectBooking" style={{ marginRight: '10px' }}>Select a Booking:</label>
+                    <label htmlFor="selectBooking" style={{ marginRight: '10px' }}>{t("userBookings_select")}</label>
+                    <br />
                     <select id='selectBooking' name='selectBooking' value={selectedBookingId} onChange={handleBookingIDSelectChange}>
-                        <option value="">Select a Booking</option>
+                        <option value="">{t("userBookings_select")}</option>
                         {bookings?.map((booking) => (
                             <option key={booking.id} value={booking?.id ? booking.id : -1}>
                                 {booking.id}
@@ -155,10 +158,10 @@ export const Admin = ({ colorScheme }: AdminProps) => {
                 </div>
                 {selectedBookingId != -1 && (
                     <div className='admin_booking'>
-                        <h3>Booking ID: {selectedBookingId}</h3>
+                        <h3>{t("booking")} ID: {selectedBookingId}</h3>
                         <Form id='adminEditBookingForm' className='adminEditBookingForm' onSubmit={handleAdminEditBookingFormSubmit}>
                             <Form.Group className="mb-3" controlId="bookingID">
-                                <Form.Label>User ID</Form.Label>
+                                <Form.Label>{t("user")} ID</Form.Label>
                                 <Form.Select aria-label='User ID select' value={selectedBookingUserID} onChange={(e: any) => { setSelectedBookingUserID(e.target.value) }}>
                                     {userIDs?.map((userID) => (
                                         <option key={userID} value={userID}>
@@ -169,7 +172,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="bookingPlanID">
-                                <Form.Label>Plan ID</Form.Label>
+                                <Form.Label>{t("plan")} ID</Form.Label>
                                 <Form.Select aria-label='Plan ID select' value={selectedBookingPlanID} onChange={(e: any) => { setSelectedBookingPlanID(e.target.value) }}>
                                     {planIDs?.map((planID) => (
                                         <option key={planID} value={planID}>
@@ -180,7 +183,7 @@ export const Admin = ({ colorScheme }: AdminProps) => {
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="bookingRoomID">
-                                <Form.Label>Room ID</Form.Label>
+                                <Form.Label>{t("room")} ID</Form.Label>
                                 <Form.Select aria-label='Room ID select' value={selectedBookingRoomID} onChange={(e: any) => { setSelectedBookingRoomID(e.target.value) }}>
                                     {roomIDs?.map((roomID) => (
                                         <option key={roomID} value={roomID}>
@@ -191,18 +194,18 @@ export const Admin = ({ colorScheme }: AdminProps) => {
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="bookingStartDate">
-                                <Form.Label>Book Start Date</Form.Label>
+                                <Form.Label>{t("startDate")}</Form.Label>
                                 <Calendar onChange={handleBookingStartDateChange} value={selectedBookingStartDate} />
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="bookingEndDate">
-                                <Form.Label>Book End Date</Form.Label>
+                                <Form.Label>{t("endDate")}</Form.Label>
                                 <Calendar onChange={handleBookingEndDateChange} value={selectedBookingEndDate} />
                             </Form.Group>
 
                             <div className='admin_bookings_selector'>
-                                <Button variant='primary' type='submit'>Editar</Button>
-                                <Button variant='danger' onClick={() => deleteBooking()}>Eliminar</Button>
+                                <Button variant='primary' type='submit'>{t("edit")}</Button>
+                                <Button variant='danger' onClick={() => deleteBooking()}>{t("delete")}</Button>
                             </div>
                         </Form>
                     </div>

@@ -137,16 +137,17 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
     return (
         <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
             <h1 style={{ margin: '20px', paddingTop: '20px' }}>{t("userBookings_title")}</h1>
-            <div className='user_bookingSection' style={{ display: 'flex', justifyContent: 'start', alignContent: 'center', margin: '20px' }}>
+            <div className='user_bookingSection' style={{ display: 'flex', justifyContent: 'start', flexDirection: 'column', alignContent: 'center', margin: '20px' }}>
                 {bookings && bookings.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '200px' }}>
                         <h2>{t("bookings")}</h2>
-                        <label htmlFor="selectBooking">{t("userBookings_select")}:</label>
+                        <label htmlFor="selectBooking"><em>{t("userBookings_select")}:</em></label>
+                        <br />
                         <select id='selectBooking' name='selectBooking' value={selectedBookingId} onChange={handleBookingIDSelectChange}>
                             <option value="">{t("userBookings_select")}</option>
                             {bookings?.map((booking) => (
                                 <option key={booking.id} value={booking?.id ? booking.id : -1}>
-                                    {t("booking")} - {t("startDate")}: {booking?.startDate?.toString()} / {t("endDate")}: {booking?.endDate?.toString()}
+                                    {t("booking")}: {t("startDate")}: {booking?.startDate?.toString()} / {t("endDate")}: {booking?.endDate?.toString()} ({booking?.isCancelled ? t("cancelled") : t("active")})
                                 </option>
                             ))}
                         </select>
@@ -170,7 +171,7 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
                                 <Form id='userEditBookingForm' className='userEditBookingForm' onSubmit={handleUserEditBookingFormSubmit}>
                                     <Form.Group className="mb-3" controlId="cancelledBooking" style={{ display: 'flex', flexDirection: 'row' }}>
                                         {!selectedBookingIsCancelled ? (
-                                            <Button aria-label='Cancel booking button' variant='danger' type='submit'>Cancelar la reserva</Button>
+                                            <Button aria-label='Cancel booking button' variant='danger' type='submit'>{t("userBookings_btnCancel")}</Button>
                                         ) : (
                                             <div>
                                                     <p>{t("modal_duplicatebooking_cancelledBooking")}</p>
