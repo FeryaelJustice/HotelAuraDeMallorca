@@ -77,10 +77,19 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 setCurrentUser(modelUserData)
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
 
-                // Update user bookings count
+                // Check if user has a promo code present for 5 bookings
                 serverAPI.post('/userPresentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
-                    console.log('Successfully updated user bookings count: ' + res.data)
+                    console.log('Successfully checked user present: ' + res.data)
                 })
+
+                // Check if user is disabled for cancelling 2 bookings, a punishment
+                serverAPI.post('/userPunishmentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
+                    if (res.data.disabled) {
+                        alert("Your account is disabled for cancelling 2 or more bookings, contact the administrator")
+                        logout();
+                    }
+                    console.log('Successfully checked user punishment: ' + res.data)
+                });
             }).catch(err => console.log(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {

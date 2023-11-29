@@ -393,7 +393,7 @@ expressRouter.post('/login', (req, res) => {
                     }
                 })
             } else {
-                return res.status(500).send({ status: "error", msg: "No email exists" });
+                return res.status(500).send({ status: "error", msg: "User not found" });
             }
         });
     } catch (error) {
@@ -1489,7 +1489,7 @@ async function addBookingCountToUser(userID, connectionPool) {
     }
 }
 
-// Updates user booking count, and if it is 5, present the user with a unique promo associated with him
+// Check user present: if user has 5 bookings, present the user with a unique promo associated with him
 expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
     let userID = req.body.userID;
     try {
@@ -1571,6 +1571,57 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
         })
 
     } catch (error) {
+        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+    }
+})
+
+// Check user punishment: if user has a 2 or more cancelled bookings, punish the user disabling the account
+expressRouter.post('/userPunishmentCheck', (req, res) => {
+    let userID = req.body.userID;
+    try {
+        req.dbConnectionPool.beginTransaction((err) => {
+            if (err) {
+                req.dbConnectionPool.rollback();
+                return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+            }
+
+            req.dbConnectionPool.query('SELECT COUNT(*) as count FROM booking WHERE user_id = ? AND is_cancelled = 1', [userID], (error, results) => {
+                if (error) {
+                    req.dbConnectionPool.rollback();
+                    return res.status(500).json({ status: "Internal Server Error" })
+                }
+                const bookingCount = results[0].count;
+
+                // Punishment to the user if the case
+                if (bookingCount >= 2) {
+                    req.dbConnectionPool.query(
+                        'UPDATE app_user SET isEnabled = 0 WHERE id = ?',
+                        [userID],
+                        async (err) => {
+                            if (err) {
+                                await req.dbConnectionPool.rollback();
+                                return res.status(500).json({ status: "Internal Server Error" })
+                            }
+                            
+                            await req.dbConnectionPool.commit();
+                            
+                            return res.status(200).json({
+                                status: 'success',
+                                msg: 'User punishment checked successfully and user was disabled',
+                                disabled: true,
+                            });
+                        }
+                    );
+                } else {
+                    return res.status(200).json({
+                        status: 'success',
+                        msg: 'User punishment checked successfully'
+                    });
+                }
+            })
+        })
+    }
+    catch (error) {
         return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
     }
 })
