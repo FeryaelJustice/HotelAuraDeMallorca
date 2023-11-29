@@ -1462,19 +1462,29 @@ expressRouter.post('/duplicateBooking', verifyUser, (req, res) => {
     const startDate = startDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
     const endDate = endDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
 
-    req.dbConnectionPool.beginTransaction((err) => {
+    req.dbConnectionPool.query('SELECT is_cancelled FROM booking WHERE id = ?', [booking.id], (err, results) => {
         if (err) {
-            req.dbConnectionPool.rollback();
             return res.status(500).send({ status: "error", error: "Internal server error" });
         }
-        const sql = "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, is_cancelled = 0 WHERE id = ?";
-        req.dbConnectionPool.query(sql, [startDate, endDate, booking.id], (err) => {
+
+        if (results[0].is_cancelled === 0) {
+            return res.status(400).send({ status: "error", error: "This booking is active" });
+        }
+
+        req.dbConnectionPool.beginTransaction((err) => {
             if (err) {
                 req.dbConnectionPool.rollback();
-                return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+                return res.status(500).send({ status: "error", error: "Internal server error" });
             }
-            req.dbConnectionPool.commit();
-            return res.status(200).send({ status: "200", msg: "Successfully updated!" });
+            const sql = "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, cancellation_deadline = DATE_ADD(CURDATE(), INTERVAL 1 DAY),is_cancelled = 0 WHERE id = ?";
+            req.dbConnectionPool.query(sql, [startDate, endDate, booking.id], (err) => {
+                if (err) {
+                    req.dbConnectionPool.rollback();
+                    return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+                }
+                req.dbConnectionPool.commit();
+                return res.status(200).send({ status: "200", msg: "Successfully updated!" });
+            })
         })
     })
 })

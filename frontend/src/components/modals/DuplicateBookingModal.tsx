@@ -49,7 +49,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
         onChangeEndDate(newEndDate);
     }
 
-    function duplicateBooking() {
+    async function duplicateBooking() {
         if (!booking || !startDate || !endDate) {
             console.error('Booking or startDate or endDate are undefined');
             return;
@@ -70,28 +70,48 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
         bookingDuplicate.endDate = endDate instanceof Date ? endDate : booking.endDate;
 
         setBooking(bookingDuplicate as Booking)
-        
+
+        // We need to format the dates to "YYYY-MM-DD" for the api endpoint
         const formattedNewBooking = { ...bookingDuplicate, startDate: formattedStartDate, endDate: formattedEndDate }
 
         if (formattedNewBooking.startDate && formattedNewBooking.endDate) {
             try {
-                serverAPI.post('/duplicateBooking', formattedNewBooking, {
-                    headers: { 'Authorization': cookies.token }
-                }).then(response => {
-                    if (response && response.data && response.data.msg) {
-                        alert(response.data.msg)
+                // Check room availability
+                const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: booking.roomID, start_date: startDate, end_date: endDate });
+
+                if (availabilityResponse.data && availabilityResponse.data.status === "success") {
+                    if (availabilityResponse.data.isAvailable) {
+
+                        serverAPI.post('/duplicateBooking', formattedNewBooking, {
+                            headers: { 'Authorization': cookies.token }
+                        }).then(response => {
+                            if (response && response.data && response.data.msg) {
+                                alert(response.data.msg)
+                            }
+                            onClose();
+                            window.location.reload();
+                        }).catch(err => {
+                            if (err && err.response && err.response.data && err.response.data.error) {
+                                alert(err.response.data.error)
+                            }
+                            console.log(err)
+                        });
+                    } else {
+                        alert(availabilityResponse.data.msg)
                     }
-                    onClose();
-                    window.location.reload();
-                }).catch(err => {
-                    if (err && err.response && err.response.data && err.response.data.error) {
-                        alert(err.response.data.error)
+                } else {
+                    if (availabilityResponse.data.msg) {
+                        alert(availabilityResponse.data.msg)
+                    } else {
+                        alert("These days are not available, they are occupied: ")
                     }
-                    console.log(err)
-                });
+                }
+
             } catch (error) {
                 console.log('Error duplicating booking:', error);
             }
+        } else {
+            alert('No new dates were selected. Please select!');
         }
     }
 
@@ -117,7 +137,9 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                     </Col>
                 </Row>
                 <br />
-                <Button variant="primary" onClick={duplicateBooking} aria-label="duplicateBookingBtn">Hacer nueva reserva a partir de ésta</Button>
+                <Button variant="primary" onClick={() => {
+                    duplicateBooking()
+                }} aria-label="duplicateBookingBtn">Hacer nueva reserva a partir de ésta</Button>
             </Container>
         </BaseModal>
     )
