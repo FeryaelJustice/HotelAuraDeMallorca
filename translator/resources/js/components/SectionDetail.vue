@@ -120,7 +120,7 @@ export default {
             axios.get(API_URL + '/pages/section/' + sectionId).then(response => {
                 this.sectionPage = response.data.data[0]
 
-                axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + sectionId).then(response => {
+                axios.get(API_URL + '/translations/' + this.sectionPage.page_id + '/' + sectionId).then(response => {
                     response.data.data.forEach(async (sectionLiteral) => {
                         const item = sectionLiteral;
                         item.editMode = false;
@@ -134,9 +134,9 @@ export default {
                 }).catch(error => { console.log(error) })
 
                 // Get the page sections for the select
-                // axios.get(API_URL + '/sections/pageSections/' + this.sectionPage.app_page_id).then(response => {
+                // axios.get(API_URL + '/sections/pageSections/' + this.sectionPage.page_id).then(response => {
                 //     response.data.data.forEach((section, index) => {
-                //         axios.get(API_URL + '/translations/' + this.sectionPage.app_page_id + '/' + section.id).then(response => {
+                //         axios.get(API_URL + '/translations/' + this.sectionPage.page_id + '/' + section.id).then(response => {
                 //             response.data.data.forEach(async (sectionLiteral) => {
                 //                 const item = sectionLiteral;
                 //                 item.editMode = false;

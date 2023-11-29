@@ -23,12 +23,12 @@ CREATE TABLE lang (
 -- Create the table section
 CREATE TABLE section (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    app_page_id INT NOT NULL,
+    page_id INT NOT NULL,
     section_name VARCHAR(30),
     section_parent INT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (app_page_id) REFERENCES app_page(id),
+    FOREIGN KEY (page_id) REFERENCES app_page(id),
     FOREIGN KEY (section_parent) REFERENCES section(id)
 );
 

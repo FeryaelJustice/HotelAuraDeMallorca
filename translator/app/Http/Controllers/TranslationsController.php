@@ -42,7 +42,7 @@ class TranslationsController extends Controller
                 /*
                 // Create a new section
                 $newSection = new Section();
-                $newSection->app_page_id = $newPage->id;
+                $newSection->page_id = $newPage->id;
                 $newSection->section_name = $postData['section'];
                 $newSection->section_parent = null;
                 $newSection->save();

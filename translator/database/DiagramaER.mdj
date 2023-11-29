@@ -100,20 +100,35 @@
 											"top": 187,
 											"width": 158,
 											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGMG4tgQh1KK+o=",
+											"_parent": {
+												"$ref": "AAAAAAGLGRo98IYSRvU="
+											},
+											"model": {
+												"$ref": "AAAAAAGMG4tgPB1Hibs="
+											},
+											"font": "Arial;13;0",
+											"left": 509,
+											"top": 202,
+											"width": 158,
+											"height": 13
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 504,
 									"top": 167,
 									"width": 168,
-									"height": 38
+									"height": 53
 								}
 							],
 							"font": "Arial;13;0",
 							"left": 504,
 							"top": 144,
 							"width": 168,
-							"height": 64,
+							"height": 76,
 							"nameLabel": {
 								"$ref": "AAAAAAGLGRo98IYRyLk="
 							},
@@ -552,7 +567,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 526,
-									"top": 276,
+									"top": 282,
 									"width": 20.22998046875,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -570,7 +585,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 537,
-									"top": 226,
+									"top": 238,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -604,7 +619,7 @@
 								"$ref": "AAAAAAGLGRo98IYQ0XQ="
 							},
 							"lineStyle": 2,
-							"points": "522:207;522:360",
+							"points": "522:219;522:360",
 							"nameLabel": {
 								"$ref": "AAAAAAGLGSkvC4dkPM0="
 							},
@@ -1005,7 +1020,16 @@
 							"_parent": {
 								"$ref": "AAAAAAGLGRo974YOWxM="
 							},
-							"name": "app_page_name",
+							"name": "name",
+							"length": 0
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGMG4tgPB1Hibs=",
+							"_parent": {
+								"$ref": "AAAAAAGLGRo974YOWxM="
+							},
+							"name": "domain",
 							"length": 0
 						}
 					]
@@ -1186,7 +1210,7 @@
 							"_parent": {
 								"$ref": "AAAAAAGLGSJ6toatqcU="
 							},
-							"name": "app_page_id",
+							"name": "page_id",
 							"length": 0
 						},
 						{

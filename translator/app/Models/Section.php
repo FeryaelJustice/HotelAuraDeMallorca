@@ -11,7 +11,7 @@ class Section extends Model
     protected $table = 'section';
     protected $primaryKey = 'id';
     protected $fillable = [
-        'app_page_id',
+        'page_id',
         'section_name',
         'section_parent',
     ];

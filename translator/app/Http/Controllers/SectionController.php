@@ -24,7 +24,7 @@ class SectionController extends Controller
         try {
             $data = $request->all()["data"];
             $newSection = new Section();
-            $newSection->app_page_id = $data['pageID'];
+            $newSection->page_id = $data['pageID'];
             $newSection->section_name = $data['newSectionName'];
             $newSection->section_parent = null;
             $newSection->save();
@@ -36,7 +36,7 @@ class SectionController extends Controller
 
     public function getPageSections($pageId)
     {
-        $sections = Section::where('app_page_id', $pageId)->get();
+        $sections = Section::where('page_id', $pageId)->get();
         return Response::json(['status' => 'success', 'data' => $sections], 200);
     }
 }

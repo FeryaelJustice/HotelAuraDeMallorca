@@ -41,7 +41,7 @@ INSERT INTO `app_page` (`id`, `name`, `domain`, `updated_at`, `created_at`) VALU
 -- Volcado de datos para la tabla `section`
 --
 
-INSERT INTO `section` (`id`, `app_page_id`, `section_name`, `section_parent`, `updated_at`, `created_at`) VALUES
+INSERT INTO `section` (`id`, `page_id`, `section_name`, `section_parent`, `updated_at`, `created_at`) VALUES
 (1, 1, 'Title', NULL, '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
 (2, 1, 'Header', NULL, '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
 (3, 1, 'Nav', 2, '2023-11-22 07:44:45', '2023-11-22 07:44:45'),

@@ -98,13 +98,13 @@ export default {
     computed: {
         filteredSections() {
             // Filter the sections based on the selectedPageId
-            return this.sections.filter(section => section.app_page_id === this.selectedPageId);
+            return this.sections.filter(section => section.page_id === this.selectedPageId);
         },
     },
     watch: {
         selectedPageId(newValue) {
             // Find the first section that matches the new page selection
-            const firstSection = this.filteredSections.find(section => section.app_page_id === newValue);
+            const firstSection = this.filteredSections.find(section => section.page_id === newValue);
 
             // Update the selectedSectionId with the first section's ID
             if (firstSection) {
@@ -250,8 +250,8 @@ export default {
                     // Iterate over the pages and get the page.name
                     if (pages && pages.length > 0) {
                         for (const page of pages) {
-                            // Append the page.name to the section.app_page_id
-                            if (section.app_page_id == page.id) {
+                            // Append the page.name to the section.page_id
+                            if (section.page_id == page.id) {
                                 section.page_name = page.name;
                             }
                         }
