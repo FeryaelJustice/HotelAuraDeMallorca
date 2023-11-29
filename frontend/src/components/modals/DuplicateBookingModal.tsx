@@ -9,6 +9,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Button } from "react-bootstrap";
 import serverAPI from './../../services/serverAPI';
+import { useTranslation } from "react-i18next";
 
 interface DuplicateBookingModalProps {
     colorScheme: string,
@@ -24,6 +25,8 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: DuplicateBookingModalProps) => {
 
     console.log(colorScheme)
+
+    const { t } = useTranslation();
     const [cookies] = useCookies(['token']);
     const [booking, setBooking] = useState<Booking>()
     const [startDate, onChangeStartDate] = useState<Value>();
@@ -116,9 +119,9 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
     }
 
     return (
-        <BaseModal title="Duplicate booking" show={show} onClose={handleClose}>
-            <em>Todos los datos de esta reserva se mantienen (servicios vinculados, pago...),<br /> lo único que debes cambiar son las fechas</em><hr />
-            <p>Reserva ID: {booking?.id}</p>
+        <BaseModal title={t("modal_duplicatebooking_title")} show={show} onClose={handleClose}>
+            <em>{t("modal_duplicatebooking_info")}</em><hr />
+            <p>{t("booking")} ID: {booking?.id}</p>
             <Container>
                 <Row>
                     <Col>
@@ -139,7 +142,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 <br />
                 <Button variant="primary" onClick={() => {
                     duplicateBooking()
-                }} aria-label="duplicateBookingBtn">Hacer nueva reserva a partir de ésta</Button>
+                }} aria-label="duplicateBookingBtn">{t("modal_duplicatebooking_btn")}</Button>
             </Container>
         </BaseModal>
     )

@@ -7,6 +7,7 @@ import { Booking, Plan, Room } from '../models';
 import serverAPI from './../services/serverAPI';
 import { API_URL } from './../services/consts';
 import Calendar from 'react-calendar';
+import { useTranslation } from "react-i18next";
 
 // Calendar properties
 type ValuePiece = Date | null;
@@ -20,6 +21,7 @@ interface UserBookingsProps {
 
 export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookingModal }: UserBookingsProps) => {
     // Dependencies
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [cookies] = useCookies(['token']);
 
@@ -134,17 +136,17 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
 
     return (
         <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
-            <h1 style={{ margin: '20px', paddingTop: '20px' }}>Administra tus reservas</h1>
+            <h1 style={{ margin: '20px', paddingTop: '20px' }}>{t("userBookings_title")}</h1>
             <div className='user_bookingSection' style={{ display: 'flex', justifyContent: 'start', alignContent: 'center', margin: '20px' }}>
                 {bookings && bookings.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '200px' }}>
-                        <h2>Reservas</h2>
-                        <label htmlFor="selectBooking">Selecciona una reserva:</label>
+                        <h2>{t("bookings")}</h2>
+                        <label htmlFor="selectBooking">{t("userBookings_select")}:</label>
                         <select id='selectBooking' name='selectBooking' value={selectedBookingId} onChange={handleBookingIDSelectChange}>
-                            <option value="">Selecciona una reserva</option>
+                            <option value="">{t("userBookings_select")}</option>
                             {bookings?.map((booking) => (
                                 <option key={booking.id} value={booking?.id ? booking.id : -1}>
-                                    Reserva - Inicio: {booking?.startDate?.toString()} / Fin: {booking?.endDate?.toString()}
+                                    {t("booking")} - {t("startDate")}: {booking?.startDate?.toString()} / {t("endDate")}: {booking?.endDate?.toString()}
                                 </option>
                             ))}
                         </select>
@@ -152,16 +154,16 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
                         {selectedBookingId != -1 && (
                             <div className='user_booking' style={{ marginTop: '10px' }}>
                                 <h3>ID: {selectedBookingId}</h3>
-                                <p>Plan: {getPlanName(bookings.find((booking) => booking.id === selectedBookingId)?.planID)}</p>
-                                <p>Room: {getRoomName(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)}</p>
+                                <p>{t("plan")}: {getPlanName(bookings.find((booking) => booking.id === selectedBookingId)?.planID)}</p>
+                                <p>{t("room")}: {getRoomName(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)}</p>
                                 <Form id="userDisplayBookingData" className='userDisplayBookingData' style={{ display: 'flex' }}>
                                     <Form.Group className="mb-3" controlId="bookingStartDate" style={{ marginRight: '10%' }}>
-                                        <Form.Label>Book Start Date</Form.Label>
+                                        <Form.Label>{t("startDate")}</Form.Label>
                                         <Calendar value={selectedBookingStartDate} />
                                     </Form.Group>
 
                                     <Form.Group className="mb-3" controlId="bookingEndDate">
-                                        <Form.Label>Book End Date</Form.Label>
+                                        <Form.Label>{t("endDate")}</Form.Label>
                                         <Calendar value={selectedBookingEndDate} />
                                     </Form.Group>
                                 </Form>
@@ -171,8 +173,8 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
                                             <Button aria-label='Cancel booking button' variant='danger' type='submit'>Cancelar la reserva</Button>
                                         ) : (
                                             <div>
-                                                <p>Reserva cancelada</p>
-                                                <Button aria-label='Duplicate booking button' variant='primary' onClick={() => { openDuplicateBookingModal(selectedBooking ? selectedBooking : new Booking()) }}>Duplicar la reserva</Button>
+                                                    <p>{t("modal_duplicatebooking_cancelledBooking")}</p>
+                                                    <Button aria-label='Duplicate booking button' variant='primary' onClick={() => { openDuplicateBookingModal(selectedBooking ? selectedBooking : new Booking()) }}>{t("userBookings_btnDuplicate")}</Button>
                                             </div>
 
                                         )}
@@ -184,7 +186,7 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
                     </div>
                 ) : (
                     <div>
-                        <p>No tienes reservas</p>
+                            <p>{t("modal_duplicatebooking_noBookings")}</p>
                     </div>
                 )}
             </div>

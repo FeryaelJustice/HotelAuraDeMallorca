@@ -132,7 +132,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                         }
 
                         return classNames;
-                    }}>Reservas</NavLink>
+                    }}>{t("bookings")}</NavLink>
                 )}
                 {(currentUserRole.name == UserRoles.ADMIN || currentUserRole.name == UserRoles.EMPLOYEE) && (
                     <NavLink to="/admin" className={({ isActive }) => {
