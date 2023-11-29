@@ -36,4 +36,5 @@ translator/package-lock.json
 translator/composer.lock
 translator/node_modules
 translator/vendor
+translator/public/build
 translator/.env
