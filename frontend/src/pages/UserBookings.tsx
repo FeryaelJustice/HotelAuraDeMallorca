@@ -5,7 +5,7 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import { Booking, Plan, Room } from '../models';
 import serverAPI from './../services/serverAPI';
-import { API_URL } from './../services/consts';
+import { API_URL, API_URL_BASE } from './../services/consts';
 import Calendar from 'react-calendar';
 import { useTranslation } from "react-i18next";
 
@@ -134,6 +134,11 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
         return matchingRoom ? matchingRoom.name : '';
     };
 
+    const getRoomSrc = (bookingRoomId: any) => {
+        const matchingRoom = rooms?.find((room) => room.id === bookingRoomId)
+        return matchingRoom ? API_URL_BASE + "/" + matchingRoom.imageURL : '';
+    }
+
     return (
         <div style={{ color: colorScheme == 'light' ? 'black' : 'white' }}>
             <h1 style={{ margin: '20px', paddingTop: '20px' }}>{t("userBookings_title")}</h1>
@@ -155,8 +160,9 @@ export const UserBookings = ({ colorScheme, userHasBookings, openDuplicateBookin
                         {selectedBookingId != -1 && (
                             <div className='user_booking' style={{ marginTop: '10px' }}>
                                 <h3>ID: {selectedBookingId}</h3>
-                                <p>{t("plan")}: {getPlanName(bookings.find((booking) => booking.id === selectedBookingId)?.planID)}</p>
-                                <p>{t("room")}: {getRoomName(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)}</p>
+                                <p>{t("plan")}: <em><b>{getPlanName(bookings.find((booking) => booking.id === selectedBookingId)?.planID)}</b></em></p>
+                                <p>{t("room")}: <em><b>{getRoomName(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)}</b></em></p>
+                                <img alt='roomUserBookingImg' style={{ height: '200px' }} src={getRoomSrc(bookings.find((booking) => booking.id === selectedBookingId)?.roomID)} />
                                 <Form id="userDisplayBookingData" className='userDisplayBookingData' style={{ display: 'flex' }}>
                                     <Form.Group className="mb-3" controlId="bookingStartDate" style={{ marginRight: '10%' }}>
                                         <Form.Label>{t("startDate")}</Form.Label>
