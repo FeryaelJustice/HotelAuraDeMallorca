@@ -562,23 +562,23 @@ VALUES
 INSERT INTO
     service_media (service_id, media_id)
 VALUES
-    (1, 7),
-    (2, 8),
-    (3, 9),
-    (4, 10),
-    (5, 11);
+    (1, 6),
+    (2, 7),
+    (3, 8),
+    (4, 9),
+    (5, 10);
 
 INSERT INTO
     room_media (room_id, media_id)
 VALUES
-    (1, 12),
-    (2, 13);
+    (1, 11),
+    (2, 12);
 
 INSERT INTO
     plan_media (plan_id, media_id)
 VALUES
-    (1, 14),
-    (2, 15);
+    (1, 13),
+    (2, 14);
 
 -- Insert promotion
 INSERT INTO

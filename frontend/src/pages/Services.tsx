@@ -59,7 +59,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                 <Container>
                     <Row className="mt-12">
                         <Col>
-                            <h1 className='servicesPageTitle' style={{ backgroundColor: 'black', border: '1px groove #0ffff0' }}>{t("services_title")}</h1>
+                            <h1 className='servicesPageTitle' style={{ backgroundColor: 'black', border: '1px groove #0ffff0', padding: '10px' }}>{t("services_title")}</h1>
                         </Col>
                     </Row>
                     <br />

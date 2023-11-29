@@ -147,7 +147,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                         }
 
                         return classNames;
-                    }}><strong>Admin</strong></NavLink>
+                    }}><strong>{t("admin")}</strong></NavLink>
                 )}
                 <div id="nav-actions">
                     <Button variant="primary" id="bookBtn" onClick={onOpenBookingModal}>{t("book")}</Button>
@@ -198,14 +198,74 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
             {isMenuOpen && (
                 <div id="nav-menu">
                     <NavLink to="/" className={({ isActive }) => {
-                        return isActive ? 'is-active' : undefined
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
                     }} onClick={closeMenu}>{t("home")}</NavLink>
                     <NavLink to="/services" className={({ isActive }) => {
-                        return isActive ? 'is-active' : undefined
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
                     }} onClick={closeMenu}>{t("services")}</NavLink>
                     <NavLink to="/contact" className={({ isActive }) => {
-                        return isActive ? 'is-active' : undefined
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
                     }} onClick={closeMenu}>{t("contact")}</NavLink>
+                    {(cookies.token && userHasBookings) && (
+                        <NavLink to="/user-bookings" className={({ isActive }) => {
+                            let classNames = '';
+
+                            if (isActive) {
+                                classNames += 'is-active';
+                            }
+
+                            if (colorScheme !== 'dark') {
+                                classNames += classNames ? '-light' : '-light';
+                            }
+
+                            return classNames;
+                        }}>{t("bookings")}</NavLink>
+                    )}
+                    {(currentUserRole.name == UserRoles.ADMIN || currentUserRole.name == UserRoles.EMPLOYEE) && (
+                        <NavLink to="/admin" className={({ isActive }) => {
+                            let classNames = '';
+
+                            if (isActive) {
+                                classNames += 'is-active';
+                            }
+
+                            if (colorScheme !== 'dark') {
+                                classNames += classNames ? '-light' : '-light';
+                            }
+
+                            return classNames;
+                        }}><strong>{t("admin")}</strong></NavLink>
+                    )}
                     <div aria-label="user-icon-phone" className="user-icon-phone">
                         {userPhotoURL && cookies.token ? (
                             <div className="user-icon-container">
