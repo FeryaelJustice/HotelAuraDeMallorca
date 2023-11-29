@@ -79,7 +79,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
                 // Check if user has a promo code present for 5 bookings
                 serverAPI.post('/userPresentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
-                    console.log('Successfully checked user present: ' + res.data)
+                    if (res.data.promotion) {
+                        alert("A unique promotion has been generated for you! You can see the code in 'Edit Profile' section.")
+                    }
                 })
 
                 // Check if user is disabled for cancelling 2 bookings, a punishment
@@ -88,8 +90,16 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         alert("Your account is disabled for cancelling 2 or more bookings, contact the administrator")
                         logout();
                     }
-                    console.log('Successfully checked user punishment: ' + res.data)
                 });
+
+                // Get user promo code
+                serverAPI.post('getUserAssociatedPromoCode', { userID: modelUserData.id }).then(res => {
+                    if (res && res.data && res.data.results && res.data.results.length > 0) {
+                        setUserPromoCode(res.data.results[0].code);
+                    } else {
+                        setUserPromoCode(null);
+                    }
+                }).catch(err => { console.log(err) })
             }).catch(err => console.log(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
@@ -310,6 +320,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const [userEdit, setUserEdit] = useState({ name: '', surnames: '', token: '' });
     const [imagePic, setImagePic] = useState('')
     const [imagePicPreview, setImagePicPreview] = useState<string | ArrayBuffer | null>()
+    const [userPromoCode, setUserPromoCode] = useState<string | null>(null); // Not editable
 
     const handleSaveEditChange = (event: any) => {
         setUserEdit({ ...userEdit, [event.target.name]: event.target.value });
@@ -545,6 +556,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <div>
                                 <p><strong>{t("modal_user_login_email_label")}</strong>: {currentUser.email}</p>
                                 <p><strong>DNI:</strong> {currentUser.dni}</p>
+                                {userPromoCode && (<p><strong>{t("promoCode")}:</strong> {userPromoCode}</p>)}
                             </div>
 
                             <Form.Group className="mb-3" controlId="formName">

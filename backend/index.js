@@ -2253,6 +2253,15 @@ expressRouter.post('/getUserAssociatedPromos', (req, res) => {
         return res.status(200).send({ status: "success", results });
     })
 })
+expressRouter.post('/getUserAssociatedPromoCode', (req, res) => {
+    let userID = req.body.userID;
+    req.dbConnectionPool.query('SELECT * FROM user_promotion INNER JOIN promotion ON user_promotion.promotion_id = promotion.id WHERE user_id = ? AND isUsed = 0', [userID], (err, results) => {
+        if (err) {
+            return res.status(500).send({ status: "error", error: 'Internal server error' });
+        }
+        return res.status(200).send({ status: "success", results });
+    })
+})
 expressRouter.post('/setUserPromoUsed', verifyUser, (req, res) => {
     let promoID = req.body.promoID;
     let userID = req.body.userID;
