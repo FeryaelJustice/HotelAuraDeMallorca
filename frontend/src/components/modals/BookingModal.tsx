@@ -314,7 +314,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
-                serverAPI.post('/checkUserExists', { email: userPersonalData.email }).then(_ => {
+                serverAPI.post('/checkUserExists', { email: userPersonalData.email, dni: userPersonalData.dni }).then(_ => {
                     setCurrentStep(BookingSteps.StepPlan);
                 }).catch(error => {
                     if (error && error.response && error.response.data && error.response.data.message) {

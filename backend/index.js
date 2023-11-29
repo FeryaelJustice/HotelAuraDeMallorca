@@ -198,13 +198,13 @@ expressRouter.use((req, res, next) => {
 // USER
 expressRouter.post('/checkUserExists', (req, res) => {
     try {
-        const { email } = req.body;
-        req.dbConnectionPool.query('SELECT id FROM app_user WHERE user_email = ?', [email], (err, results) => {
+        const { email, dni } = req.body;
+        req.dbConnectionPool.query('SELECT id FROM app_user WHERE user_email = ? OR user_dni = ?', [email, dni], (err, results) => {
             if (err) {
                 return res.status(500).json({ status: "error", message: "Error checking for existing users" })
             }
             if (results && results.length > 0) {
-                return res.status(409).json({ status: "error", message: "Existing email found in DB, use another email!" })
+                return res.status(409).json({ status: "error", message: "Existing user found in DB, use another email or dni!" })
             } else {
                 return res.status(200).json({ status: "success", message: "User available" })
             }
