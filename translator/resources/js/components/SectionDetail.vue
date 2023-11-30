@@ -30,14 +30,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(item, index) in filteredItems" :key="item.id">
+                                <tr v-for="(item) in filteredItems" :key="item.id">
                                     <td>{{ item.id }}</td>
                                     <td>
                                         {{ item.code }}
-                                        <!-- <template v-if="!item.editMode">{{ item.code }}</template>
-                                        <template v-else>
-                                            <input type="text" v-model="item.code" placeholder="Código del literal" />
-                                        </template> -->
                                     </td>
                                     <td>
                                         <template v-if="!item.editMode">{{ item.content }}</template>
@@ -49,10 +45,10 @@
                                     <td>{{ item.lang_code }}</td>
                                     <td>
                                         <input type="checkbox" id="edit" name="edit" v-model="item.editMode"
-                                            @change="toggleEditMode(index)" />
+                                            @change="toggleEditMode(item)" />
                                         <label for="edit">Edit?</label>
                                         <!-- Show the "Save Changes" button only for rows in edit mode -->
-                                        <button v-if="item.editMode" @click="saveChanges(index)">Save Changes</button>
+                                        <button v-if="item.editMode" @click="saveChanges(item)">Save Changes</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -91,31 +87,31 @@ export default {
         }
     },
     methods: {
-        toggleEditMode(index) {
+        toggleEditMode(item) {
+            const originalIndex = this.originalData.findIndex(originalItem => originalItem.id === item.id);
+
             // Here we need to only disable the edit mode for the rest of the literals
             this.items.forEach((item, i) => {
-                if (i !== index) {
+                if (i !== originalIndex) {
                     item.editMode = false;
                 }
             });
 
             // If disable edit mode, restore item to the original data
-            if (!this.items[index].editMode) {
-                this.items[index] = Object.assign({}, this.originalData[index]);
+            if (!this.items[originalIndex].editMode) {
+                this.items[originalIndex] = Object.assign({}, this.originalData[originalIndex]);
             }
         },
-        saveChanges(index) {
+        saveChanges(item) {
             // Access the modified data from this.items[index]
 
             // Make API call to save the changes for the specific row
-            const editedData = this.items[index];
-
-            if (editedData.code !== '') {
+            if (item.code !== '') {
                 // Example API call (replace with your actual API endpoint and data)
-                axios.put(API_URL + '/translations/updateLiteral', editedData)
+                axios.put(API_URL + '/translations/updateLiteral', item)
                     .then(response => {
                         // Exit edit mode
-                        this.items[index].editMode = false;
+                        item.editMode = false;
                         if (response && response.data) {
                             alert(response.data.message);
                         }
