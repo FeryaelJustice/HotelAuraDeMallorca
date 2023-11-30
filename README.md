@@ -42,60 +42,7 @@ habrá la posibilidad de reservar directamente cada servicio.
   * Forma de pago (y pagar con Stripe o similares).
   * Página de confirmación de reserva (reserva realizada)
 
-##### Gestor de traducciones (EN OTRO HOST, DESVINCULADO Y SOLO SE CONSUME DESDE LA WEB, PERO EL FRONT Y BACK ESTÁ EN OTRO PROYECTO, está en la carpeta (./cms/))
 
-* Un gestor de traducciones que traducirá las descripciones y
-otros campos que se generarán estableciendo unos nombres de keys
-para posterior uso de api, json o importacion de base de datos
-en la aplicacion en la que se utilizará. Se hace en Vue y laravel.
-
-Constará de un frontend en Vue metido en el Laravel donde haremos la interfaz web y donde se introducirán las traducciones manualmente, así
-dinámicamente las apps cliente de este gestor irán recuperando,
-las nuevas traducciones. En cuanto al backend Laravel, guardará estas traducciones del frontend en su base de datos para así poder utilizarla en la app cliente como hemos mencionado.
-
-En cuanto a la BDD, estarán: "users", "pagina", "idioma", "pagina-idioma", "seccion", "literales" (que son las traducciones) y "seccion-literal". Cada literal tendrá asociado una sección que a su vez esa sección
-tendra asociado con fk una pagina, además de una sección padre (si la tiene) con un campo section_parent (si es null es que no tiene padre, sino tiene la id de la sección padre), y además las páginas tendrán asociados idiomas,
-y cada literal code tendrá el formato de por ejemplo: "title_1,title_2...footer_1,footer_2, footer_3..."
-
-Tablas: pagina (se refiere a que web se asocia, ej: vacalia, homerti...), seccion, literal, idioma, usuario.
-
-Por ejemplo, le pides a la API:
-/api/paginawebID/seccionDeLaPaginaID
-->
-/api/4/239 -> devuelve:
-
-  [{
-  "literal_code": "footer_21",
-  "values": {
-   "en": "__*",
-   "es": "__*",
-   "ca": "__*",
-   "de": "__*"
-  }
- },
- {
-  "literal_code": "footer_57",
-  "values": {
-   "en": "__*",
-   "es": "__*",
-   "ca": "__*",
-   "de": "__*"
-  }
- }
-]
-
-/api/literalCode
-->
-/api/footer_34 -> devuelve:
-
-  {
-  "values": {
-   "en": "__*",
-   "es": "__*",
-   "ca": "__*",
-   "de": "__*"
-  }
- }
 
 ###### Diseño y planificación
 
@@ -123,6 +70,8 @@ Por ejemplo, le pides a la API:
 
 Para testear weather API: crear acceso directo del chrome y poner:
 ```"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\chromeTemp```
+
+Si un usuario es desactivado por el sistema de castigos, además de poner el isEnabled a true de app_user, hay que poner el enabledByAdmin a 1 también para que haga el doble check.
 
 ### Configuración e instalación
 

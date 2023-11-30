@@ -1639,24 +1639,39 @@ expressRouter.post('/userPunishmentCheck', (req, res) => {
 
                 // Punishment to the user if the case
                 if (bookingCount >= 2) {
-                    req.dbConnectionPool.query(
-                        'UPDATE app_user SET isEnabled = 0 WHERE id = ?',
-                        [userID],
-                        async (err) => {
-                            if (err) {
-                                await req.dbConnectionPool.rollback();
-                                return res.status(500).json({ status: "Internal Server Error" })
-                            }
+                    req.dbConnectionPool.query('SELECT enabledByAdmin FROM app_user WHERE id = ?', [userID], (err, results) => {
+                        if (err) {
+                            req.dbConnectionPool.rollback();
+                            return res.status(500).json({ status: "Internal Server Error" })
+                        }
 
-                            await req.dbConnectionPool.commit();
+                        const enabledByAdmin = results[0].enabledByAdmin;
+                        if (!enabledByAdmin) {
+                            req.dbConnectionPool.query(
+                                'UPDATE app_user SET isEnabled = 0 WHERE id = ?',
+                                [userID],
+                                async (err) => {
+                                    if (err) {
+                                        await req.dbConnectionPool.rollback();
+                                        return res.status(500).json({ status: "Internal Server Error" })
+                                    }
 
+                                    await req.dbConnectionPool.commit();
+
+                                    return res.status(200).json({
+                                        status: 'success',
+                                        msg: 'User punishment checked successfully and user was disabled',
+                                        disabled: true,
+                                    });
+                                }
+                            );
+                        } else {
                             return res.status(200).json({
                                 status: 'success',
-                                msg: 'User punishment checked successfully and user was disabled',
-                                disabled: true,
+                                msg: 'User punishment checked successfully, but not punished due to it was reactivated by admin'
                             });
                         }
-                    );
+                    });
                 } else {
                     return res.status(200).json({
                         status: 'success',
