@@ -243,11 +243,11 @@ expressRouter.post('/register', (req, res) => {
                         // res.cookie('token', jwtToken)
 
                         // Insert default picture to user
-                        req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                            if (err) {
-                                console.error(err)
-                            }
-                        })
+                        // req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                        //     if (err) {
+                        //         console.error(err)
+                        //     }
+                        // })
 
                         // Insert user role to user
                         req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, data.roleID], (err) => {
@@ -263,9 +263,9 @@ expressRouter.post('/register', (req, res) => {
                         });
 
                         sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                            return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
+                            return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: userID });
                         }).catch(jsonError => {
-                            return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
+                            return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: userID });
                         })
 
                     });
@@ -310,11 +310,11 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                     let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
 
                                     // Insert default picture to user
-                                    req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                                        if (err) {
-                                            console.error(err)
-                                        }
-                                    })
+                                    // req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                                    //     if (err) {
+                                    //         console.error(err)
+                                    //     }
+                                    // })
 
                                     // Insert user role to user (client by default: 1)
                                     req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
@@ -330,9 +330,9 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                     });
 
                                     sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                                        return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
+                                        return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: userID });
                                     }).catch(jsonError => {
-                                        return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
+                                        return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: userID });
                                     })
 
                                 } else {

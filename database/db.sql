@@ -154,7 +154,7 @@ CREATE TABLE user_booking_count (
     user_id INT,
     booking_count INT DEFAULT 0,
     UNIQUE KEY (user_id),
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
 );
 
 -- Create the table user_promotion (link user to promotions to check validity only for that user)
@@ -163,7 +163,7 @@ CREATE TABLE user_promotion (
     user_id INT,
     promotion_id INT,
     isUsed BOOLEAN DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
     FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
 );
 
