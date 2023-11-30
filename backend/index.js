@@ -650,22 +650,6 @@ expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
     }
 })
 
-// expressRouter.get('/user/sendConfirmationEmail/:id', verifyUser, async (req, res) => {
-//     try {
-//         const userId = req.params.id;
-
-//         sendConfirmationEmail(req.dbConnectionPool, userId).then(json => {
-//             return res.status(200).send(json);
-//         }).catch(jsonError => {
-//             return res.status(500).send(jsonError);
-//         })
-//     } catch (error) {
-//         return res.status(500).send({ status: 'error', msg: "Email couldn't be sent!" });
-//     } finally {
-//         req.dbConnectionPool.release();
-//     }
-// })
-
 async function sendConfirmationEmail(connection, userId) {
     return new Promise(async (resolve, reject) => {
         // Generate a random confirmation token

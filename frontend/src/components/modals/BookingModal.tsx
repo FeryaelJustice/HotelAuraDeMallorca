@@ -766,10 +766,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 const userToCreate = { email: userPersonalData.email, dni: userPersonalData.dni, name: userPersonalData.name, surnames: userPersonalData.surnames, password: "1234", roleID: 1 };
                 const res = await serverAPI.post('/register', userToCreate);
 
-                setCookie('token', res.data.cookieJWT);
-                
-                // Send confirmation email
-                // await sendConfirmationEmail(res.data.insertId, res.data.cookieJWT);
+                setCookie('token', res.data.cookieJWT);;
 
                 const newUserAllData: User = {
                     id: res.data.insertId,
@@ -791,16 +788,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             return null;
         }
     }
-
-    // async function sendConfirmationEmail(userId: number, cookieJWT: string) {
-    //     try {
-    //         const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`, { headers: { 'Authorization': cookieJWT } });
-    //         console.log('Confirmation email sent successfully', response);
-    //     } catch (error) {
-    //         console.log('Error sending confirmation email:', error);
-    //         setBookingFinalMessage(prev => prev + "Error sending confirmation email / ");
-    //     }
-    // }
 
     // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
     async function doBooking(user_id: any, paymentTransactionID: any, updatedPrice: number, promoID: number) {
