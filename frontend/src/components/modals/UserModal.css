@@ -4,14 +4,14 @@
     margin-bottom: 8px;
 }
 
-.userEditBtn {
+.userEditBtns {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     width: 100%;
 }
 
-.userEditBtn button {
+.userEditBtns button {
     margin-bottom: 8px;
     width: 100%;
     margin-right: 12px;

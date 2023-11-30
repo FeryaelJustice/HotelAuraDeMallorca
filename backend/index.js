@@ -349,7 +349,7 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
             res.status(400).json({ message: 'No image found' });
         }
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", error: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -406,7 +406,7 @@ expressRouter.post('/login', (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", error: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -435,7 +435,7 @@ expressRouter.post('/loginByToken', (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", error: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -456,7 +456,29 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
             return res.status(200).send({ status: "success", msg: 'User updated successfully' });
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", error: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+})
+
+// For security reasons, doing it in a separate endpoint
+expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
+    try {
+        const userID = req.id;
+        const password = req.body.password;
+        const encryptedPassword = await bcrypt.hash(password, salt);
+        console.log(encryptedPassword)
+        let sql = 'UPDATE app_user SET user_password = ? WHERE id = ?';
+        let values = [encryptedPassword, userID];
+        const resp = await req.dbConnectionPool.query(sql, values)
+        if (resp) {
+            return res.status(200).send({ status: "success", msg: 'User updated successfully' });
+        } else {
+            return res.status(500).send({ status: "error", error: "Internal server error" });
+        }
+    } catch (error) {
+        return res.status(500).send({ status: "error", error: "Internal server error: " + error });
     } finally {
         req.dbConnectionPool.release();
     }

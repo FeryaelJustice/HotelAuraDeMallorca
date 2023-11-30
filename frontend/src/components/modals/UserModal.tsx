@@ -28,6 +28,7 @@ enum UserModalScreens {
     ScreenLogin,
     ScreenRegister,
     ScreenEditProfile,
+    ScreenChangePassword,
 }
 
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
@@ -400,6 +401,42 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         reader.readAsDataURL(file)
     }
 
+    // CHANGE PASSWORD SCREEN
+
+    const [userPasswordData, setUserPasswordData] = useState({ password: '', repeatPassword: '' });
+    function goToChangePassword() {
+        setCurrentScreen(UserModalScreens.ScreenChangePassword)
+    }
+
+    const handleChangePasswordForm = (event: React.ChangeEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        let form = event.currentTarget;
+        if (userPasswordData.password != "" && userPasswordData.repeatPassword != "" && form.checkValidity()) {
+            if (userPasswordData.password === userPasswordData.repeatPassword) {
+                serverAPI.post('/editUserPassword', { password: userPasswordData.password }, { headers: { 'Authorization': cookies.token } }).then(res => {
+                    alert(res.data.msg)
+                    resetUserModal();
+                    onClose();
+                }).catch(err => {
+                    console.log(err)
+                    if (err.response.data && err.response.data.msg) {
+                        alert(err.response.data.msg)
+                    }
+                })
+            } else {
+                alert('Passwords don\'t match!')
+            }
+        } else {
+            alert('Passwords need to be set')
+        }
+    }
+
+    const handleEditPasswordFieldChange = (event: any) => {
+        setUserPasswordData({ ...userPasswordData, [event.target.name]: event.target.value });
+    }
+
     // When close, reset
     useEffect(() => {
         resetUserModal();
@@ -595,8 +632,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 <Form.Control type="text" name='surnames' placeholder={t("modal_user_editprofile_surnames_placeholder")} onChange={handleSaveEditChange} value={userEdit.surnames ? userEdit.surnames : ''} minLength={1} maxLength={200} />
                                 <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
                             </Form.Group>
+
+                            <span style={{ cursor: 'pointer' }} onClick={() => { goToChangePassword() }}><strong>Want to change your password? Click here</strong></span>
                         </div>
-                        <div className='userEditBtn'>
+                        <div className='userEditBtns'>
                             <Button variant="primary" type='submit'>
                                 {t("modal_user_editprofile_send")}
                             </Button>
@@ -610,6 +649,32 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     </Form>
                 </div>
             )}
+
+            {currentScreen === UserModalScreens.ScreenChangePassword && (
+                <div>
+                    <Form id='userChangePasswordForm' onSubmit={handleChangePasswordForm}>
+                        <div className='userChangePasswordFormDetails'>
+                            <Form.Group className="mb-3" controlId="userChangePasswordFormPassword">
+                                <Form.Label>{t("password")}</Form.Label>
+                                <Form.Control type="text" name='password' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.password ? userPasswordData.password : ''} minLength={1} maxLength={100} />
+                                <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3" controlId="userChangePasswordFormRepeatPassword">
+                                <Form.Label>{t("repeatPassword")}</Form.Label>
+                                <Form.Control type="text" name='repeatPassword' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.repeatPassword ? userPasswordData.repeatPassword : ''} minLength={1} maxLength={200} />
+                                <Form.Control.Feedback type='invalid'>Repeat password is not valid</Form.Control.Feedback>
+                            </Form.Group>
+                        </div>
+                        <div className='userEditBtns'>
+                            <Button variant="primary" type='submit'>
+                                {t("modal_user_editprofile_send")}
+                            </Button>
+                        </div>
+                    </Form>
+                </div>
+            )
+            }
         </BaseModal>
     );
 };
