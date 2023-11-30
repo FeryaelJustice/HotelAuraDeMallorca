@@ -11,7 +11,6 @@ const moment = require('moment-timezone'); // for dates, library
 moment.tz.setDefault('Europe/Madrid');
 const dateFormat = 'YYYY-MM-DD';
 const nodemailer = require("nodemailer");
-const cryptoRandomString = require("crypto-random-string"); // for generating temp tokens for reset password
 const fileExtensionRegex = /\.[^.]+$/;
 const fs = require('fs');
 const multer = require('multer');
@@ -750,7 +749,7 @@ async function sendConfirmationEmail(connection, userId) {
 async function sendRecoverPasswordEmail(connection, userId) {
     return new Promise(async (resolve, reject) => {
         // Generate a random confirmation token
-        const resetToken = generateRandomCryptoToken();
+        const resetToken = generateRandomToken();
 
         // ... rest of the code
     });
@@ -760,12 +759,6 @@ async function sendRecoverPasswordEmail(connection, userId) {
 function generateRandomToken() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
-
-function generateRandomCryptoToken(length = 10) {
-    // Generate a random 32-character hexadecimal string
-    return cryptoRandomString({ length, type: 'base64' });
-}
-
 // Function to update user verification data
 const updateUserVerificationData = (connection, userId, verificationToken, verificationTokenExpiry) => {
     return new Promise((resolve, reject) => {
