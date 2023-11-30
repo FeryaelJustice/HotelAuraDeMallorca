@@ -50,20 +50,24 @@ const axios = require("axios");
 // const isWindows = os.platform() === 'win32';
 
 const decodeBase64Image = async (req, res, next) => {
-    const base64ImageString = req.body.imagePicQR;
-    const buffer = Buffer.from(base64ImageString.substring(22), 'base64');
+    if (req.body && req.body.imagePicQR) {
+        const base64ImageString = req.body.imagePicQR;
+        const buffer = Buffer.from(base64ImageString.substring(22), 'base64');
 
-    const decodedImage = await Jimp.read(buffer);
-    // Get the image dimensions and pixel data
-    const width = decodedImage.getWidth();
-    const height = decodedImage.getHeight();
-    const pixelData = decodedImage.bitmap.data;
+        const decodedImage = await Jimp.read(buffer);
+        // Get the image dimensions and pixel data
+        const width = decodedImage.getWidth();
+        const height = decodedImage.getHeight();
+        const pixelData = decodedImage.bitmap.data;
 
-    req.imageData = { width, height, pixelData };
-    req.imageWidth = width;
-    req.imageHeight = height;
+        req.imageData = { width, height, pixelData };
+        req.imageWidth = width;
+        req.imageHeight = height;
 
-    next();
+        next();
+    } else {
+        res.status(400).json({ message: 'No image found' });
+    }
 };
 
 // INIT SERVER
@@ -276,68 +280,73 @@ expressRouter.post('/register', (req, res) => {
 })
 
 expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
-    try {                    // Decode the QR code from the binary data
-        const qrCodeData = jsQR(req.imageData.pixelData, req.imageWidth, req.imageHeight);
+    try {
+        if (req.imageData && req.imageWidth && req.imageHeight) {
+            // Decode the QR code from the binary data
+            const qrCodeData = jsQR(req.imageData.pixelData, req.imageWidth, req.imageHeight);
 
-        if (qrCodeData) {
-            // Extracted data from the QR code
-            const extractedData = JSON.parse(qrCodeData.data);
-            const checkSQL = 'SELECT * FROM app_user WHERE user_email = ? OR user_dni = ?'
-            const checkValues = [extractedData.user_email, extractedData.user_dni]
-            req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
-                if (err) {
-                    return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
-                }
-                if (resultss.length > 0) {
-                    return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
-                } else {
-                    const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_dni, user_password, user_verified) VALUES (?, ?, ?, ?, ?, ?)';
-                    bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
-                        const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, extractedData.user_dni, hash, extractedData.user_verified];
-                        req.dbConnectionPool.query(query, values, (err, result) => {
-                            if (err) {
-                                console.error(err);
-                                return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
-                            }
-                            if (result) {
-                                let userID = result.insertId;
-                                let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+            if (qrCodeData) {
+                // Extracted data from the QR code
+                const extractedData = JSON.parse(qrCodeData.data);
+                const checkSQL = 'SELECT * FROM app_user WHERE user_email = ? OR user_dni = ?'
+                const checkValues = [extractedData.user_email, extractedData.user_dni]
+                req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
+                    if (err) {
+                        return res.status(500).json({ status: "error", message: "Error checking for existing emails" })
+                    }
+                    if (resultss.length > 0) {
+                        return res.status(500).json({ status: "error", message: "Existing email found in DB, use another email!" })
+                    } else {
+                        const query = 'INSERT INTO app_user (user_name, user_surnames, user_email, user_dni, user_password, user_verified) VALUES (?, ?, ?, ?, ?, ?)';
+                        bcrypt.hash(extractedData.user_password, salt, (err, hash) => {
+                            const values = [extractedData.user_name, extractedData.user_surnames, extractedData.user_email, extractedData.user_dni, hash, extractedData.user_verified];
+                            req.dbConnectionPool.query(query, values, (err, result) => {
+                                if (err) {
+                                    console.error(err);
+                                    return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
+                                }
+                                if (result) {
+                                    let userID = result.insertId;
+                                    let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
 
-                                // Insert default picture to user
-                                req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                                    if (err) {
-                                        console.error(err)
-                                    }
-                                })
+                                    // Insert default picture to user
+                                    req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    })
 
-                                // Insert user role to user (client by default: 1)
-                                req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
-                                    if (err) {
-                                        console.error(err)
-                                    }
-                                });
+                                    // Insert user role to user (client by default: 1)
+                                    req.dbConnectionPool.query('INSERT INTO user_role (user_id, role_id) VALUES (?,?)', [userID, 1], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    });
 
-                                req.dbConnectionPool.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
-                                    if (err) {
-                                        console.error(err)
-                                    }
-                                });
+                                    req.dbConnectionPool.query('UPDATE app_user SET access_token = ? WHERE id = ?', [jwtToken, userID], (err) => {
+                                        if (err) {
+                                            console.error(err)
+                                        }
+                                    });
 
-                                sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                                    return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
-                                }).catch(jsonError => {
-                                    return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
-                                })
+                                    sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
+                                        return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: results.insertId });
+                                    }).catch(jsonError => {
+                                        return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: results.insertId });
+                                    })
 
-                            } else {
-                                return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
-                            }
-                        })
-                    });
-                }
-            })
+                                } else {
+                                    return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
+                                }
+                            })
+                        });
+                    }
+                })
+            } else {
+                res.status(400).json({ message: 'No QR code found in the image' });
+            }
         } else {
-            res.status(400).json({ message: 'No QR code found in the image' });
+            res.status(400).json({ message: 'No image found' });
         }
     } catch (error) {
         res.status(500).send({ status: "error", error: "Internal server error" });
