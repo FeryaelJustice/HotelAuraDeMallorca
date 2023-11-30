@@ -15,6 +15,8 @@ CREATE TABLE app_user (
     verification_token VARCHAR(255),
     verification_token_expiry TIMESTAMP,
     access_token VARCHAR(255) DEFAULT NULL,
+    reset_token VARCHAR(255) DEFAULT NULL,
+    reset_token_expiry TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     isEnabled BOOLEAN DEFAULT TRUE,
     enabledByAdmin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
