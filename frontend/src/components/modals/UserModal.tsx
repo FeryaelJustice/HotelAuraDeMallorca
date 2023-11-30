@@ -65,7 +65,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         if (cookies.token) {
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                let picURL = '';
+                if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                }
                 setImagePicPreview(picURL);
             })
         }
@@ -106,7 +109,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             }).catch(err => console.log(err))
             // retrieve profile pic and put
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                let picURL = '';
+                if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                }
                 setImagePicPreview(picURL);
             })
         } else {

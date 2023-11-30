@@ -33,7 +33,10 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         if (cookies.token) {
             // retrieve profile pic and put each 20 seconds
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                let picURL = '';
+                if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                }
                 setUserPhotoURL(picURL);
             })
         }
@@ -54,7 +57,10 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         if (cookies.token) {
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then((res: any) => {
                 if (res && res.data && res.data.status != "error") {
-                    let picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    let picURL = '';
+                    if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                        picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    }
                     setUserPhotoURL(picURL);
                 }
             }).catch((err: any) => console.log(err))
@@ -158,25 +164,13 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                             </div>
                         ) : (
                             <div>
-                                {colorScheme === 'dark' ? (
+                                {colorScheme == 'dark' ? (
                                     <img id="user-icon" src='/user-icon.svg' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
                                 ) : (
                                     <img id="user-icon" src='/user-icon-white.webp' alt="user icon img" aria-description="icon user image" onClick={onOpenUserModal} />
                                 )}
                             </div>
                         )}
-
-                        {/* Logged icon */}
-                        {/* {cookies.token ? (
-                            <div className={`logged-icon${colorScheme === 'dark' ? '' : '-light'}`}>
-                                <FontAwesomeIcon icon={faCheck} />
-                                <span>Logged</span>
-                            </div>
-                        ) : (
-                            <div className="logged-icon">
-                                <span></span>
-                            </div>
-                        )} */}
                     </div>
 
                     <div aria-label="multilanguage-selection" className="header-multilanguage">

@@ -20,13 +20,12 @@ export const Home = ({ colorScheme }: HomeProps) => {
 
     // Get env variables nativa de vite pero es SOLO para react
     // console.log(import.meta.env)
-
-    console.log('Color scheme of the app: ' + colorScheme)
+    
     return (
         <div>
             <Parallax strength={300} bgImage={Image}>
                 <div className="content" id='home'>
-                    <div className="text-content">
+                    <div className="text-content" style={{ color: colorScheme == "dark" ? "#FFFFFF" : "#F7F7F7"}}>
                         {t("welcome")}
                     </div>
                 </div>

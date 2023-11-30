@@ -767,8 +767,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 const res = await serverAPI.post('/register', userToCreate);
 
                 setCookie('token', res.data.cookieJWT);
+                
                 // Send confirmation email
-                await sendConfirmationEmail(res.data.insertId, res.data.cookieJWT);
+                // await sendConfirmationEmail(res.data.insertId, res.data.cookieJWT);
 
                 const newUserAllData: User = {
                     id: res.data.insertId,
@@ -791,15 +792,15 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }
 
-    async function sendConfirmationEmail(userId: number, cookieJWT: string) {
-        try {
-            const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`, { headers: { 'Authorization': cookieJWT } });
-            console.log('Confirmation email sent successfully', response);
-        } catch (error) {
-            console.log('Error sending confirmation email:', error);
-            setBookingFinalMessage(prev => prev + "Error sending confirmation email / ");
-        }
-    }
+    // async function sendConfirmationEmail(userId: number, cookieJWT: string) {
+    //     try {
+    //         const response = await serverAPI.get(`/user/sendConfirmationEmail/${userId}`, { headers: { 'Authorization': cookieJWT } });
+    //         console.log('Confirmation email sent successfully', response);
+    //     } catch (error) {
+    //         console.log('Error sending confirmation email:', error);
+    //         setBookingFinalMessage(prev => prev + "Error sending confirmation email / ");
+    //     }
+    // }
 
     // nos aseguramos de hacer el booking con el nuevo usuario, o el ya existente
     async function doBooking(user_id: any, paymentTransactionID: any, updatedPrice: number, promoID: number) {
@@ -1351,8 +1352,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                     <div>
                                         {plans.map((plan) => (
                                             <Card key={plan.id ? (plan.id + Math.random() * (1000 - 1)) : Math.random()} style={{ width: '300px', height: '180px', padding: '0', marginTop: '20px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                                <Card.Body style={{ backgroundImage: `url(${plan.imageURL})`, backgroundSize: 'cover', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                    <Card.Title>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
+                                                <Card.Body style={{ backgroundImage: `url(${plan.imageURL})`, backgroundSize: 'cover', color: '#FFFFFF', textShadow: '2px 2px #000000', fontSize: '1.01em', fontWeight: '500' }}>
+                                                    <Card.Title style={{fontWeight: '800'}}>{t("modal_booking_plans_card_title", { name: plan.name })}</Card.Title>
                                                     <Card.Text>
                                                         <span>{plan.description}</span>
                                                         <br />
@@ -1451,8 +1452,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                             {filteredRooms.map((room) => (
                                                 <Row key={room.id ? (room.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
                                                     <Card style={{ backgroundImage: `url(${room.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                                        <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                            <Card.Title>{room.name}</Card.Title>
+                                                        <Card.Body style={{ color: '#FFFFFF', textShadow: '2px 2px #000000', fontSize: '1.01em', fontWeight: '600' }}>
+                                                            <Card.Title style={{fontWeight: '800'}}>{room.name}</Card.Title>
                                                             <Card.Text>
                                                                 <span>{room.description}</span>
                                                                 <br />
@@ -1510,8 +1511,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                             {services.map((service) => (
                                                 <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
                                                     <Card style={{ backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', marginTop: '10px', marginBottom: '10px', border: colorScheme !== "light" ? '2px solid white' : '2px solid black', borderRadius: '12px' }}>
-                                                        <Card.Body style={{ textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white' }}>
-                                                            <Card.Title>{service.name}</Card.Title>
+                                                        <Card.Body style={{ color: '#FFFFFF', textShadow: '2px 2px #000000', fontSize: '1.01em', fontWeight: '600' }}>
+                                                            <Card.Title style={{fontWeight: '800'}}>{service.name}</Card.Title>
                                                             <Card.Text style={{}}>
                                                                 <span>{service.description}</span>
                                                                 <br />

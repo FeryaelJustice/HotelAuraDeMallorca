@@ -21,8 +21,6 @@ export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
         behavior: 'smooth',
     });
 
-    console.log(colorScheme)
-
     useEffect(() => {
         if (cookies.cookieConsent) {
             serverAPI.post(`user/verifyEmail/${token}`)
@@ -54,7 +52,7 @@ export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
     }, [verificationStatus]); // , history
 
     return (
-        <div>
+        <div style={{ backgroundColor: colorScheme == "dark" ? '#000000' : '#FFFFFF', color: colorScheme == "dark" ? '#FFFFFF':'#000000'}}>
             {verificationStatus === 'success' && <p>Email verified successfully!</p>}
             {verificationStatus === 'error' && <p>Error verifying email. Please try again.</p>}
             {/* You can add more UI based on the verification status */}

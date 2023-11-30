@@ -24,8 +24,6 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: DuplicateBookingModalProps) => {
 
-    console.log(colorScheme)
-
     const { t } = useTranslation();
     const [cookies] = useCookies(['token']);
     const [booking, setBooking] = useState<Booking>()
@@ -120,7 +118,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
 
     return (
         <BaseModal title={t("modal_duplicatebooking_title")} show={show} onClose={handleClose}>
-            <em>{t("modal_duplicatebooking_info")}</em><hr />
+            <em style={{ color: colorScheme == "dark" ? '#FFFFFF' : '#0000E0' }}>{t("modal_duplicatebooking_info")}</em><hr />
             <p>{t("booking")} ID: {booking?.id}</p>
             <Container>
                 <Row>
