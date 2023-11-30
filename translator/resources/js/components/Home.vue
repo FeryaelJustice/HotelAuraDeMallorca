@@ -39,7 +39,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <em>Todos los códigos de los literales deben coincidir al insertar (se accederá por el mismo código diferenciando en idiomas)</em>
+                                <em>Todos los códigos de los literales deben coincidir al insertar (se accederá por el mismo
+                                    código diferenciando en idiomas)</em>
                                 <div class="language-selection" v-for="language in languages" :key="language.lang_code">
                                     <transition name="fade">
                                         <div v-if="language.lang_code == currentLanguage">
@@ -219,7 +220,24 @@ export default {
                 // Create
                 axios.post(API_URL + '/translations/create', data).then(res => {
                     alert(res.data.message)
-                    this.emptyForm();
+
+                    axios.get(API_URL + '/pages/domainAndApiKey/' + this.selectedPageId).then(async response => {
+                        const apiKey = response.data.data.apiKey;
+                        const domain = response.data.data.domain;
+
+                        // Find the page in the pages array based on selectedPageId
+                        // const selectedPage = this.pages.find(page => page.id === this.selectedPageId);
+
+                        if (domain) {
+                            const formData = new FormData();
+                            formData.append('translatorKey', apiKey);
+                            // if (selectedPage.name == 'Intranet Vacalia') {
+                            await axios.post(`${domain}/updates.php`, formData)
+                            // }
+                        }
+
+                        this.emptyForm();
+                    }).catch(error => { console.log(error) })
                 }).catch(err => {
                     if (err && err.response && err.response.data) {
                         alert('Ha ocurrido un error realizando la inserción: ' + err.response.data.message.errorInfo[2])

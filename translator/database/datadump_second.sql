@@ -28,6 +28,7 @@ INSERT INTO
         `id`,
         `name`,
         `domain`,
+        `apiKey`,
         `updated_at`,
         `created_at`
     )
@@ -36,6 +37,7 @@ VALUES
         1,
         'Homerti',
         'https://homerti.com',
+        '',
         '2023-11-22 07:44:45',
         '2023-11-22 07:44:45'
     ),
@@ -43,6 +45,7 @@ VALUES
         2,
         'Vacalia',
         'https://vacalia.com',
+        '',
         '2023-11-22 07:44:45',
         '2023-11-22 07:44:45'
     ),
@@ -50,6 +53,7 @@ VALUES
         3,
         'Aura de Mallorca',
         'https://hotelaurademallorca.com',
+        '',
         '2023-11-22 07:44:45',
         '2023-11-22 07:44:45'
     ),
@@ -57,6 +61,7 @@ VALUES
         4,
         'Intranet Vacalia',
         'https://intranet.vacalia.com',
+        '987v06cbe379d591fk38b9956d2706F2'
         '2023-11-22 07:44:45',
         '2023-11-22 07:44:45'
     );

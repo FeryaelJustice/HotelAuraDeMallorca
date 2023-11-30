@@ -30,6 +30,7 @@ Route::prefix('languages')->group(function () {
 Route::prefix('pages')->group(function () {
     Route::get('', [\App\Http\Controllers\PageController::class, 'getPages']);
     Route::get('/{id}', [\App\Http\Controllers\PageController::class, 'getPage']);
+    Route::get('/domainAndApiKey/{id}', [\App\Http\Controllers\PageController::class, 'getPageDomainAndApiKey']);
     Route::get('/section/{sectionID}', [\App\Http\Controllers\PageController::class, 'getSectionPage']);
 });
 

@@ -13,11 +13,12 @@
                         <label for="langFilter">Filter by: language -></label>
                         <select id="langFilter" name="langFilter" v-model="langFilter">
                             <option value="">Select a language</option>
-                            <option v-for="lang in langs" :key="lang.lang_code" :value="lang.lang_code">{{ lang.lang_name }}</option>
+                            <option v-for="lang in langs" :key="lang.lang_code" :value="lang.lang_code">{{ lang.lang_name }}
+                            </option>
                         </select>
 
-                        <br/>
-                        <br/>
+                        <br />
+                        <br />
 
                         <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="tbl">
                             <thead>
@@ -114,6 +115,18 @@ export default {
                         item.editMode = false;
                         if (response && response.data) {
                             alert(response.data.message);
+                            axios.get(API_URL + '/pages/domainAndApiKey/' + this.sectionPage.page_id).then(async response => {
+                                const apiKey = response.data.data.apiKey;
+                                const domain = response.data.data.domain;
+
+                                if (domain) {
+                                    const formData = new FormData();
+                                    formData.append('translatorKey', apiKey);
+                                    // if (this.sectionPage.name == 'Intranet Vacalia') {
+                                    await axios.post(`${domain}/updates.php`, formData)
+                                    // }
+                                }
+                            }).catch(error => { console.log(error) })
                         }
                     })
                     .catch(error => {

@@ -31,11 +31,11 @@ COMMIT;
 -- Volcado de datos para la tabla `app_page`
 --
 
-INSERT INTO `app_page` (`id`, `name`, `domain`, `updated_at`, `created_at`) VALUES
-(1, 'Homerti', 'https://homerti.com', '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
-(2, 'Vacalia', 'https://vacalia.com', '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
-(3, 'Aura de Mallorca', 'https://hotelaurademallorca.com', '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
-(4, 'Intranet Vacalia', 'https://intranet.vacalia.com', '2023-11-22 07:44:45', '2023-11-22 07:44:45');
+INSERT INTO `app_page` (`id`, `name`, `domain`, `apiKey`, `updated_at`, `created_at`) VALUES
+(1, 'Homerti', 'https://homerti.com','', '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
+(2, 'Vacalia', 'https://vacalia.com', '','2023-11-22 07:44:45', '2023-11-22 07:44:45'),
+(3, 'Aura de Mallorca', 'https://hotelaurademallorca.com', '', '2023-11-22 07:44:45', '2023-11-22 07:44:45'),
+(4, 'Intranet Vacalia', 'https://intranet.vacalia.com','987v06cbe379d591fk38b9956d2706F2', '2023-11-22 07:44:45', '2023-11-22 07:44:45');
 
 --
 -- Volcado de datos para la tabla `section`
