@@ -128,7 +128,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
-    const [promotions, setPromotions] = useState<Promotion[]>([]);
+    // const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>(""); // the promo code that user puts on payment and will apply
     const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1); // the selected promo id retrieved with the promo code
     const [userSelectedPromoIsAssociatedWithUser, setUserSelectedPromoIsAssociatedWithUser] = useState<boolean>(false);
@@ -273,14 +273,14 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
 
         // Get promotions
-        serverAPI.get('/promotions').then(res => {
-            let promos = res.data.data;
-            let retrievedPromos: Promotion[] = [];
-            promos.forEach((prm: any) => {
-                retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
-            })
-            setPromotions(retrievedPromos);
-        }).catch(err => console.log(err))
+        // serverAPI.get('/promotions').then(res => {
+        //     let promos = res.data.data;
+        //     let retrievedPromos: Promotion[] = [];
+        //     promos.forEach((prm: any) => {
+        //         retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
+        //     })
+        //     setPromotions(retrievedPromos);
+        // }).catch(err => console.log(err))
     }, [cookies])
 
     async function postWeatherDataToDB(weatherData: any) {
@@ -529,15 +529,28 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 }
                 break;
             case BookingSteps.StepPromoCode:
-                // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
-                const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(promotions, totalPriceToPay, userSelectedPromoCode)
-                const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
-                const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
+                // Get promotions
+                serverAPI.get('/promotions').then(async res => {
+                    let promos = res.data.data;
+                    let retrievedPromos: Promotion[] = [];
+                    promos.forEach((prm: any) => {
+                        retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
+                    })
+                    // setPromotions(retrievedPromos);
 
-                setTotalPriceToPay(updatedPrice)
-                setUserSelectedPromoID(promoID)
+                    // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
+                    const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(retrievedPromos, totalPriceToPay, userSelectedPromoCode)
+                    const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
+                    const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
 
-                setCurrentStep(BookingSteps.StepPaymentMethod);
+                    setTotalPriceToPay(updatedPrice)
+                    setUserSelectedPromoID(promoID)
+
+                    setCurrentStep(BookingSteps.StepPaymentMethod);
+                }).catch(err => {
+                    console.log(err)
+                    alert("Error recovering promo codes, can't continue with booking: " + err)
+                })
                 break;
             case BookingSteps.StepPaymentMethod:
                 // Migrado a usarlo directamente en un método en los propios forms de stripe, paypal o whatever
