@@ -11,6 +11,7 @@ const moment = require('moment-timezone'); // for dates, library
 moment.tz.setDefault('Europe/Madrid');
 const dateFormat = 'YYYY-MM-DD';
 const nodemailer = require("nodemailer");
+const cryptoRandomString = require("crypto-random-string"); // for generating temp tokens for reset password
 const fileExtensionRegex = /\.[^.]+$/;
 const fs = require('fs');
 const multer = require('multer');
@@ -468,7 +469,6 @@ expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
         const userID = req.id;
         const password = req.body.password;
         const encryptedPassword = await bcrypt.hash(password, salt);
-        console.log(encryptedPassword)
         let sql = 'UPDATE app_user SET user_password = ? WHERE id = ?';
         let values = [encryptedPassword, userID];
         const resp = await req.dbConnectionPool.query(sql, values)
@@ -483,6 +483,47 @@ expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
         req.dbConnectionPool.release();
     }
 })
+
+// Reset password sending temporal token of 10 minutes
+expressRouter.post('/resetPassword', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Find the user by email
+        const user = await findUserByEmail(email);
+
+        if (!user) {
+            return res.status(400).json({ status: 'error', error: 'User not found.' });
+        }
+
+        // Send the temporal token to reset the password
+        await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
+
+        return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+})
+
+async function findUserByEmail(email) {
+    try {
+        const sql = 'SELECT * FROM app_user WHERE user_email = ?';
+        const [rows] = await dbConnectionPool.query(sql, [email]);
+
+        // Assuming the query returns an array of rows
+        if (rows.length > 0) {
+            return rows[0]; // Returning the first user found (you might want to handle multiple results differently)
+        } else {
+            return null; // User not found
+        }
+    } catch (error) {
+        console.error('Error finding user by email:', error);
+        throw error;
+    }
+}
 
 expressRouter.delete('/user', verifyUser, (req, res) => {
     const userID = req.id;
@@ -706,9 +747,23 @@ async function sendConfirmationEmail(connection, userId) {
     });
 }
 
-// Function to generate a random token
+async function sendRecoverPasswordEmail(connection, userId) {
+    return new Promise(async (resolve, reject) => {
+        // Generate a random confirmation token
+        const resetToken = generateRandomCryptoToken();
+
+        // ... rest of the code
+    });
+}
+
+// Functions to generate random tokens
 function generateRandomToken() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function generateRandomCryptoToken(length = 10) {
+    // Generate a random 32-character hexadecimal string
+    return cryptoRandomString({ length, type: 'base64' });
 }
 
 // Function to update user verification data
