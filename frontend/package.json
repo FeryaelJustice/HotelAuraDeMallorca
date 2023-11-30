@@ -39,7 +39,9 @@
     "react-parallax": "^3.5.1",
     "react-router-dom": "^6.18.0",
     "sharp": "^0.32.6",
-    "svgo": "^3.0.3"
+    "svgo": "^3.0.3",
+    "sweetalert2": "^11.10.1",
+    "sweetalert2-react-content": "^5.0.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",

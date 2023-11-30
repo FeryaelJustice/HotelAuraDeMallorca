@@ -15,6 +15,8 @@ import { useTranslation } from "react-i18next";
 import QRCode from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
 // import { QrScanner } from '@yudiel/react-qr-scanner';
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
 
 interface UserModalProps {
     colorScheme: string,
@@ -31,6 +33,7 @@ enum UserModalScreens {
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const { t } = useTranslation();
+    const MySwal = withReactContent(Swal)
 
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
@@ -120,19 +123,35 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         window.location.reload();
     }
 
+    async function showConfirmationDialog() {
+        const result = await MySwal.fire({
+            title: 'Are you sure?',
+            text: 'You won\'t be able to revert this!',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+        })
+        return result.isConfirmed;
+    };
+
     const deleteAccount = () => {
-        // Delete account
-        serverAPI.delete('/user', {
-            headers: {
-                Authorization: cookies.token
+        showConfirmationDialog().then(confirm => {
+            if (confirm) {
+                // Delete account
+                serverAPI.delete('/user', {
+                    headers: {
+                        Authorization: cookies.token
+                    }
+                }).then(response => {
+                    if (response.data.status == "success") {
+                        alert(response.data.message)
+                        // Remove cookies
+                        logout();
+                    }
+                }).catch(err => console.log(err))
             }
-        }).then(response => {
-            if (response.data.status == "success") {
-                alert(response.data.message)
-                // Remove cookies
-                logout();
-            }
-        }).catch(err => console.log(err))
+        })
     }
 
     // Get JWT user data
