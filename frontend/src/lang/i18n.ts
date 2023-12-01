@@ -14,8 +14,9 @@ i18n
   .use(i18nBackend)
   .init({
     fallbackLng: "en",
-    load: "all",
+    load: "languageOnly",
     supportedLngs: languageCodes,
+    initImmediate: false,
     nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false,
