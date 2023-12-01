@@ -489,14 +489,17 @@ expressRouter.post('/sendRecoverAccountMail', (req, res) => {
         const { email } = req.body;
         if (email) {
             // Find the user by email
-            findUserByEmail(req.dbConnectionPool, email).then(async user => {
+            findUserByEmail(req.dbConnectionPool, email).then(user => {
                 if (!user) {
                     return res.status(400).json({ status: 'error', error: 'User not found.' });
                 }
 
                 // Send the temporal token to reset the password
-                await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
-                return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+                sendRecoverPasswordEmail(req.dbConnectionPool, user.id, user.user_email).then(_=> {
+                    return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+                }).catch(err => {
+                    return res.status(500).send({ status: 'error', error: err })
+                })
             }).catch(err => {
                 console.log(err)
                 return res.status(500).send({ status: 'error', error: err })
@@ -796,22 +799,36 @@ async function sendConfirmationEmail(connection, userId) {
     });
 }
 
-async function sendRecoverPasswordEmail(connection, userId) {
+async function sendRecoverPasswordEmail(connection, userId, userEmail) {
     return new Promise(async (resolve, reject) => {
         try {
-            // Generate a random confirmation token
-            const resetToken = generateRandomToken();
+            if (userEmail) {
+                // Generate a random confirmation token
+                const resetToken = generateRandomToken();
 
-            const resetTokenExpiry = new Date();
-            resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
-            resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 10);
+                const resetTokenExpiry = new Date();
+                resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+                resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 10);
 
-            await connection.beginTransaction()
+                await connection.beginTransaction()
 
-            await connection.query('UPDATE app_user SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [resetToken, resetTokenExpiry, userId])
-            await connection.commit();
+                await connection.query('UPDATE app_user SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [resetToken, resetTokenExpiry, userId])
+                await connection.commit();
 
-            resolve()
+                // Send the email
+                const info = await transporter.sendMail({
+                    from: "'Hotel Aura de Mallorca 👻' <hotelaurademallorca@hotmail.com>'",
+                    to: userEmail, // Replace with the actual user's email
+                    subject: 'Recover your account', // Subject line
+                    html: `<html><body>Paste the following token in the field to reset your password: ${resetToken}</body></html>`, // HTML body
+                });
+
+                console.log("Message sent: %s", info.messageId);
+
+                resolve();
+            } else {
+                reject();
+            }
         } catch (error) {
             await connection.rollback();
             reject(error)
