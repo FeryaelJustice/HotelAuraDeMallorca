@@ -42,8 +42,8 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
         }
     })
 
-    const onChangeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const lang_code = e.target.value;
+    const onChangeLang = (code: string) => {
+        const lang_code = code.toLowerCase();
         i18n.changeLanguage(lang_code);
         setSelectedLanguage(lang_code);
     };
@@ -175,7 +175,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
                     <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangForm">
-                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={onChangeLang}>
+                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={(event) => { onChangeLang(event.target.value) }}>
                                 {LANGUAGES.map(({ code, label }) => (
                                     <option key={code} value={code}>
                                         {label}
@@ -287,7 +287,7 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
 
                     <div aria-label="multilanguage-selection" className="header-multilanguage">
                         <Form id="selectLangFormPhone">
-                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={onChangeLang}>
+                            <Form.Select aria-label="Select language" value={selectedLanguage} name="selectLang" onChange={(event) => { onChangeLang(event.target.value) }}>
                                 {LANGUAGES.map(({ code, label }) => (
                                     <option key={code} value={code}>
                                         {label}
