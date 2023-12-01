@@ -47,6 +47,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const resetUserModal = () => {
         setUserLogin({ email: "", password: "" })
         setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
+        setUserRegisterPasswordsVisiblity({ passwordVisible: false, repeatPasswordVisible: false })
         setUserPasswordData({ password: "", repeatPassword: "" })
         setUserPasswordsVisible({ passwordVisible: false, repeatPasswordVisible: false })
 
@@ -243,6 +244,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
     const [userRegister, setUserRegister] = useState({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
+    const [userRegisterPasswordsVisibility, setUserRegisterPasswordsVisiblity] = useState({ passwordVisible: false, repeatPasswordVisible: false });
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
     // QR
     const [formWantsQRRegister, setFormWantsQRRegister] = useState(false);
@@ -530,13 +532,23 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
                                 <Form.Group className="mb-3" controlId="formPassword">
                                     <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
-                                    <Form.Control type="password" name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
+                                    <InputGroup>
+                                        <Form.Control type={userRegisterPasswordsVisibility.passwordVisible ? 'text' : 'password'} name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
+                                        <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, passwordVisible: !userRegisterPasswordsVisibility.passwordVisible }) }}>
+                                            {userRegisterPasswordsVisibility.passwordVisible ? <FaEyeSlash /> : <FaEye />}
+                                        </Button>
+                                    </InputGroup>
                                     <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                                 </Form.Group>
 
                                 <Form.Group className="mb-3" controlId="formRepeatPassword">
                                     <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
-                                    <Form.Control type="password" name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
+                                    <InputGroup>
+                                        <Form.Control type={userRegisterPasswordsVisibility.repeatPasswordVisible ? 'text' : 'password'} name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
+                                        <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, repeatPasswordVisible: !userRegisterPasswordsVisibility.repeatPasswordVisible }) }}>
+                                            {userRegisterPasswordsVisibility.repeatPasswordVisible ? <FaEyeSlash /> : <FaEye />}
+                                        </Button>
+                                    </InputGroup>
                                     <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
                                 </Form.Group>
                             </div>
@@ -665,7 +677,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 <InputGroup>
                                     <Form.Control type={userPasswordsVisible.passwordVisible ? 'text' : 'password'} name='password' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.password ? userPasswordData.password : ''} minLength={1} maxLength={100} />
                                     <Button onClick={() => { setUserPasswordsVisible({ ...userPasswordsVisible, passwordVisible: !userPasswordsVisible.passwordVisible }) }}>
-                                        {userPasswordsVisible ? <FaEyeSlash /> : <FaEye />}
+                                        {userPasswordsVisible.passwordVisible ? <FaEyeSlash /> : <FaEye />}
                                     </Button>
                                 </InputGroup>
                                 <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
@@ -676,7 +688,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 <InputGroup>
                                     <Form.Control type={userPasswordsVisible.repeatPasswordVisible ? 'text' : 'password'} name='repeatPassword' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.repeatPassword ? userPasswordData.repeatPassword : ''} minLength={1} maxLength={200} />
                                     <Button onClick={() => { setUserPasswordsVisible({ ...userPasswordsVisible, repeatPasswordVisible: !userPasswordsVisible.repeatPasswordVisible }) }}>
-                                        {userPasswordsVisible ? <FaEyeSlash /> : <FaEye />}
+                                        {userPasswordsVisible.repeatPasswordVisible ? <FaEyeSlash /> : <FaEye />}
                                     </Button>
                                 </InputGroup>
                                 <Form.Control.Feedback type='invalid'>Repeat password is not valid</Form.Control.Feedback>
