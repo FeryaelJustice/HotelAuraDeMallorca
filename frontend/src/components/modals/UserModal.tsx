@@ -31,6 +31,7 @@ enum UserModalScreens {
     ScreenRegister,
     ScreenEditProfile,
     ScreenChangePassword,
+    ScreenRecoverAccount,
 }
 
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
@@ -50,6 +51,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         setUserRegisterPasswordsVisiblity({ passwordVisible: false, repeatPasswordVisible: false })
         setUserPasswordData({ password: "", repeatPassword: "" })
         setUserPasswordsVisible({ passwordVisible: false, repeatPasswordVisible: false })
+        setRecoverAccountData({ email: '', codeIsSent: false, code: '', password: '', passwordVisible: false })
 
         if (!cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
@@ -129,6 +131,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const goToRegisterScreen = async () => {
         setCurrentScreen(UserModalScreens.ScreenRegister)
+    }
+
+    const goToRecoverAccount = async () => {
+        setCurrentScreen(UserModalScreens.ScreenRecoverAccount);
     }
 
     const logout = () => {
@@ -445,6 +451,53 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         setUserPasswordData({ ...userPasswordData, [event.target.name]: event.target.value });
     }
 
+    // Recover account SCREEN
+
+    const [recoverAccountData, setRecoverAccountData] = useState({ email: '', codeIsSent: false, code: '', password: '', passwordVisible: false });
+
+    const handleRecoverAccountForm = (event: React.ChangeEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (recoverAccountData.code != '' && recoverAccountData.password != '') {
+            if (recoverAccountData.email === '') {
+                alert('Cannot recover account because email data is lost and it\'s empty!')
+                return;
+            }
+            serverAPI.post('/recoverAccount', { token: recoverAccountData.code, email: recoverAccountData.email, password: recoverAccountData.password }).then(_ => {
+                alert('Password changed successfully')
+                resetUserModal();
+                onClose();
+            }).catch(error => {
+                if (error && error.response && error.response.data && error.response.data.error) {
+                    alert(error.response.data.error)
+                }
+            })
+        } else {
+            alert('Fields are not valid or are empty')
+        }
+    }
+
+    const handleRecoverDataFieldChange = (event: any) => {
+        setRecoverAccountData({ ...recoverAccountData, [event.target.name]: event.target.value });
+    }
+
+    function sendRecoverAccountEmail() {
+        console.log(recoverAccountData)
+        if (recoverAccountData.email === '') {
+            alert('Email is required')
+            return
+        }
+        serverAPI.post('/sendRecoverAccountMail', { email: recoverAccountData.email }).then(res => {
+            setRecoverAccountData({ ...recoverAccountData, codeIsSent: true })
+            alert(res.data.msg)
+        }).catch(error => {
+            if (error && error.response && error.response.data && error.response.data.error) {
+                alert(error.response.data.error)
+            }
+        })
+    }
+
     // When close, reset
     useEffect(() => {
         resetUserModal();
@@ -487,8 +540,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 {t("modal_user_login_send")}
                             </Button>
                             <div className="vertical-align">
-                                <span>{t("modal_user_login_advert")}</span>
-                                <a id='goToRegisterA' onClick={goToRegisterScreen}>{t("modal_user_login_register")}</a>
+                                <span>{t("modal_user_login_advert")} <a id='goToRegisterA' onClick={goToRegisterScreen}>{t("modal_user_login_register")}</a></span>
+                                <a id='goToRecoverA' onClick={goToRecoverAccount} style={{ color: '#FFA8A8', cursor: 'pointer' }}>¿Forgot your password? Recover your account here</a>
                             </div>
                         </div>
                     </Form>
@@ -670,6 +723,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenChangePassword && (
                 <div>
+                    <h3>Change your password</h3>
                     <Form id='userChangePasswordForm' onSubmit={handleChangePasswordForm}>
                         <div className='userChangePasswordFormDetails'>
                             <Form.Group className="mb-3" controlId="userChangePasswordFormPassword">
@@ -703,6 +757,48 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 </div>
             )
             }
+
+            {currentScreen === UserModalScreens.ScreenRecoverAccount && (
+                <div>
+                    <h3>Recover your account</h3>
+                    <Form id='userRecoverAccountForm' onSubmit={handleRecoverAccountForm}>
+                        <div className='userRecoverAccountFormDetails'>
+                            {recoverAccountData.codeIsSent ? (
+                                <div>
+                                    <Form.Group className="mb-3" controlId="userRecoverAccountFormTempCode">
+                                        <Form.Label>Code</Form.Label>
+                                        <Form.Control type='text' name='code' placeholder='code' onChange={handleRecoverDataFieldChange} value={recoverAccountData.code ? recoverAccountData.code : ''} minLength={1} maxLength={100} />
+                                    </Form.Group>
+                                    <Form.Group className="mb-3" controlId="userRecoverAccountFormPassword">
+                                        <Form.Label>New {t("password")}</Form.Label>
+                                        <InputGroup>
+                                            <Form.Control type={recoverAccountData.passwordVisible ? 'text' : 'password'} name='password' placeholder='xxxx' onChange={handleRecoverDataFieldChange} value={recoverAccountData.password ? recoverAccountData.password : ''} minLength={1} maxLength={100} />
+                                            <Button onClick={() => { setRecoverAccountData({ ...recoverAccountData, passwordVisible: !recoverAccountData.passwordVisible }) }}>
+                                                {recoverAccountData.passwordVisible ? <FaEyeSlash /> : <FaEye />}
+                                            </Button>
+                                        </InputGroup>
+                                        <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
+                                    </Form.Group>
+                                    <Button variant="primary" type='submit'>
+                                        Change password
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div>
+                                    <Form.Group className="mb-3" controlId="userRecoverAccountFormEmail">
+                                        <Form.Label>{t("modal_user_register_email_label")}</Form.Label>
+                                        <Form.Control type="email" minLength={1} maxLength={100} name='email' placeholder={t("modal_user_register_email_placeholder")} onChange={handleRecoverDataFieldChange} value={recoverAccountData.email ? recoverAccountData.email : ''} required />
+                                        <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
+                                    </Form.Group>
+                                    <Button variant="primary" type='button' onClick={() => { sendRecoverAccountEmail() }}>
+                                        Send code
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </Form>
+                </div>
+            )}
         </BaseModal>
     );
 };

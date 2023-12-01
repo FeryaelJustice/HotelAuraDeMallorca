@@ -509,7 +509,7 @@ expressRouter.post('/sendRecoverAccountMail', (req, res) => {
         }
 
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return res.status(500).json({ status: 'error', error: 'Internal server error.' });
     } finally {
         req.dbConnectionPool.release();
@@ -517,10 +517,10 @@ expressRouter.post('/sendRecoverAccountMail', (req, res) => {
 })
 expressRouter.post('/recoverAccount', (req, res) => {
     try {
-        const { token, password } = req.body;
-        if (token && password) {
+        const { token, email, password } = req.body;
+        if (token && email && password) {
             // Find the user by email
-            req.dbConnectionPool.query("SELECT id, reset_token_expiry FROM app_user WHERE reset_token = ?", [token], async (err, results) => {
+            req.dbConnectionPool.query("SELECT id, reset_token_expiry FROM app_user WHERE user_email = ? AND reset_token = ?", [email, token], async (err, results) => {
                 if (err) {
                     return res.status(500).json({ status: 'error', error: 'Internal server error.' });
                 }
@@ -538,14 +538,14 @@ expressRouter.post('/recoverAccount', (req, res) => {
                         return res.status(500).json({ status: 'error', error: 'Reset token expired' });
                     }
                 } else {
-                    return res.status(500).json({ status: 'error', error: 'No results' });
+                    return res.status(500).json({ status: 'error', error: 'Code is invalid or expired!' });
                 }
             })
         } else {
-            return res.status(500).json({ status: 'error', error: 'No token' });
+            return res.status(500).json({ status: 'error', error: 'No token, email or password' });
         }
     } catch (error) {
-        console.error(error);
+        console.log(error);
         req.dbConnectionPool.rollback();
         return res.status(500).json({ status: 'error', error: 'Internal server error.' });
     } finally {
@@ -559,7 +559,7 @@ function findUserByEmail(connection, email) {
             const sql = 'SELECT * FROM app_user WHERE user_email = ?';
             connection.query(sql, [email], (err, response) => {
                 if (err) {
-                    console.error('Error finding user by email:', err);
+                    console.log('Error finding user by email:', err);
                     reject(err);
                 }
 
@@ -567,11 +567,11 @@ function findUserByEmail(connection, email) {
                 if (response.length > 0) {
                     resolve(response[0]); // Resolving with the first user found
                 } else {
-                    reject(new Error('User not found'));
+                    reject('User not found');
                 }
             })
         } catch (error) {
-            console.error('Error finding user by email:', error);
+            console.log('Error finding user by email:', error);
             reject(error);
         }
     });
