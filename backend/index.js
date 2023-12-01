@@ -484,21 +484,24 @@ expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
 })
 
 // Reset password sending temporal token of 10 minutes
-expressRouter.post('/resetPassword', async (req, res) => {
+expressRouter.post('/recoverAccount', (req, res) => {
     try {
         const { email } = req.body;
 
         // Find the user by email
-        const user = await findUserByEmail(email);
+        findUserByEmail(req.dbConnectionPool, email).then(async user => {
+            if (!user) {
+                return res.status(400).json({ status: 'error', error: 'User not found.' });
+            }
 
-        if (!user) {
-            return res.status(400).json({ status: 'error', error: 'User not found.' });
-        }
+            // Send the temporal token to reset the password
+            await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
+            return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+        }).catch(err => {
+            console.log(err)
+            return res.status(500).send({ status: 'error', error: err })
+        })
 
-        // Send the temporal token to reset the password
-        await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
-
-        return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 'error', error: 'Internal server error.' });
@@ -507,21 +510,28 @@ expressRouter.post('/resetPassword', async (req, res) => {
     }
 })
 
-async function findUserByEmail(email) {
-    try {
-        const sql = 'SELECT * FROM app_user WHERE user_email = ?';
-        const [rows] = await dbConnectionPool.query(sql, [email]);
+function findUserByEmail(connection, email) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const sql = 'SELECT * FROM app_user WHERE user_email = ?';
+            connection.query(sql, [email], (err, response) => {
+                if(err){
+                    console.error('Error finding user by email:', err);
+                    reject(err);
+                }
 
-        // Assuming the query returns an array of rows
-        if (rows.length > 0) {
-            return rows[0]; // Returning the first user found (you might want to handle multiple results differently)
-        } else {
-            return null; // User not found
+                // Assuming the query returns an array of rows
+                if (response.length > 0) {
+                    resolve(response[0]); // Resolving with the first user found
+                } else {
+                    reject(new Error('User not found'));
+                }
+            })
+        } catch (error) {
+            console.error('Error finding user by email:', error);
+            reject(error);
         }
-    } catch (error) {
-        console.error('Error finding user by email:', error);
-        throw error;
-    }
+    });
 }
 
 expressRouter.delete('/user', verifyUser, (req, res) => {
@@ -748,10 +758,24 @@ async function sendConfirmationEmail(connection, userId) {
 
 async function sendRecoverPasswordEmail(connection, userId) {
     return new Promise(async (resolve, reject) => {
-        // Generate a random confirmation token
-        const resetToken = generateRandomToken();
+        try {
+            // Generate a random confirmation token
+            const resetToken = generateRandomToken();
+            
+            const resetTokenExpiry = new Date();
+            resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+            resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 10);
 
-        // ... rest of the code
+            await connection.beginTransaction()
+
+            await connection.query('UPDATE app_user SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [resetToken, resetTokenExpiry, userId])
+            await connection.commit();
+
+            resolve()
+        } catch (error) {
+            await connection.rollback();
+            reject(error)
+        }
     });
 }
 
