@@ -723,7 +723,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenChangePassword && (
                 <div>
-                    <h3>Change your password</h3>
+                    <h3>{t("modal_user_changePassword_title")}</h3>
                     <Form id='userChangePasswordForm' onSubmit={handleChangePasswordForm}>
                         <div className='userChangePasswordFormDetails'>
                             <Form.Group className="mb-3" controlId="userChangePasswordFormPassword">
@@ -760,17 +760,17 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
             {currentScreen === UserModalScreens.ScreenRecoverAccount && (
                 <div>
-                    <h3>Recover your account</h3>
+                    <h3>{t("modal_user_recoverAccount_title")}</h3>
                     <Form id='userRecoverAccountForm' onSubmit={handleRecoverAccountForm}>
                         <div className='userRecoverAccountFormDetails'>
                             {recoverAccountData.codeIsSent ? (
                                 <div>
                                     <Form.Group className="mb-3" controlId="userRecoverAccountFormTempCode">
-                                        <Form.Label>Code</Form.Label>
-                                        <Form.Control type='text' name='code' placeholder='code' onChange={handleRecoverDataFieldChange} value={recoverAccountData.code ? recoverAccountData.code : ''} minLength={1} maxLength={100} />
+                                        <Form.Label>{t("code")}</Form.Label>
+                                        <Form.Control type='text' name='code' placeholder={t("code")} onChange={handleRecoverDataFieldChange} value={recoverAccountData.code ? recoverAccountData.code : ''} minLength={1} maxLength={100} />
                                     </Form.Group>
                                     <Form.Group className="mb-3" controlId="userRecoverAccountFormPassword">
-                                        <Form.Label>New {t("password")}</Form.Label>
+                                        <Form.Label>{t("new") + " " + t("password")}</Form.Label>
                                         <InputGroup>
                                             <Form.Control type={recoverAccountData.passwordVisible ? 'text' : 'password'} name='password' placeholder='xxxx' onChange={handleRecoverDataFieldChange} value={recoverAccountData.password ? recoverAccountData.password : ''} minLength={1} maxLength={100} />
                                             <Button onClick={() => { setRecoverAccountData({ ...recoverAccountData, passwordVisible: !recoverAccountData.passwordVisible }) }}>
@@ -780,7 +780,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                         <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                                     </Form.Group>
                                     <Button variant="primary" type='submit'>
-                                        Change password
+                                        {t("modal_user_editprofile_send")}
                                     </Button>
                                 </div>
                             ) : (
@@ -791,7 +791,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                         <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                                     </Form.Group>
                                     <Button variant="primary" type='button' onClick={() => { sendRecoverAccountEmail() }}>
-                                        Send code
+                                            {t("modal_user_recoverAccount_sendCode")}
                                     </Button>
                                 </div>
                             )}
