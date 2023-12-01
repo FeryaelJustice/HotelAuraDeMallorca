@@ -627,7 +627,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 label={t("modal_user_register_wantsToRegisterWithQR")}
                                 name="formWantsQRRegister"
                                 checked={formWantsQRRegister}
-                                onChange={(e) => handleFormWantsQRRegister(e)}
+                                onChange={(e: any) => handleFormWantsQRRegister(e)}
                             />
                         </Form.Group>
 
