@@ -484,26 +484,66 @@ expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
 })
 
 // Reset password sending temporal token of 10 minutes
-expressRouter.post('/recoverAccount', (req, res) => {
+expressRouter.post('/sendRecoverAccountMail', (req, res) => {
     try {
         const { email } = req.body;
+        if (email) {
+            // Find the user by email
+            findUserByEmail(req.dbConnectionPool, email).then(async user => {
+                if (!user) {
+                    return res.status(400).json({ status: 'error', error: 'User not found.' });
+                }
 
-        // Find the user by email
-        findUserByEmail(req.dbConnectionPool, email).then(async user => {
-            if (!user) {
-                return res.status(400).json({ status: 'error', error: 'User not found.' });
-            }
-
-            // Send the temporal token to reset the password
-            await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
-            return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
-        }).catch(err => {
-            console.log(err)
-            return res.status(500).send({ status: 'error', error: err })
-        })
+                // Send the temporal token to reset the password
+                await sendRecoverPasswordEmail(req.dbConnectionPool, user.id);
+                return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+            }).catch(err => {
+                console.log(err)
+                return res.status(500).send({ status: 'error', error: err })
+            })
+        } else {
+            return res.status(500).json({ status: 'error', error: 'No email' });
+        }
 
     } catch (error) {
         console.error(error);
+        return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+})
+expressRouter.post('/recoverAccount', (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (token && password) {
+            // Find the user by email
+            req.dbConnectionPool.query("SELECT id, reset_token_expiry FROM app_user WHERE reset_token = ?", [token], async (err, results) => {
+                if (err) {
+                    return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+                }
+                if (results && results.length > 0) {
+                    const id = results[0].id
+                    const resetTokenExpiry = new Date(results[0].reset_token_expiry);
+                    const now = new Date();
+
+                    if (now < resetTokenExpiry) {
+                        const encryptedPassword = await bcrypt.hash(password, salt);
+                        await req.dbConnectionPool.query('UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?', [encryptedPassword, id]);
+                        await req.dbConnectionPool.commit();
+                        return res.status(200).json({ status: 'success', msg: 'Account recovered, password changed successfully!' });
+                    } else {
+                        return res.status(500).json({ status: 'error', error: 'Reset token expired' });
+                    }
+                } else {
+                    return res.status(500).json({ status: 'error', error: 'No results' });
+                }
+            })
+        } else {
+            return res.status(500).json({ status: 'error', error: 'No token' });
+        }
+    } catch (error) {
+        console.error(error);
+        req.dbConnectionPool.rollback();
         return res.status(500).json({ status: 'error', error: 'Internal server error.' });
     } finally {
         req.dbConnectionPool.release();
@@ -515,7 +555,7 @@ function findUserByEmail(connection, email) {
         try {
             const sql = 'SELECT * FROM app_user WHERE user_email = ?';
             connection.query(sql, [email], (err, response) => {
-                if(err){
+                if (err) {
                     console.error('Error finding user by email:', err);
                     reject(err);
                 }
@@ -761,7 +801,7 @@ async function sendRecoverPasswordEmail(connection, userId) {
         try {
             // Generate a random confirmation token
             const resetToken = generateRandomToken();
-            
+
             const resetTokenExpiry = new Date();
             resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
             resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 10);
