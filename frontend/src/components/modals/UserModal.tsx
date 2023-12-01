@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form';
-import { useCookies } from 'react-cookie';
+import InputGroup from 'react-bootstrap/InputGroup'
 import Alert from 'react-bootstrap/Alert';
+import { FaEye, FaEyeSlash } from "react-icons/fa"
+import { useCookies } from 'react-cookie';
 import ReCAPTCHA from "react-google-recaptcha";
 import { User, Role } from './../../models/index';
 import { API_URL, API_URL_BASE } from './../../services/consts';
@@ -43,12 +45,15 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const resetUserModal = () => {
+        setUserLogin({ email: "", password: "" })
+        setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
+        setUserPasswordData({ password: "", repeatPassword: "" })
+        setUserPasswordsVisible({ passwordVisible: false, repeatPasswordVisible: false })
+
         if (!cookies.token) {
             setCurrentScreen(UserModalScreens.ScreenLogin)
             setCurrentUser(new User())
             setUserEdit({ name: '', surnames: '', token: '' });
-            setUserLogin({ email: "", password: "" })
-            setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
         } else {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
         }
@@ -404,6 +409,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     // CHANGE PASSWORD SCREEN
 
     const [userPasswordData, setUserPasswordData] = useState({ password: '', repeatPassword: '' });
+    const [userPasswordsVisible, setUserPasswordsVisible] = useState({ passwordVisible: false, repeatPasswordVisible: false });
     function goToChangePassword() {
         setCurrentScreen(UserModalScreens.ScreenChangePassword)
     }
@@ -656,13 +662,23 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         <div className='userChangePasswordFormDetails'>
                             <Form.Group className="mb-3" controlId="userChangePasswordFormPassword">
                                 <Form.Label>{t("password")}</Form.Label>
-                                <Form.Control type="text" name='password' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.password ? userPasswordData.password : ''} minLength={1} maxLength={100} />
+                                <InputGroup>
+                                    <Form.Control type={userPasswordsVisible.passwordVisible ? 'text' : 'password'} name='password' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.password ? userPasswordData.password : ''} minLength={1} maxLength={100} />
+                                    <Button onClick={() => { setUserPasswordsVisible({ ...userPasswordsVisible, passwordVisible: !userPasswordsVisible.passwordVisible }) }}>
+                                        {userPasswordsVisible ? <FaEyeSlash /> : <FaEye />}
+                                    </Button>
+                                </InputGroup>
                                 <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                             </Form.Group>
 
                             <Form.Group className="mb-3" controlId="userChangePasswordFormRepeatPassword">
                                 <Form.Label>{t("repeatPassword")}</Form.Label>
-                                <Form.Control type="text" name='repeatPassword' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.repeatPassword ? userPasswordData.repeatPassword : ''} minLength={1} maxLength={200} />
+                                <InputGroup>
+                                    <Form.Control type={userPasswordsVisible.repeatPasswordVisible ? 'text' : 'password'} name='repeatPassword' placeholder='xxxx' onChange={handleEditPasswordFieldChange} value={userPasswordData.repeatPassword ? userPasswordData.repeatPassword : ''} minLength={1} maxLength={200} />
+                                    <Button onClick={() => { setUserPasswordsVisible({ ...userPasswordsVisible, repeatPasswordVisible: !userPasswordsVisible.repeatPasswordVisible }) }}>
+                                        {userPasswordsVisible ? <FaEyeSlash /> : <FaEye />}
+                                    </Button>
+                                </InputGroup>
                                 <Form.Control.Feedback type='invalid'>Repeat password is not valid</Form.Control.Feedback>
                             </Form.Group>
                         </div>
