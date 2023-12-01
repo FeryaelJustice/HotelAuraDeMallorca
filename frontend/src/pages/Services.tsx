@@ -70,7 +70,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                                 {services.map((service) => (
                                     <Row key={service.id ? (service.id + Math.random() * (1000 - 1)) : Math.random()} md={12} className="mb-12">
                                         <Card style={{ height: '360px', cursor: 'pointer', backgroundImage: `url(${service.imageURL})`, backgroundSize: 'cover', backgroundPositionY: 'center', borderRadius: '12px', marginBottom: '8px', transition: 'transform 0.6s', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '2px dashed #ffffff' }}
-                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                            onMouseEnter={(e: any) => { e.currentTarget.style.transform = 'scale(1.04)' }} onMouseLeave={(e: any) => { e.currentTarget.style.transform = 'scale(1)'; }}
                                             onClick={() => openImagePreviewModal(service.imageURL ? service.imageURL : '', service.name ? service.name : '', service.description ? service.description : '')}
                                         >
                                             <Card.Body style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', textShadow: colorScheme !== "light" ? '2px 2px black' : '1px 1px 1px white', color: colorScheme == "light" ? 'black' : 'white', background: colorScheme == "dark" ? ' rgba(0, 0, 0, .9)' : 'rgba(255, 255, 255, .9)', borderRadius: '8px' }}>

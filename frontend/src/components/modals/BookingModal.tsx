@@ -1411,7 +1411,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                             min={1}
                                             max={10}
                                             value={adults}
-                                            onChange={(e) => setAdults(e.target.value as unknown as number)}
+                                            onChange={(e: any) => setAdults(e.target.value as unknown as number)}
                                         />
                                     </Col>
                                     <Col md={6}>
@@ -1421,7 +1421,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                             min={0}
                                             max={10}
                                             value={children}
-                                            onChange={(e) => setChildren(e.target.value as unknown as number)}
+                                            onChange={(e: any) => setChildren(e.target.value as unknown as number)}
                                         />
                                     </Col>
                                 </Row>
@@ -1561,7 +1561,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                                 disabled={userWantsToBecomeGuest && index === 0}
                                                                 value={guest.name ? guest.name : ''}
                                                                 isInvalid={!!guestsDataErrors[index].nameError}
-                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                                onChange={(e: any) => handleGuestsInputChange(index, e)}
                                                             />    <Form.Control.Feedback type='invalid'>
                                                                 {guestsDataErrors[index].nameError}
                                                             </Form.Control.Feedback>
@@ -1576,7 +1576,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                                 disabled={userWantsToBecomeGuest && index === 0}
                                                                 value={guest.surnames ? guest.surnames : ''}
                                                                 isInvalid={!!guestsDataErrors[index].surnamesError}
-                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                                onChange={(e: any) => handleGuestsInputChange(index, e)}
                                                             />    <Form.Control.Feedback type='invalid'>
                                                                 {guestsDataErrors[index].surnamesError}
                                                             </Form.Control.Feedback>
@@ -1591,7 +1591,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                                 disabled={userWantsToBecomeGuest && index === 0}
                                                                 value={guest.email ? guest.email : ''}
                                                                 isInvalid={!!guestsDataErrors[index].emailError}
-                                                                onChange={(e) => handleGuestsInputChange(index, e)}
+                                                                onChange={(e: any) => handleGuestsInputChange(index, e)}
                                                             />    <Form.Control.Feedback type='invalid'>
                                                                 {guestsDataErrors[index].emailError}
                                                             </Form.Control.Feedback>
@@ -1606,7 +1606,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                                     name="isAdult"
                                                                     disabled={userWantsToBecomeGuest && index === 0}
                                                                     checked={guest.isAdult ? guest.isAdult : false}
-                                                                    onChange={(e) => handleGuestsInputChange(index, e)}
+                                                                    onChange={(e: any) => handleGuestsInputChange(index, e)}
                                                                 />
                                                             </Form.Group>
                                                         </div>
@@ -1653,7 +1653,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                             <h2>Promo code (optional)</h2>
                             <br />
                             <div className='payment-promocode'>
-                                <Form id='promoCodeForm' noValidate onSubmit={(e) => {
+                                <Form id='promoCodeForm' noValidate onSubmit={(e: any) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     goToNextStep();
@@ -1665,7 +1665,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                         placeholder='Promotion code'
                                         maxLength={255}
                                         value={userSelectedPromoCode}
-                                        onChange={(e) => setUserSelectedPromoCode(e.target.value)}
+                                        onChange={(e: any) => setUserSelectedPromoCode(e.target.value)}
                                     />
                                     <div className='bookingNavButtons'>
                                         <Button variant="secondary" type='button' onClick={goToPreviousStep}>
