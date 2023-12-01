@@ -223,8 +223,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 }
             }).catch(err => {
                 console.log(err)
-                if (err.response.data && err.response.data.msg) {
-                    alert(err.response.data.msg)
+                if (err.response.data && err.response.data.message) {
+                    alert(err.response.data.message)
                 }
             })
         }
@@ -302,7 +302,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 if (!formWantsQRRegister) {
                     // api call
                     serverAPI.post('/register', userRegister).then(res => {
-                        alert(res.data.msg)
+                        alert(res.data.message)
                         resetUserModal();
                         onClose();
                     }).catch(err => {
@@ -313,7 +313,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     })
                 } else {
                     serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
-                        alert(res.data.msg)
+                        alert(res.data.message)
                         resetUserModal();
                         onClose();
                     }).catch(err => {
@@ -389,13 +389,13 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     // Emit event
                     EventEmitter.dispatch(Events.CHANGE_PROFILE_PIC, null);
                 })
-                alert(res.data.msg)
+                alert(res.data.message)
                 resetUserModal();
                 onClose();
             }).catch(err => {
                 console.log(err)
-                if (err.response.data && err.response.data.msg) {
-                    alert(err.response.data.msg)
+                if (err.response.data && err.response.data.message) {
+                    alert(err.response.data.message)
                 }
             })
         } else {
@@ -430,13 +430,13 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         if (userPasswordData.password != "" && userPasswordData.repeatPassword != "" && form.checkValidity()) {
             if (userPasswordData.password === userPasswordData.repeatPassword) {
                 serverAPI.post('/editUserPassword', { password: userPasswordData.password }, { headers: { 'Authorization': cookies.token } }).then(res => {
-                    alert(res.data.msg)
+                    alert(res.data.message)
                     resetUserModal();
                     onClose();
                 }).catch(err => {
                     console.log(err)
-                    if (err.response.data && err.response.data.msg) {
-                        alert(err.response.data.msg)
+                    if (err.response.data && err.response.data.message) {
+                        alert(err.response.data.message)
                     }
                 })
             } else {
@@ -469,8 +469,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 resetUserModal();
                 onClose();
             }).catch(error => {
-                if (error && error.response && error.response.data && error.response.data.error) {
-                    alert(error.response.data.error)
+                if (error && error.response && error.response.data && error.response.data.message) {
+                    alert(error.response.data.message)
                 }
             })
         } else {
@@ -483,17 +483,16 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     function sendRecoverAccountEmail() {
-        console.log(recoverAccountData)
         if (recoverAccountData.email === '') {
             alert('Email is required')
             return
         }
         serverAPI.post('/sendRecoverAccountMail', { email: recoverAccountData.email }).then(res => {
             setRecoverAccountData({ ...recoverAccountData, codeIsSent: true })
-            alert(res.data.msg)
+            alert(res.data.message)
         }).catch(error => {
-            if (error && error.response && error.response.data && error.response.data.error) {
-                alert(error.response.data.error)
+            if (error && error.response && error.response.data && error.response.data.message) {
+                alert(error.response.data.message)
             }
         })
     }

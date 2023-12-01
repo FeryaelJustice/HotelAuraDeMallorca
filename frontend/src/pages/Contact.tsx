@@ -41,12 +41,12 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             message
         }
         serverAPI.post('/sendContactForm', data).then(response => {
-            alert(response.data.msg)
+            alert(response.data.message)
             emptyForm();
         }).catch(error => {
             console.log(error)
-            if (error.response.data && error.response.data.msg) {
-                alert(error.response.data.msg)
+            if (error.response.data && error.response.data.message) {
+                alert(error.response.data.message)
             }
         })
     }

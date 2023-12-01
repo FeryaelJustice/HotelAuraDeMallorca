@@ -52,7 +52,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
 
     async function duplicateBooking() {
         if (!booking || !startDate || !endDate) {
-            console.error('Booking or startDate or endDate are undefined');
+            console.log('Booking or startDate or endDate are undefined');
             return;
         }
 
@@ -86,23 +86,23 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                         serverAPI.post('/duplicateBooking', formattedNewBooking, {
                             headers: { 'Authorization': cookies.token }
                         }).then(response => {
-                            if (response && response.data && response.data.msg) {
-                                alert(response.data.msg)
+                            if (response && response.data && response.data.message) {
+                                alert(response.data.message)
                             }
                             onClose();
                             window.location.reload();
                         }).catch(err => {
-                            if (err && err.response && err.response.data && err.response.data.error) {
-                                alert(err.response.data.error)
+                            if (err && err.response && err.response.data && err.response.data.message) {
+                                alert(err.response.data.message)
                             }
                             console.log(err)
                         });
                     } else {
-                        alert(availabilityResponse.data.msg)
+                        alert(availabilityResponse.data.message)
                     }
                 } else {
-                    if (availabilityResponse.data.msg) {
-                        alert(availabilityResponse.data.msg)
+                    if (availabilityResponse.data.message) {
+                        alert(availabilityResponse.data.message)
                     } else {
                         alert("These days are not available, they are occupied: ")
                     }

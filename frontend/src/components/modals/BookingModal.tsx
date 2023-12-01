@@ -728,8 +728,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 if (error.response.data.message) {
                     alert(error.response.data.message)
                 }
-                if (error.response.data.error) {
-                    alert(error.response.data.error)
+                if (error.response.data.message) {
+                    alert(error.response.data.message)
                 }
             }
             await cancelBooking();

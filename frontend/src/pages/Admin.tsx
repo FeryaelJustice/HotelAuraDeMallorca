@@ -127,13 +127,13 @@ export const Admin = ({ colorScheme }: AdminProps) => {
             endDate: selectedBookingEndDate
         }
         serverAPI.put('/booking', data, { headers: { 'Authorization': cookies.token } }).then(res => {
-            alert(res.data.msg)
+            alert(res.data.message)
         }).catch(err => console.log(err))
     }
 
     const deleteBooking = () => {
         serverAPI.delete('/booking/' + selectedBookingId, { headers: { 'Authorization': cookies.token } }).then(res => {
-            alert(res.data.msg)
+            alert(res.data.message)
             clearData()
             navigate("/")
         }).catch(err => console.log(err))

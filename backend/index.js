@@ -131,16 +131,16 @@ const verifyUser = (req, res, next) => {
     //     token = req.cookies.token;
     // }
     if (!token) {
-        return res.status(401).json({ status: "error", msg: "You are not authenticated, forbidden." })
+        return res.status(401).json({ status: "error", message: "You are not authenticated, forbidden." })
     } else {
         jwt.verify(token, jwtSecretKey, (err, decoded) => {
             if (err) {
-                return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
+                return res.status(401).json({ status: "error", message: "Token is not valid, forbidden." })
             } else {
                 // Check also on db
                 req.dbConnectionPool.query('SELECT id, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1', [token], (err, result) => {
                     if (err) {
-                        return res.status(401).json({ status: "error", msg: "Couldn't check user token in db query." })
+                        return res.status(401).json({ status: "error", message: "Couldn't check user token in db query." })
                     }
                     if (result && result.length > 0) {
                         if (result[0].user_verified == 1) {
@@ -148,10 +148,10 @@ const verifyUser = (req, res, next) => {
                             req.dni = result[0].user_dni;
                             next();
                         } else {
-                            return res.status(401).json({ status: "error", msg: "Token is valid, but user is not verified." })
+                            return res.status(401).json({ status: "error", message: "Token is valid, but user is not verified." })
                         }
                     } else {
-                        return res.status(401).json({ status: "error", msg: "Token is not valid, forbidden." })
+                        return res.status(401).json({ status: "error", message: "Token is not valid, forbidden." })
                     }
                 })
             }
@@ -192,7 +192,7 @@ expressRouter.use((req, res, next) => {
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error acquiring connection from pool:', err);
-            return res.status(500).send({ status: 'error', error: 'Internal server error' });
+            return res.status(500).send({ status: 'error', message: 'Internal server error' });
         }
         req.dbConnectionPool = connection; // Agregamos la conexión al objeto de solicitud
         next(); // Continuamos con la ejecución de la ruta
@@ -220,6 +220,9 @@ expressRouter.post('/checkUserExists', (req, res) => {
 expressRouter.post('/register', (req, res) => {
     try {
         const data = req.body;
+        if(data && data.password && data.password.length < 4) {
+            return res.status(500).json({ status: "error", message: "Password must be at least 4 characters long" })
+        }
         const checkSQL = 'SELECT * FROM app_user WHERE user_email = ? OR user_dni = ?'
         const checkValues = [data.email, data.dni]
         req.dbConnectionPool.query(checkSQL, checkValues, (err, resultss) => {
@@ -236,7 +239,7 @@ expressRouter.post('/register', (req, res) => {
                     req.dbConnectionPool.query(sql, values, (error, results) => {
                         if (error) {
                             console.error(error);
-                            return res.status(500).json({ status: "error", msg: "Inserting data error on server" });
+                            return res.status(500).json({ status: "error", message: "Inserting data error on server" });
                         }
                         let userID = results.insertId;
                         let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
@@ -263,9 +266,9 @@ expressRouter.post('/register', (req, res) => {
                         });
 
                         sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                            return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: userID });
+                            return res.status(200).json({ status: "success", message: json.msg, cookieJWT: jwtToken, insertId: userID });
                         }).catch(jsonError => {
-                            return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: userID });
+                            return res.status(201).json({ status: "success", message: jsonError, cookieJWT: jwtToken, insertId: userID });
                         })
 
                     });
@@ -273,7 +276,7 @@ expressRouter.post('/register', (req, res) => {
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -303,7 +306,7 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                             req.dbConnectionPool.query(query, values, (err, result) => {
                                 if (err) {
                                     console.error(err);
-                                    return res.status(500).json({ status: "error", msg: "Error on inserting in db" });
+                                    return res.status(500).json({ status: "error", message: "Error on inserting in db" });
                                 }
                                 if (result) {
                                     let userID = result.insertId;
@@ -330,13 +333,13 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                     });
 
                                     sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                                        return res.status(200).json({ status: "success", msg: json.msg, cookieJWT: jwtToken, insertId: userID });
+                                        return res.status(200).json({ status: "success", message: json.msg, cookieJWT: jwtToken, insertId: userID });
                                     }).catch(jsonError => {
-                                        return res.status(201).json({ status: "success", msg: jsonError, cookieJWT: jwtToken, insertId: userID });
+                                        return res.status(201).json({ status: "success", message: jsonError, cookieJWT: jwtToken, insertId: userID });
                                     })
 
                                 } else {
-                                    return res.status(500).json({ status: "error", msg: "Error on getting insert in db" });
+                                    return res.status(500).json({ status: "error", message: "Error on getting insert in db" });
                                 }
                             })
                         });
@@ -349,7 +352,7 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
             res.status(400).json({ message: 'No image found' });
         }
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -363,11 +366,11 @@ expressRouter.post('/login', (req, res) => {
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 bcrypt.compare(data.password, results[0].user_password, (error, response) => {
-                    if (error) return res.status(500).json({ status: "error", msg: "Passwords matching error" })
+                    if (error) return res.status(500).json({ status: "error", message: "Passwords matching error" })
                     if (response) {
                         // Check is verified
                         if (results[0].user_verified === 1) {
@@ -385,28 +388,28 @@ expressRouter.post('/login', (req, res) => {
                                         console.log("Error updating access token to user on login which haven't gone one before.")
                                     }
                                     if (result) {
-                                        return res.status(200).send({ status: "success", msg: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
+                                        return res.status(200).send({ status: "success", message: "", cookieJWT: jwtToken, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
                                     } else {
                                         console.log("Error updating access token to user on login which haven't gone one before.")
                                     }
                                 })
                             } else {
                                 // Return the user of db
-                                return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
+                                return res.status(200).send({ status: "success", message: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email, dni: results[0].user_dni } });
                             }
                         } else {
-                            return res.status(500).send({ status: "error", msg: "User not verified" });
+                            return res.status(500).send({ status: "error", message: "User not verified" });
                         }
                     } else {
-                        return res.status(500).send({ status: "error", msg: "Passwords do not match" });
+                        return res.status(500).send({ status: "error", message: "Passwords do not match" });
                     }
                 })
             } else {
-                return res.status(500).send({ status: "error", msg: "User not found" });
+                return res.status(500).send({ status: "error", message: "User not found" });
             }
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -420,22 +423,22 @@ expressRouter.post('/loginByToken', (req, res) => {
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 // Check is verified
                 if (results[0].user_verified === 1) {
                     // Login
-                    return res.status(200).send({ status: "success", msg: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
+                    return res.status(200).send({ status: "success", message: "", cookieJWT: results[0].access_token, result: { id: results[0].id, name: results[0].user_name, email: results[0].user_email } });
                 } else {
-                    return res.status(500).send({ status: "error", msg: "User not verified" });
+                    return res.status(500).send({ status: "error", message: "User not verified" });
                 }
             } else {
-                return res.status(500).send({ status: "error", msg: "Token not valid" });
+                return res.status(500).send({ status: "error", message: "Token not valid" });
             }
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -451,12 +454,12 @@ expressRouter.post('/edituser', verifyUser, (req, res) => {
         req.dbConnectionPool.query(sql, values, (error) => {
             if (error) {
                 console.error(error);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                return res.status(500).send({ status: "error", message: 'Internal server error' });;
             }
-            return res.status(200).send({ status: "success", msg: 'User updated successfully' });
+            return res.status(200).send({ status: "success", message: 'User updated successfully' });
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -472,12 +475,12 @@ expressRouter.post('/editUserPassword', verifyUser, async (req, res) => {
         let values = [encryptedPassword, userID];
         const resp = await req.dbConnectionPool.query(sql, values)
         if (resp) {
-            return res.status(200).send({ status: "success", msg: 'User updated successfully' });
+            return res.status(200).send({ status: "success", message: 'User updated successfully' });
         } else {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
+            return res.status(500).send({ status: "error", message: "Internal server error" });
         }
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error: " + error });
+        return res.status(500).send({ status: "error", message: "Internal server error: " + error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -491,26 +494,26 @@ expressRouter.post('/sendRecoverAccountMail', (req, res) => {
             // Find the user by email
             findUserByEmail(req.dbConnectionPool, email).then(user => {
                 if (!user) {
-                    return res.status(400).json({ status: 'error', error: 'User not found.' });
+                    return res.status(400).json({ status: 'error', message: 'User not found.' });
                 }
 
                 // Send the temporal token to reset the password
                 sendRecoverPasswordEmail(req.dbConnectionPool, user.id, user.user_email).then(_=> {
-                    return res.status(200).json({ status: 'success', msg: 'Temporal token for password reset sent successfully.' });
+                    return res.status(200).json({ status: 'success', message: 'Temporal token for password reset sent successfully.' });
                 }).catch(err => {
-                    return res.status(500).send({ status: 'error', error: err })
+                    return res.status(500).send({ status: 'error', message: err })
                 })
             }).catch(err => {
                 console.log(err)
-                return res.status(500).send({ status: 'error', error: err })
+                return res.status(500).send({ status: 'error', message: err })
             })
         } else {
-            return res.status(500).json({ status: 'error', error: 'No email' });
+            return res.status(500).json({ status: 'error', message: 'No email' });
         }
 
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+        return res.status(500).json({ status: 'error', message: 'Internal server error.' });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -522,7 +525,7 @@ expressRouter.post('/recoverAccount', (req, res) => {
             // Find the user by email
             req.dbConnectionPool.query("SELECT id, reset_token_expiry FROM app_user WHERE user_email = ? AND reset_token = ?", [email, token], async (err, results) => {
                 if (err) {
-                    return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+                    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
                 }
                 if (results && results.length > 0) {
                     const id = results[0].id
@@ -533,21 +536,21 @@ expressRouter.post('/recoverAccount', (req, res) => {
                         const encryptedPassword = await bcrypt.hash(password, salt);
                         await req.dbConnectionPool.query('UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?', [encryptedPassword, id]);
                         await req.dbConnectionPool.commit();
-                        return res.status(200).json({ status: 'success', msg: 'Account recovered, password changed successfully!' });
+                        return res.status(200).json({ status: 'success', message: 'Account recovered, password changed successfully!' });
                     } else {
-                        return res.status(500).json({ status: 'error', error: 'Reset token expired' });
+                        return res.status(500).json({ status: 'error', message: 'Reset token expired' });
                     }
                 } else {
-                    return res.status(500).json({ status: 'error', error: 'Code is invalid or expired!' });
+                    return res.status(500).json({ status: 'error', message: 'Code is invalid or expired!' });
                 }
             })
         } else {
-            return res.status(500).json({ status: 'error', error: 'No token, email or password' });
+            return res.status(500).json({ status: 'error', message: 'No token, email or password' });
         }
     } catch (error) {
         console.log(error);
         req.dbConnectionPool.rollback();
-        return res.status(500).json({ status: 'error', error: 'Internal server error.' });
+        return res.status(500).json({ status: 'error', message: 'Internal server error.' });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -590,29 +593,29 @@ expressRouter.delete('/user', verifyUser, (req, res) => {
         })
         .catch((error) => {
             console.error(error);
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         });
 })
 
 // get logged user ID by jwt
 expressRouter.post('/getLoggedUserID', verifyUser, (req, res) => {
-    return res.status(200).json({ status: "success", msg: "Token valid.", userID: req.id })
+    return res.status(200).json({ status: "success", message: "Token valid.", userID: req.id })
 })
 
 expressRouter.get('/getUserRole/:id', verifyUser, (req, res) => {
     try {
         req.dbConnectionPool.query('SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?', [req.params.id], (err, results) => {
             if (err) {
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "User role found", data: results[0] });
+                return res.status(200).send({ status: "success", message: "User role found", data: results[0] });
             } else {
-                return res.status(500).send({ status: "error", msg: "No user role exists with that user id" });
+                return res.status(500).send({ status: "error", message: "No user role exists with that user id" });
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -627,16 +630,16 @@ expressRouter.get('/loggedUser/:id', verifyUser, (req, res) => {
         req.dbConnectionPool.query(sql, values, (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "User found", data: results[0] });
+                return res.status(200).send({ status: "success", message: "User found", data: results[0] });
             } else {
-                return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+                return res.status(500).send({ status: "error", message: "No user exists with that id" });
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -647,20 +650,20 @@ expressRouter.get('/checkUserIsVerified/:id', verifyUser, (req, res) => {
         req.dbConnectionPool.query('SELECT user_verified FROM app_user WHERE id = ?', [req.params.id], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 if (results[0].user_verified === 1) {
-                    return res.status(200).send({ status: "success", msg: "User verified" });
+                    return res.status(200).send({ status: "success", message: "User verified" });
                 } else {
-                    return res.status(200).send({ status: "error", msg: "User not verified" });
+                    return res.status(200).send({ status: "error", message: "User not verified" });
                 }
             } else {
-                return res.status(500).send({ status: "error", msg: "No user exists with that id" });
+                return res.status(500).send({ status: "error", message: "No user exists with that id" });
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", msg: "Error checking user verified" });
+        return res.status(500).send({ status: "error", message: "Error checking user verified" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -754,12 +757,12 @@ expressRouter.post('/getUserImgByToken', verifyUser, (req, res) => {
         let userID = req.id;
         req.dbConnectionPool.query('SELECT url FROM media INNER JOIN user_media ON user_media.media_id = media.id WHERE user_media.user_id = ?', [userID], (err, results) => {
             if (err) {
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+                return res.status(500).send({ status: "error", message: 'Internal server error' });
             }
             return res.status(200).send({ status: "success", fileURL: results[0] });
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -791,10 +794,10 @@ async function sendConfirmationEmail(connection, userId) {
 
             console.log("Message sent: %s", info.messageId);
 
-            resolve({ status: 'success', msg: 'Email confirmation sent!' });
+            resolve({ status: 'success', message: 'Email confirmation sent!' });
         }).catch(err => {
             console.error(err);
-            reject({ status: 'error', msg: "Email couldn't be sent!" })
+            reject({ status: 'error', message: "Email couldn't be sent!" })
         })
     });
 }
@@ -990,12 +993,12 @@ expressRouter.get('/usersID', (req, res) => {
         req.dbConnectionPool.query('SELECT id FROM app_user', (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
-            return res.status(200).json({ status: "success", msg: "successful", data: results });
+            return res.status(200).json({ status: "success", message: "successful", data: results });
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1013,9 +1016,9 @@ expressRouter.post('/sendContactForm', async (req, res) => {
             html: "<pre>" + formData.message + "</pre>", // html body
         });
         console.log("Message sent: %s", info.messageId);
-        return res.status(200).send({ status: "success", msg: "Your message was sent!" });
+        return res.status(200).send({ status: "success", message: "Your message was sent!" });
     } catch (error) {
-        return res.status(500).send({ status: "error", msg: "Message couldn't be sent!" });
+        return res.status(500).send({ status: "error", message: "Message couldn't be sent!" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1028,7 +1031,7 @@ expressRouter.get('/rooms', (req, res) => {
         req.dbConnectionPool.query(sql, [], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 // Results
@@ -1078,18 +1081,18 @@ expressRouter.get('/rooms', (req, res) => {
                             return result;
                         });
                         // Return services
-                        return res.status(200).send({ status: "success", msg: "Rooms found", data: combinedArray });
+                        return res.status(200).send({ status: "success", message: "Rooms found", data: combinedArray });
                     })
                     .catch(error => {
                         console.error(error);
-                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        return res.status(500).send({ status: "error", message: "Error in processing data" });
                     })
             } else {
-                return res.status(500).send({ status: "error", msg: "No rooms found" });
+                return res.status(500).send({ status: "error", message: "No rooms found" });
             }
         })
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1103,16 +1106,16 @@ expressRouter.get('/room/:id', (req, res) => {
         req.dbConnectionPool.query(sql, [values], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+                return res.status(500).json({ status: "error", message: "Error on querying db" });
             }
             if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "Rooms found", data: results });
+                return res.status(200).send({ status: "success", message: "Rooms found", data: results });
             } else {
-                return res.status(500).send({ status: "error", msg: "No rooms found" });
+                return res.status(500).send({ status: "error", message: "No rooms found" });
             }
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1123,12 +1126,12 @@ expressRouter.get('/roomsID', (req, res) => {
         req.dbConnectionPool.query('SELECT id FROM room', (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
-            return res.status(200).json({ status: "success", msg: "successful", data: results });
+            return res.status(200).json({ status: "success", message: "successful", data: results });
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1141,7 +1144,7 @@ expressRouter.get('/plans', (req, res) => {
         req.dbConnectionPool.query(sql, [], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 // Results
@@ -1191,18 +1194,18 @@ expressRouter.get('/plans', (req, res) => {
                             return result;
                         });
                         // Return services
-                        return res.status(200).send({ status: "success", msg: "Plans found", data: combinedArray });
+                        return res.status(200).send({ status: "success", message: "Plans found", data: combinedArray });
                     })
                     .catch(error => {
                         console.error(error);
-                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        return res.status(500).send({ status: "error", message: "Error in processing data" });
                     })
             } else {
-                return res.status(500).send({ status: "error", msg: "No plans found" });
+                return res.status(500).send({ status: "error", message: "No plans found" });
             }
         })
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1213,12 +1216,12 @@ expressRouter.get('/plansID', (req, res) => {
         req.dbConnectionPool.query('SELECT id FROM plan', (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
-            return res.status(200).json({ status: "success", msg: "successful", data: results });
+            return res.status(200).json({ status: "success", message: "successful", data: results });
         });
     } catch (error) {
-        res.status(500).send({ status: "error", error: "Internal server error" });
+        res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1231,7 +1234,7 @@ expressRouter.get('/services', (req, res) => {
         req.dbConnectionPool.query(sql, [], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
                 // Results
@@ -1281,18 +1284,18 @@ expressRouter.get('/services', (req, res) => {
                             return result;
                         });
                         // Return services
-                        return res.status(200).send({ status: "success", msg: "Services found", data: combinedArray });
+                        return res.status(200).send({ status: "success", message: "Services found", data: combinedArray });
                     })
                     .catch(error => {
                         console.error(error);
-                        return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                        return res.status(500).send({ status: "error", message: "Error in processing data" });
                     })
             } else {
-                return res.status(500).send({ status: "error", msg: "No services found" });
+                return res.status(500).send({ status: "error", message: "No services found" });
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1306,16 +1309,16 @@ expressRouter.get('/service/:id', (req, res) => {
         req.dbConnectionPool.query(sql, [values], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on querying db" });
+                return res.status(500).json({ status: "error", message: "Error on querying db" });
             }
             if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "Services found", data: results });
+                return res.status(200).send({ status: "success", message: "Services found", data: results });
             } else {
-                return res.status(500).send({ status: "error", msg: "No services found" });
+                return res.status(500).send({ status: "error", message: "No services found" });
             }
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1353,17 +1356,17 @@ expressRouter.post('/servicesImages', (req, res) => {
         }
         Promise.all(promises)
             .then(() => {
-                return res.status(200).send({ status: "success", msg: "Services medias found", data: servicesMedias });
+                return res.status(200).send({ status: "success", message: "Services medias found", data: servicesMedias });
             })
             .catch(error => {
                 console.error(error);
-                return res.status(500).send({ status: "error", msg: "Error in processing data" });
+                return res.status(500).send({ status: "error", message: "Error in processing data" });
             })
             .finally(() => {
                 //
             });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1376,16 +1379,16 @@ expressRouter.get('/paymentmethods', (req, res) => {
         req.dbConnectionPool.query(sql, [], (error, results) => {
             if (error) {
                 console.error(error);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
             if (results.length > 0) {
-                return res.status(200).send({ status: "success", msg: "Payment methods found", data: results });
+                return res.status(200).send({ status: "success", message: "Payment methods found", data: results });
             } else {
-                return res.status(500).send({ status: "error", msg: "No payment methods found" });
+                return res.status(500).send({ status: "error", message: "No payment methods found" });
             }
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error" });
+        return res.status(500).send({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1414,7 +1417,7 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
         req.dbConnectionPool.query(sql, [startDate, endDate, startDate, endDate], (err, results) => {
             if (err) {
                 console.error(err);
-                return res.status(500).json({ status: "error", msg: "Error on connecting db" });
+                return res.status(500).json({ status: "error", message: "Error on connecting db" });
             }
 
             if (results && results.length > 0) {
@@ -1448,30 +1451,30 @@ expressRouter.post('/checkBookingAvailability', (req, res) => {
                         return res.status(200).json({
                             status: "success",
                             isAvailable: false,
-                            msg: "No rooms available, they're occupied."
+                            message: "No rooms available, they're occupied."
                         });
                     } else {
                         // return res.status(200).json({
                         //     status: "success",
-                        //     msg: "OK, rooms occupied but with available dates.",
+                        //     message: "OK, rooms occupied but with available dates.",
                         //     isAvailable: false,
                         //     available: availableDates
                         // });
                         return res.status(200).json({
                             status: "success",
                             isAvailable: false,
-                            msg: "No rooms available for these dates, they're occupied."
+                            message: "No rooms available for these dates, they're occupied."
                         });
                     }
                 } else {
-                    return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.', isAvailable: true });
+                    return res.status(200).send({ status: "success", message: 'OK, no rooms occupied.', isAvailable: true });
                 }
             } else {
-                return res.status(200).send({ status: "success", msg: 'OK, no rooms occupied.', isAvailable: true });
+                return res.status(200).send({ status: "success", message: 'OK, no rooms occupied.', isAvailable: true });
             }
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        return res.status(500).send({ status: "error", message: "Internal server error", message: error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1486,24 +1489,24 @@ expressRouter.delete('/booking/:bookingID', verifyUser, (req, res) => {
         req.dbConnectionPool.beginTransaction(async (err) => {
             if (err) {
                 req.dbConnectionPool.rollback();
-                return res.status(500).send({ status: "error", error: "Internal server error" });
+                return res.status(500).send({ status: "error", message: "Internal server error" });
             }
             req.dbConnectionPool.query('DELETE FROM booking WHERE id = ?', [bookingId], (err) => {
                 if (err) {
                     req.dbConnectionPool.rollback();
-                    return res.status(500).send({ status: "error", error: "Internal server error" });
+                    return res.status(500).send({ status: "error", message: "Internal server error" });
                 }
 
                 req.dbConnectionPool.commit((err) => {
                     if (err) {
                         req.dbConnectionPool.rollback();
                     }
-                    return res.status(200).send({ status: "success", msg: "Successfully deleted!" });
+                    return res.status(200).send({ status: "success", message: "Successfully deleted!" });
                 });
             })
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        return res.status(500).send({ status: "error", message: "Internal server error", message: error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1520,28 +1523,28 @@ expressRouter.put('/booking', verifyUser, (req, res) => {
                 req.dbConnectionPool.beginTransaction(async (err) => {
                     if (err) {
                         req.dbConnectionPool.rollback();
-                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                        return res.status(500).send({ status: "error", message: "Internal server error" });
                     }
                     req.dbConnectionPool.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate, booking.id], (err) => {
                         if (err) {
                             req.dbConnectionPool.rollback();
-                            return res.status(500).send({ status: "error", error: "Internal server error" });
+                            return res.status(500).send({ status: "error", message: "Internal server error" });
                         }
 
                         req.dbConnectionPool.commit((err) => {
                             if (err) {
                                 req.dbConnectionPool.rollback();
                             }
-                            return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                            return res.status(200).send({ status: "success", message: "Successfully updated!" });
                         });
                     })
                 });
             }
         }).catch(err => {
-            return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+            return res.status(500).send({ status: "error", message: "Internal server error: " + err });
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        return res.status(500).send({ status: "error", message: "Internal server error", message: error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1553,7 +1556,7 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
 
         req.dbConnectionPool.query("SELECT cancellation_deadline FROM booking WHERE id =  ?", [bookingID], (err, results) => {
             if (err) {
-                return res.status(500).send({ status: "error", error: "Internal server error" });
+                return res.status(500).send({ status: "error", message: "Internal server error" });
             }
             if (results) {
                 const deadline = new Date(results[0].cancellation_deadline)
@@ -1562,36 +1565,36 @@ expressRouter.put('/cancelBookingByUser', verifyUser, (req, res) => {
                 if (deadline < currentDate) {
                     return res.status(500).send({
                         status: 'error',
-                        error: 'Deadline to cancel this booking is over',
+                        message: 'Deadline to cancel this booking is over',
                     });
                 }
 
                 req.dbConnectionPool.beginTransaction(async (err) => {
                     if (err) {
                         req.dbConnectionPool.rollback();
-                        return res.status(500).send({ status: "error", error: "Internal server error" });
+                        return res.status(500).send({ status: "error", message: "Internal server error" });
                     }
                     req.dbConnectionPool.query('UPDATE booking SET is_cancelled = true WHERE id = ?', [bookingID], (err) => {
                         if (err) {
                             req.dbConnectionPool.rollback();
-                            return res.status(500).send({ status: "error", error: "Internal server error" });
+                            return res.status(500).send({ status: "error", message: "Internal server error" });
                         }
 
                         req.dbConnectionPool.commit((err) => {
                             if (err) {
                                 req.dbConnectionPool.rollback();
                             }
-                            return res.status(200).send({ status: "success", msg: "Successfully updated!" });
+                            return res.status(200).send({ status: "success", message: "Successfully updated!" });
                         });
                     })
                 });
             } else {
-                return res.status(500).send({ status: "error", error: "Internal server error" });
+                return res.status(500).send({ status: "error", message: "Internal server error" });
             }
         })
 
     } catch (error) {
-        return res.status(500).send({ status: "error", error: "Internal server error", errorMsg: error });
+        return res.status(500).send({ status: "error", message: "Internal server error", message: error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1608,26 +1611,26 @@ expressRouter.post('/duplicateBooking', verifyUser, (req, res) => {
 
     req.dbConnectionPool.query('SELECT is_cancelled FROM booking WHERE id = ?', [booking.id], (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: "Internal server error" });
+            return res.status(500).send({ status: "error", message: "Internal server error" });
         }
 
         if (results[0].is_cancelled === 0) {
-            return res.status(400).send({ status: "error", error: "This booking is active" });
+            return res.status(400).send({ status: "error", message: "This booking is active" });
         }
 
         req.dbConnectionPool.beginTransaction((err) => {
             if (err) {
                 req.dbConnectionPool.rollback();
-                return res.status(500).send({ status: "error", error: "Internal server error" });
+                return res.status(500).send({ status: "error", message: "Internal server error" });
             }
             const sql = "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, cancellation_deadline = DATE_ADD(CURDATE(), INTERVAL 1 DAY),is_cancelled = 0 WHERE id = ?";
             req.dbConnectionPool.query(sql, [startDate, endDate, booking.id], (err) => {
                 if (err) {
                     req.dbConnectionPool.rollback();
-                    return res.status(500).send({ status: "error", error: "Internal server error: " + err });
+                    return res.status(500).send({ status: "error", message: "Internal server error: " + err });
                 }
                 req.dbConnectionPool.commit();
-                return res.status(200).send({ status: "200", msg: "Successfully updated!" });
+                return res.status(200).send({ status: "200", message: "Successfully updated!" });
             })
         })
     })
@@ -1652,7 +1655,7 @@ expressRouter.post('/createBooking', async (req, res) => {
 
         return res.status(200).send({ status: "success", insertId: bookingId });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: `Internal server error: ${error}` });
+        return res.status(500).send({ status: "error", message: `Internal server error: ${error}` });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1690,10 +1693,10 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
             if (bookingCount === 5) {
                 req.dbConnectionPool.query('SELECT COUNT(*) as count FROM user_promotion WHERE user_id = ? AND isUsed = 0', [userID], (error, results) => {
                     if (error) {
-                        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+                        return res.status(500).json({ status: "error", message: 'Internal server error: ' + error });
                     }
                     if (results && results[0].count > 0) {
-                        return res.status(401).json({ status: "error", msg: 'User already has a unique promo code associated' });
+                        return res.status(401).json({ status: "error", message: 'User already has a unique promo code associated' });
                     } else {
                         // Generate a new promotion
                         const promoCode = generateUniquePromoCode();
@@ -1724,7 +1727,7 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
                                         }
                                         return res.status(200).json({
                                             status: 'success',
-                                            msg: 'Booking count updated successfully',
+                                            message: 'Booking count updated successfully',
                                             promotion: {
                                                 promoCode,
                                                 discountPrice,
@@ -1745,13 +1748,13 @@ expressRouter.post('/userPresentCheck', verifyUser, (req, res) => {
             } else {
                 return res.status(200).json({
                     status: 'success',
-                    msg: 'Booking count updated successfully'
+                    message: 'Booking count updated successfully'
                 });
             }
         })
 
     } catch (error) {
-        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+        return res.status(500).json({ status: "error", message: 'Internal server error: ' + error });
     }
 })
 
@@ -1762,7 +1765,7 @@ expressRouter.post('/userPunishmentCheck', (req, res) => {
         req.dbConnectionPool.beginTransaction((err) => {
             if (err) {
                 req.dbConnectionPool.rollback();
-                return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+                return res.status(500).json({ status: "error", message: 'Internal server error: ' + error });
             }
 
             req.dbConnectionPool.query('SELECT COUNT(*) as count FROM booking WHERE user_id = ? AND is_cancelled = 1', [userID], (error, results) => {
@@ -1795,7 +1798,7 @@ expressRouter.post('/userPunishmentCheck', (req, res) => {
 
                                     return res.status(200).json({
                                         status: 'success',
-                                        msg: 'User punishment checked successfully and user was disabled',
+                                        message: 'User punishment checked successfully and user was disabled',
                                         disabled: true,
                                     });
                                 }
@@ -1803,21 +1806,21 @@ expressRouter.post('/userPunishmentCheck', (req, res) => {
                         } else {
                             return res.status(200).json({
                                 status: 'success',
-                                msg: 'User punishment checked successfully, but not punished due to it was reactivated by admin'
+                                message: 'User punishment checked successfully, but not punished due to it was reactivated by admin'
                             });
                         }
                     });
                 } else {
                     return res.status(200).json({
                         status: 'success',
-                        msg: 'User punishment checked successfully'
+                        message: 'User punishment checked successfully'
                     });
                 }
             })
         })
     }
     catch (error) {
-        return res.status(500).json({ status: "error", msg: 'Internal server error: ' + error });
+        return res.status(500).json({ status: "error", message: 'Internal server error: ' + error });
     }
 })
 
@@ -1892,7 +1895,7 @@ function insertGuests(guestsToInsert, connection) {
                 }
             });
         } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
     });
 }
@@ -1967,12 +1970,12 @@ expressRouter.get('/bookings', verifyUser, (req, res) => {
         req.dbConnectionPool.query('SELECT * FROM booking', (err, results) => {
             if (err) {
                 console.error(err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                return res.status(500).send({ status: "error", message: 'Internal server error' });;
             }
-            return res.status(200).send({ status: "success", msg: "successful", data: results });
+            return res.status(200).send({ status: "success", message: "successful", data: results });
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: 'Internal server error' });
+        return res.status(500).send({ status: "error", message: 'Internal server error' });
     }
 })
 
@@ -1982,12 +1985,12 @@ expressRouter.get('/bookingsByUser', verifyUser, (req, res) => {
         req.dbConnectionPool.query('SELECT * FROM booking WHERE user_id = ?', [req.id], (err, results) => {
             if (err) {
                 console.error(err);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                return res.status(500).send({ status: "error", message: 'Internal server error' });;
             }
-            return res.status(200).send({ status: "success", msg: "successful", data: results });
+            return res.status(200).send({ status: "success", message: "successful", data: results });
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: 'Internal server error' });
+        return res.status(500).send({ status: "error", message: 'Internal server error' });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -2006,12 +2009,12 @@ expressRouter.post('/payment', (req, res) => {
         req.dbConnectionPool.query(sql, values, (error, result) => {
             if (error) {
                 console.error(error);
-                return res.status(500).send({ status: "error", error: 'Internal server error' });;
+                return res.status(500).send({ status: "error", message: 'Internal server error' });;
             }
             return res.status(200).send({ status: "success", insertId: result.insertId });
         });
     } catch (error) {
-        return res.status(500).send({ status: "error", error: 'Internal server error' });
+        return res.status(500).send({ status: "error", message: 'Internal server error' });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -2022,12 +2025,12 @@ expressRouter.post('/paymentTransaction', (req, res) => {
         const data = req.body;
         req.dbConnectionPool.query('INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)', [data.payment_id, data.transaction_id], (error, result) => {
             if (error) {
-                return res.status(500).send({ status: "error", error: 'Internal server error' });
+                return res.status(500).send({ status: "error", message: 'Internal server error' });
             }
             return res.status(200).send({ status: "success", insertId: result.insertId });
         })
     } catch (error) {
-        return res.status(500).send({ status: "error", error: 'Internal server error' });
+        return res.status(500).send({ status: "error", message: 'Internal server error' });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -2047,9 +2050,9 @@ expressRouter.post('/purchase', async (req, res) => {
 
         const { client_secret } = paymentIntent
 
-        return res.status(200).json({ status: "success", msg: 'stripe', client_secret: client_secret })
+        return res.status(200).json({ status: "success", message: 'stripe', client_secret: client_secret })
     } catch (error) {
-        return res.status(200).json({ status: "error", msg: 'stripe', error: error, client_secret: null })
+        return res.status(200).json({ status: "error", message: 'stripe', message: error, client_secret: null })
     } finally {
         req.dbConnectionPool.release();
     }
@@ -2064,9 +2067,9 @@ expressRouter.post('/cancel-payment', async (req, res) => {
         // Cancel the Payment Intent
         const canceledPaymentIntent = await stripe.paymentIntents.cancel(paymentIntent.id);
 
-        return res.status(200).json({ status: "success", msg: 'Payment Intent canceled', canceledPaymentIntent });
+        return res.status(200).json({ status: "success", message: 'Payment Intent canceled', canceledPaymentIntent });
     } catch (error) {
-        return res.status(200).json({ status: "error", msg: 'Error canceling Payment Intent', error });
+        return res.status(200).json({ status: "error", message: 'Error canceling Payment Intent', error });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -2125,7 +2128,7 @@ function deletePaymentByUserID(userID, connection) {
                 }
             });
         } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
     });
 }
@@ -2145,7 +2148,7 @@ function deleteUserRoleByUserID(userID, connection) {
                 }
             });
         } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
     });
 }
@@ -2164,7 +2167,7 @@ function deleteUserMediaByUserID(userID, connection) {
                 }
             });
         } catch (error) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
     });
 }
@@ -2329,7 +2332,7 @@ expressRouter.post('/insert-weather', async (req, res) => {
                     } catch (error) {
                         remainingQueries--;
                         if (remainingQueries === 0) {
-                            return res.status(500).send({ status: "error", error: 'Internal server error' });
+                            return res.status(500).send({ status: "error", message: 'Internal server error' });
                         }
                     }
                 } else {
@@ -2342,7 +2345,7 @@ expressRouter.post('/insert-weather', async (req, res) => {
                     req.dbConnectionPool.commit((err) => {
                         if (err) {
                             req.dbConnectionPool.rollback(() => {
-                                reject({ status: "error", error: 'Internal server error' });
+                                reject({ status: "error", message: 'Internal server error' });
                             });
                         } else {
                             resolve();
@@ -2368,7 +2371,7 @@ expressRouter.post('/insert-weather', async (req, res) => {
 expressRouter.get('/weather', (req, res) => {
     req.dbConnectionPool.query('SELECT * FROM weather', (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: results });
     })
@@ -2379,7 +2382,7 @@ expressRouter.get('/weather', (req, res) => {
 expressRouter.get('/promotions', (req, res) => {
     req.dbConnectionPool.query('SELECT * FROM promotion', (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: results });
     })
@@ -2388,7 +2391,7 @@ expressRouter.get('/get-promo-discount/:id', (req, res) => {
     let promoID = req.params.id;
     req.dbConnectionPool.query('SELECT discount_price FROM promotion WHERE id = ?', [promoID], (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: { discount: results[0].discount_price } });
     })
@@ -2398,7 +2401,7 @@ expressRouter.post('/saveBookingWithPromoApplied', (req, res) => {
     let bookingID = req.body.bookingID;
     req.dbConnectionPool.query('INSERT INTO booking_promotion (booking_id, promotion_id) VALUES (?, ?)', [bookingID, promoID], (err, result) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", data: { insertedID: result.insertId } });
     })
@@ -2407,7 +2410,7 @@ expressRouter.post('/getUserAssociatedPromos', (req, res) => {
     let userID = req.body.userID;
     req.dbConnectionPool.query('SELECT * FROM user_promotion WHERE user_id = ?', [userID], (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", results });
     })
@@ -2416,7 +2419,7 @@ expressRouter.post('/getUserAssociatedPromoCode', (req, res) => {
     let userID = req.body.userID;
     req.dbConnectionPool.query('SELECT * FROM user_promotion INNER JOIN promotion ON user_promotion.promotion_id = promotion.id WHERE user_id = ? AND isUsed = 0', [userID], (err, results) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success", results });
     })
@@ -2426,7 +2429,7 @@ expressRouter.post('/setUserPromoUsed', verifyUser, (req, res) => {
     let userID = req.body.userID;
     req.dbConnectionPool.query('UPDATE user_promotion SET isUsed = 1 WHERE user_id = ? AND promotion_id = ?', [userID, promoID], (err) => {
         if (err) {
-            return res.status(500).send({ status: "error", error: 'Internal server error' });
+            return res.status(500).send({ status: "error", message: 'Internal server error' });
         }
         return res.status(200).send({ status: "success" });
     })
