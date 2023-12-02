@@ -266,7 +266,7 @@ expressRouter.post('/register', (req, res) => {
                         });
 
                         sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                            return res.status(200).json({ status: "success", message: json.msg, cookieJWT: jwtToken, insertId: userID });
+                            return res.status(200).json({ status: "success", message: json.message, cookieJWT: jwtToken, insertId: userID });
                         }).catch(jsonError => {
                             return res.status(201).json({ status: "success", message: jsonError, cookieJWT: jwtToken, insertId: userID });
                         })
@@ -333,7 +333,8 @@ expressRouter.post('/registerWithQR', decodeBase64Image, async (req, res) => {
                                     });
 
                                     sendConfirmationEmail(req.dbConnectionPool, userID).then(json => {
-                                        return res.status(200).json({ status: "success", message: json.msg, cookieJWT: jwtToken, insertId: userID });
+                                        console.log(json)
+                                        return res.status(200).json({ status: "success", message: json.message, cookieJWT: jwtToken, insertId: userID });
                                     }).catch(jsonError => {
                                         return res.status(201).json({ status: "success", message: jsonError, cookieJWT: jwtToken, insertId: userID });
                                     })
