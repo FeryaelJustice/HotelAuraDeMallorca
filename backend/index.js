@@ -1519,6 +1519,13 @@ expressRouter.put('/booking', verifyUser, (req, res) => {
         const userID = req.id;
         const booking = req.body;
 
+        const startDateAsDate = new Date(booking.startDate)
+        startDateAsDate.setDate(startDateAsDate.getDate() + 1)
+        const endDateAsDate = new Date(booking.endDate)
+        endDateAsDate.setDate(endDateAsDate.getDate() + 1)
+        const startDate = startDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
+        const endDate = endDateAsDate.toISOString().slice(0, 11).replace('T', ' ')
+
         getUserRoleById(req.dbConnectionPool, userID).then(userRole => {
             if (userRole && (userRole.name == "ADMIN" || userRole.name == "EMPLOYEE")) {
                 req.dbConnectionPool.beginTransaction(async (err) => {
@@ -1526,7 +1533,7 @@ expressRouter.put('/booking', verifyUser, (req, res) => {
                         req.dbConnectionPool.rollback();
                         return res.status(500).send({ status: "error", message: "Internal server error" });
                     }
-                    req.dbConnectionPool.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, booking.startDate, booking.endDate, booking.id], (err) => {
+                    req.dbConnectionPool.query('UPDATE booking SET user_id = ?, plan_id = ?, room_id = ?, booking_start_date = ?, booking_end_date = ? WHERE id = ?', [booking.userID, booking.planID, booking.roomID, startDate, endDate, booking.id], (err) => {
                         if (err) {
                             req.dbConnectionPool.rollback();
                             return res.status(500).send({ status: "error", message: "Internal server error" });
