@@ -52,8 +52,10 @@ CREATE TABLE user_role (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL,
-    CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE
+    SET
+        NULL,
+        CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
 
 -- Create the table plan
@@ -102,11 +104,17 @@ CREATE TABLE booking (
     is_cancelled BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
-    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE SET NULL,
-    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE SET NULL,
-    CONSTRAINT valid_dates CHECK (booking_start_date <= booking_end_date),
-    CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE
+    SET
+        NULL,
+        CONSTRAINT valid_dates CHECK (booking_start_date <= booking_end_date),
+        CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
 );
 
 -- Create the table booking_service
@@ -117,7 +125,9 @@ CREATE TABLE booking_service (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE SET NULL
+    FOREIGN KEY (service_id) REFERENCES service(id) ON DELETE
+    SET
+        NULL
 );
 
 -- Create the table booking_guests
@@ -128,7 +138,9 @@ CREATE TABLE booking_guest (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
-    FOREIGN KEY (guest_id) REFERENCES guest(id) ON DELETE SET NULL
+    FOREIGN KEY (guest_id) REFERENCES guest(id) ON DELETE
+    SET
+        NULL
 );
 
 -- Create the table promotions
@@ -148,7 +160,9 @@ CREATE TABLE booking_promotion (
     booking_id INT,
     promotion_id INT,
     FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE,
-    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE
+    SET
+        NULL
 );
 
 -- Create the table user_booking_count
@@ -167,7 +181,9 @@ CREATE TABLE user_promotion (
     promotion_id INT,
     isUsed BOOLEAN DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE,
-    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
+    FOREIGN KEY (promotion_id) REFERENCES promotion(id) ON DELETE
+    SET
+        NULL
 );
 
 -- Create the table weather
@@ -197,9 +213,15 @@ CREATE TABLE payment (
     payment_method_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL,
-    FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE SET NULL,
-    FOREIGN KEY (payment_method_id) REFERENCES payment_method(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (payment_method_id) REFERENCES payment_method(id) ON DELETE
+    SET
+        NULL
 );
 
 -- Create the table payment_transaction (link payments to real transactions from payment platforms)
@@ -389,14 +411,14 @@ VALUES
         'Standard room with sea view',
         80.00,
         '2023-10-15',
-        '2023-12-15'
+        '2023-12-31'
     ),
     (
         'VIP Suite',
         'VIP suite with luxury services',
         200.00,
-        '2023-10-01',
-        '2023-12-31'
+        '2023-12-01',
+        '2024-03-31'
     );
 
 -- Servicios
@@ -414,35 +436,35 @@ VALUES
         'Premium garden services',
         20.00,
         '2023-10-27',
-        '2023-10-31'
+        '2023-12-31'
     ),
     (
         'Deluxe Pool',
         'Exclusive pool services',
         30.00,
         '2023-11-01',
-        '2023-11-06'
+        '2024-01-06'
     ),
     (
         'High-speed Wi-Fi',
         'High-speed Wi-Fi connection',
         10.00,
         '2023-12-01',
-        '2023-11-28'
+        '2024-02-28'
     ),
     (
         'Spa',
         'A luxury spa inside the hotel',
         50.00,
         '2023-12-11',
-        '2023-12-06'
+        '2024-03-06'
     ),
     (
         'Gym',
         'Awesome gym to stay healthy during your stay',
         5.00,
-        '2023-12-23',
-        '2023-11-18'
+        '2023-11-18',
+        '2024-04-23'
     );
 
 -- Reservas
@@ -461,27 +483,27 @@ VALUES
         1,
         1,
         1,
-        CURDATE() + INTERVAL 3 DAY,
-        CURDATE() + INTERVAL 6 DAY,
         CURDATE() + INTERVAL 2 DAY,
+        CURDATE() + INTERVAL 2 DAY,
+        CURDATE() + INTERVAL 1 DAY,
         0
     ),
     (
         2,
         1,
         2,
-        CURDATE() + INTERVAL 7 DAY,
-        CURDATE() + INTERVAL 9 DAY,
-        CURDATE() + INTERVAL 6 DAY,
+        CURDATE() + INTERVAL 16 DAY,
+        CURDATE() + INTERVAL 18 DAY,
+        CURDATE() + INTERVAL 1 DAY,
         0
     ),
     (
         3,
         1,
         1,
-        CURDATE() + INTERVAL 11 DAY,
-        CURDATE() + INTERVAL 14 DAY,
-        CURDATE() + INTERVAL 10 DAY,
+        CURDATE() + INTERVAL 30 DAY,
+        CURDATE() + INTERVAL 31 DAY,
+        CURDATE() + INTERVAL 28 DAY,
         0
     );
 
@@ -510,10 +532,12 @@ INSERT INTO
         weather_state
     )
 VALUES
-    ('2023-10-27', 'Sunny'),
-    ('2023-10-28', 'Clouds'),
-    ('2023-11-29', 'Rain'),
-    ('2023-11-30', 'Sunny');
+    (CURDATE() + INTERVAL 3 DAY, 'Sunny'),
+    (CURDATE() + INTERVAL 4 DAY, 'Clouds'),
+    (CURDATE() + INTERVAL 5 DAY, 'Rain'),
+    (CURDATE() + INTERVAL 6 DAY, 'Rain'),
+    (CURDATE() + INTERVAL 7 DAY, 'Rain'),
+    (CURDATE() + INTERVAL 8 DAY, 'Sunny');
 
 -- Payment methods
 INSERT INTO
