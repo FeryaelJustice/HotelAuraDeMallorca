@@ -1,6 +1,4 @@
-# "Proyecto FP Web"
-
-## Hotel Aura de Mallorca
+# Hotel Aura de Mallorca
 
 *Aura de Mallorca: Vive la magia de la isla en un rincón exclusivo.*
 
