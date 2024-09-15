@@ -2,6 +2,9 @@
 
 *Aura de Mallorca: Vive la magia de la isla en un rincón exclusivo.*
 
+(Antigua URL: https://hotel-aura-de-mallorca.vercel.app/)
+(URL Producción sin Backend, se necesita VPS): https://blanchedalmond-shark-422521.hostingersite.com/
+
 En React y Express JS.
 Web de un hotel con servicios extra para complejidad de implementar
 api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no.
