@@ -8,10 +8,10 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "module": "ES2020",
+    "module": "nodenext",
     "allowJs": true,
     "skipLibCheck": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
