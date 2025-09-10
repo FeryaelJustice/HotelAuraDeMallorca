@@ -14,7 +14,7 @@ import { UserRoles } from '../../constants';
 import './UserModal.css'
 
 import { useTranslation } from "react-i18next";
-import QRCode from 'qrcode.react';
+import {QRCodeSVG} from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
 // import { QrScanner } from '@yudiel/react-qr-scanner';
 import Swal from 'sweetalert2'
@@ -609,7 +609,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 <Form.Group className='mb-3'>
                                     {userRegister.email != '' && userRegister.dni != '' && (
                                         <div>
-                                            <QRCode value={JSON.stringify(qrData)} size={128} />
+                                            <QRCodeSVG value={JSON.stringify(qrData)} size={128} />
                                             <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={140} height={140} alt='uploaded image picture QR' style={{ marginLeft: '20px', verticalAlign: 'none' }} />
                                             <br />
                                             <br />
@@ -790,7 +790,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                         <Form.Control.Feedback type='invalid'>Please put a valid email</Form.Control.Feedback>
                                     </Form.Group>
                                     <Button variant="primary" type='button' onClick={() => { sendRecoverAccountEmail() }}>
-                                            {t("modal_user_recoverAccount_sendCode")}
+                                        {t("modal_user_recoverAccount_sendCode")}
                                     </Button>
                                 </div>
                             )}
