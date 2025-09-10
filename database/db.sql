@@ -667,18 +667,15 @@ VALUES
  */
 -- TRIGGERS
 -- Cancellation date on booking
-DELIMITER / / CREATE TRIGGER before_booking_insert BEFORE
+DELIMITER / /
+CREATE TRIGGER before_booking_insert BEFORE
 INSERT
     ON booking FOR EACH ROW BEGIN
 SET
     NEW.cancellation_deadline = NEW.created_at + INTERVAL 24 HOUR;
-
 IF NEW.cancellation_deadline >= NEW.booking_start_date THEN SIGNAL SQLSTATE '45000'
 SET
     MESSAGE_TEXT = 'La fecha límite de cancelación debe ser anterior a la fecha de inicio de la reserva';
-
 END IF;
-
 END;
-
 / /
