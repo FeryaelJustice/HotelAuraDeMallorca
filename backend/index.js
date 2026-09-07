@@ -313,8 +313,33 @@ expressRouter.use((req, res, next) => {
                 .status(500)
                 .send({ status: "error", message: "Internal server error" });
         }
-        req.dbConnectionPool = connection; // Agregamos la conexión al objeto de solicitud
-        next(); // Continuamos con la ejecución de la ruta
+        let isReleased = false;
+        const safeRelease = () => {
+            if (!isReleased) {
+                isReleased = true;
+                try {
+                    connection.release();
+                } catch (e) {
+                    console.error("Error releasing connection:", e);
+                }
+            }
+        };
+        res.on("finish", safeRelease);
+        res.on("close", safeRelease);
+
+        req.dbConnection = connection;
+        req.dbConnectionPool = new Proxy(connection, {
+            get(target, prop) {
+                if (prop === "release") {
+                    return () => {
+                        // Defer release to response finish or close
+                    };
+                }
+                const val = target[prop];
+                return typeof val === "function" ? val.bind(target) : val;
+            },
+        });
+        next();
     });
 });
 
@@ -1623,7 +1648,7 @@ expressRouter.get("/rooms", (req, res) => {
                 let roomsMedias = [];
                 const promises = [];
 
-                for (room of results) {
+                for (let room of results) {
                     const planMediaQuery = new Promise((resolve, reject) => {
                         const roomID = room.id;
                         req.dbConnectionPool.query(
@@ -1786,7 +1811,7 @@ expressRouter.get("/plans", (req, res) => {
                 let plansMedias = [];
                 const promises = [];
 
-                for (plan of results) {
+                for (let plan of results) {
                     const planMediaQuery = new Promise((resolve, reject) => {
                         const planID = plan.id;
                         req.dbConnectionPool.query(
@@ -1915,7 +1940,7 @@ expressRouter.get("/services", (req, res) => {
                 let servicesMedias = [];
                 const promises = [];
 
-                for (service of results) {
+                for (let service of results) {
                     const serviceMediaQuery = new Promise((resolve, reject) => {
                         const serviceID = service.id;
                         req.dbConnectionPool.query(
@@ -2038,7 +2063,7 @@ expressRouter.post("/servicesImages", (req, res) => {
         let servicesMedias = [];
         const promises = [];
 
-        for (service of services) {
+        for (let service of services) {
             const serviceMediaQuery = new Promise((resolve, reject) => {
                 const serviceID = service.id;
                 req.dbConnectionPool.query(
@@ -3374,7 +3399,7 @@ expressRouter.post("/insert-weather", async (req, res) => {
                         );
                     });
                 } else {
-                    for (data in existingData) {
+                    for (const data of existingData) {
                         await new Promise((resolve, reject) => {
                             req.dbConnectionPool.query(
                                 "UPDATE weather SET weather_state = ? WHERE id = ?",
