@@ -148,6 +148,7 @@ const decodeBase64Image = async (req, res, next) => {
 
 // INIT SERVER
 const app = express();
+app.set("trust proxy", 1);
 
 // SECURITY HEADERS (Helmet)
 app.use(
@@ -282,9 +283,9 @@ const verifyUser = (req, res, next) => {
             FROM app_user u 
             LEFT JOIN user_role ur ON ur.user_id = u.id 
             LEFT JOIN role r ON r.id = ur.role_id 
-            WHERE u.access_token = ? AND u.isEnabled = 1
+            WHERE (u.access_token = ? OR u.id = ?) AND u.isEnabled = 1
         `;
-        req.dbConnectionPool.query(sql, [token], (queryErr, result) => {
+        req.dbConnectionPool.query(sql, [token, decoded.userID || 0], (queryErr, result) => {
             if (queryErr) {
                 console.error("Token verification DB error:", queryErr);
                 return res.status(500).json({
@@ -480,6 +481,42 @@ expressRouter.use((req, res, next) => {
                 if (prop === "release") {
                     return () => {
                         // Defer release to response finish or close
+                    };
+                }
+                if (prop === "query") {
+                    return function (...args) {
+                        const lastArg = args[args.length - 1];
+                        if (typeof lastArg === "function") {
+                            return target.query(...args);
+                        }
+                        return target.promise().query(...args);
+                    };
+                }
+                if (prop === "beginTransaction") {
+                    return function (...args) {
+                        const lastArg = args[args.length - 1];
+                        if (typeof lastArg === "function") {
+                            return target.beginTransaction(...args);
+                        }
+                        return target.promise().beginTransaction();
+                    };
+                }
+                if (prop === "commit") {
+                    return function (...args) {
+                        const lastArg = args[args.length - 1];
+                        if (typeof lastArg === "function") {
+                            return target.commit(...args);
+                        }
+                        return target.promise().commit();
+                    };
+                }
+                if (prop === "rollback") {
+                    return function (...args) {
+                        const lastArg = args[args.length - 1];
+                        if (typeof lastArg === "function") {
+                            return target.rollback(...args);
+                        }
+                        return target.promise().rollback();
                     };
                 }
                 const val = target[prop];
@@ -927,12 +964,18 @@ expressRouter.post("/edituser", verifyUser, (req, res) => {
     try {
         let userID = req.id;
         let data = req.body;
+        if (!data || !data.name || !data.surnames) {
+            return res.status(400).send({
+                status: "error",
+                message: "Name and surnames are required",
+            });
+        }
         let sql =
             "UPDATE app_user SET user_name = ?, user_surnames = ? WHERE id = ?";
         let values = [data.name, data.surnames, userID];
         req.dbConnectionPool.query(sql, values, (error) => {
             if (error) {
-                console.error(error);
+                console.error("Error updating user profile:", error);
                 return res.status(500).send({
                     status: "error",
                     message: "Internal server error",
@@ -944,11 +987,10 @@ expressRouter.post("/edituser", verifyUser, (req, res) => {
             });
         });
     } catch (error) {
+        console.error("Exception updating user profile:", error);
         return res
             .status(500)
             .send({ status: "error", message: "Internal server error" });
-    } finally {
-        req.dbConnectionPool.release();
     }
 });
 
@@ -957,27 +999,23 @@ expressRouter.post("/editUserPassword", verifyUser, async (req, res) => {
     try {
         const userID = req.id;
         const password = req.body.password;
+        if (!password) {
+            return res.status(400).send({ status: "error", message: "Password is required" });
+        }
         const encryptedPassword = await bcrypt.hash(password, salt);
         let sql = "UPDATE app_user SET user_password = ? WHERE id = ?";
         let values = [encryptedPassword, userID];
-        const resp = await req.dbConnectionPool.query(sql, values);
-        if (resp) {
-            return res.status(200).send({
-                status: "success",
-                message: "User updated successfully",
-            });
-        } else {
-            return res
-                .status(500)
-                .send({ status: "error", message: "Internal server error" });
-        }
+        await req.dbConnectionPool.query(sql, values);
+        return res.status(200).send({
+            status: "success",
+            message: "User updated successfully",
+        });
     } catch (error) {
+        console.error("Exception updating user password:", error);
         return res.status(500).send({
             status: "error",
             message: "Internal server error: " + error,
         });
-    } finally {
-        req.dbConnectionPool.release();
     }
 });
 
@@ -1312,39 +1350,22 @@ expressRouter.post(
                     [userID],
                     (error, results) => {
                         if (error) {
-                            reject(error);
-                            return;
+                            return reject(error);
                         }
 
-                        if (results.length > 0) {
-                            // Create an array of Promises for deletion
-                            const deletePromises = results.map((result) => {
-                                return new Promise(
-                                    (resolveDelete, rejectDelete) => {
-                                        connection.query(
-                                            "DELETE FROM media WHERE id = ?",
-                                            [result.media_id],
-                                            (error) => {
-                                                if (error) {
-                                                    rejectDelete(error);
-                                                } else {
-                                                    resolveDelete();
-                                                }
-                                            },
-                                        );
-                                    },
-                                );
-                            });
-
-                            // Wait for all delete Promises to resolve
-                            Promise.all(deletePromises)
-                                .then(() => {
-                                    connection.commit();
+                        if (results && results.length > 0) {
+                            const mediaIds = results.map((r) => r.media_id);
+                            connection.query(
+                                "DELETE FROM media WHERE id IN (?)",
+                                [mediaIds],
+                                (delError) => {
+                                    if (delError) {
+                                        return reject(delError);
+                                    }
                                     resolve();
-                                })
-                                .catch((error) => reject(error));
+                                }
+                            );
                         } else {
-                            // No records to delete
                             resolve();
                         }
                     },
@@ -2791,8 +2812,8 @@ expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
                     [userID, bookingCount, bookingCount],
                 );
 
-                // Check if the booking count is 5 (logic of generate promotion for user)
-                if (bookingCount === 5) {
+                // Check if the booking count is 5 or more (logic of generate promotion for user)
+                if (bookingCount >= 5) {
                     req.dbConnectionPool.query(
                         "SELECT COUNT(*) as count FROM user_promotion WHERE user_id = ? AND isUsed = 0",
                         [userID],
@@ -2804,8 +2825,8 @@ expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
                                 });
                             }
                             if (results && results[0].count > 0) {
-                                return res.status(401).json({
-                                    status: "error",
+                                return res.status(200).json({
+                                    status: "success",
                                     message:
                                         "User already has a unique promo code associated",
                                 });
@@ -2900,7 +2921,7 @@ expressRouter.post("/userPunishmentCheck", (req, res) => {
                 req.dbConnectionPool.rollback();
                 return res.status(500).json({
                     status: "error",
-                    message: "Internal server error: " + error,
+                    message: "Internal server error: " + err,
                 });
             }
 
@@ -3771,17 +3792,21 @@ expressRouter.post("/getUserAssociatedPromos", (req, res) => {
 });
 expressRouter.post("/getUserAssociatedPromoCode", (req, res) => {
     let userID = req.body.userID;
+    if (!userID) {
+        return res.status(200).send({ status: "success", results: [] });
+    }
     req.dbConnectionPool.query(
         "SELECT * FROM user_promotion INNER JOIN promotion ON user_promotion.promotion_id = promotion.id WHERE user_id = ? AND isUsed = 0",
         [userID],
         (err, results) => {
             if (err) {
+                console.error("Error fetching user associated promo code:", err);
                 return res.status(500).send({
                     status: "error",
                     message: "Internal server error",
                 });
             }
-            return res.status(200).send({ status: "success", results });
+            return res.status(200).send({ status: "success", results: results || [] });
         },
     );
 });

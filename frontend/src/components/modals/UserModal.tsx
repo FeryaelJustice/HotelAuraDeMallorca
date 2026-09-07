@@ -113,7 +113,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 });
 
                 // Get user promo code
-                serverAPI.post('getUserAssociatedPromoCode', { userID: modelUserData.id }).then(res => {
+                serverAPI.post('/getUserAssociatedPromoCode', { userID: modelUserData.id }).then(res => {
                     if (res && res.data && res.data.results && res.data.results.length > 0) {
                         setUserPromoCode(res.data.results[0].code);
                     } else {
@@ -400,43 +400,47 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         setUserEdit({ ...userEdit, [event.target.name]: event.target.value });
     }
 
-    const handleSaveEdit = (event: React.ChangeEvent<HTMLFormElement>) => {
+    const handleSaveEdit = async (event: React.ChangeEvent<HTMLFormElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
         let form = event.currentTarget;
         if (userEdit.name != "" && userEdit.surnames != "" && form.checkValidity()) {
-            serverAPI.post('/edituser', userEdit).then(res => {
-                const formData = new FormData();
-                formData.append("image", imagePic);
-                formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '')
+            try {
+                const res = await serverAPI.post('/edituser', userEdit);
 
-                serverAPI.post('/uploadUserImg', formData, { headers: { 'Authorization': cookies.token } }).then(_ => {
-                    // retrieve profile pic and put
-                    serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                        if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                            const rawUrl = res.data.fileURL.url;
-                            const pic = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
-                                ? rawUrl
-                                : API_URL_BASE + "/" + rawUrl;
-                            setImagePicPreview(pic);
-                        }
-                    })
+                if (imagePic) {
+                    const formData = new FormData();
+                    formData.append("image", imagePic);
+                    formData.append('userID', currentUser.id?.toString() ? currentUser.id.toString() : '');
 
-                    // Emit event
+                    await serverAPI.post('/uploadUserImg', formData, { headers: { 'Authorization': cookies.token } });
+
+                    const imgRes = await serverAPI.post('/getUserImgByToken', { token: cookies.token });
+                    if (imgRes && imgRes.data && imgRes.data.fileURL && imgRes.data.fileURL.url) {
+                        const rawUrl = imgRes.data.fileURL.url;
+                        const pic = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                            ? rawUrl
+                            : API_URL_BASE + "/" + rawUrl;
+                        setImagePicPreview(pic);
+                    }
+
                     EventEmitter.dispatch(Events.CHANGE_PROFILE_PIC, null);
-                })
-                alert(res.data.message)
+                }
+
+                alert(res.data?.message || 'User updated successfully');
                 resetUserModal();
                 onClose();
-            }).catch(err => {
-                console.log(err)
-                if (err.response.data && err.response.data.message) {
-                    alert(err.response.data.message)
+            } catch (err: any) {
+                console.error("Error saving user profile:", err);
+                if (err?.response?.data?.message) {
+                    alert(err.response.data.message);
+                } else {
+                    alert(err?.message || 'Something went wrong');
                 }
-            })
+            }
         } else {
-            alert('Something went wrong')
+            alert('Something went wrong');
         }
     }
 
