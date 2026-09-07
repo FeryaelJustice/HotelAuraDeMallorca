@@ -35,7 +35,10 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 let picURL = '';
                 if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    const rawUrl = res.data.fileURL.url;
+                    picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                        ? rawUrl
+                        : API_URL_BASE + "/" + rawUrl;
                 }
                 setUserPhotoURL(picURL);
             })
@@ -59,7 +62,10 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
                 if (res && res.data && res.data.status != "error") {
                     let picURL = '';
                     if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                        picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                        const rawUrl = res.data.fileURL.url;
+                        picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                            ? rawUrl
+                            : API_URL_BASE + "/" + rawUrl;
                     }
                     setUserPhotoURL(picURL);
                 }

@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import bcrypt from "bcryptjs";
-import mysql from "mysql";
+import mysql from "mysql2";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import moment from "moment-timezone";
@@ -19,8 +19,23 @@ import { Jimp } from "jimp";
 import axios from "axios";
 import jwt from "jsonwebtoken";
 import { BrevoClient } from "@getbrevo/brevo";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
+import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
+
+// CLOUDINARY CONFIGURATION
+if (process.env.CLOUDINARY_URL) {
+    cloudinary.config();
+} else if (process.env.CLOUDINARY_CLOUD_NAME) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true,
+    });
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,31 +45,80 @@ moment.tz.setDefault("Europe/Madrid");
 const dateFormat = "YYYY-MM-DD";
 const fileExtensionRegex = /\.[^.]+$/;
 
-// Podriamos hacer un storage con rutas distintas para cada proposito con un objeto uploadWith con su storage distinto para usarlo en las rutas
+// Media paths
 const rutaMedia = "media/";
 const rutaImgs = rutaMedia + "img/";
 const rutaProfilePics = rutaImgs + "users/profilepics/";
-// Aqui hacemos solo para subida de fotos de perfil de usuarios, pero podria hacerse mas
+
+// Secure Multer storage for user profile pictures (Fallback disk storage)
 const multerStorageForUserPic = multer.diskStorage({
     destination: function (req, file, cb) {
-        // const { id } = req.body
-        // Generico: cb(null, 'public' + rutaMedia)
-        const pathDest = "public/" + rutaProfilePics;
+        const pathDest = path.join(__dirname, "public", rutaProfilePics);
         fs.mkdirSync(pathDest, { recursive: true });
         return cb(null, pathDest);
     },
     filename: function (req, file, cb) {
-        if (req && req.dni) {
-            return cb(null, req.dni + ".webp");
-        } else {
-            return cb(
-                null,
-                file.originalname.replace(fileExtensionRegex, "") + ".webp",
-            ); //Appending .webp
-        }
+        // Sanitize file base name to avoid directory traversal
+        const rawName = (req && req.dni ? req.dni : file.originalname.replace(fileExtensionRegex, "")) || "user";
+        const sanitized = rawName.replace(/[^a-zA-Z0-9_-]/g, "");
+        return cb(null, `${sanitized || "profile"}.webp`);
     },
 });
-const uploadWithMulterForUserPic = multer({ storage: multerStorageForUserPic });
+
+const multerImageFileFilter = function (req, file, cb) {
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file format. Only JPEG, PNG and WEBP are allowed."));
+    }
+};
+
+const uploadWithMulterDisk = multer({
+    storage: multerStorageForUserPic,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB max
+    },
+    fileFilter: multerImageFileFilter,
+});
+
+const uploadWithMulterMemory = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB max
+    },
+    fileFilter: multerImageFileFilter,
+});
+
+// Dynamic multer middleware: Cloudinary if NEEDS_CLOUDINARY_FOR_MEDIA == "1", otherwise fallback to local disk
+const uploadUserPicMiddleware = (req, res, next) => {
+    if (process.env.NEEDS_CLOUDINARY_FOR_MEDIA === "1") {
+        return uploadWithMulterMemory.single("image")(req, res, next);
+    }
+    return uploadWithMulterDisk.single("image")(req, res, next);
+};
+
+// Cloudinary upload stream helper
+const uploadBufferToCloudinary = (buffer, publicId) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "hotel_aura/users/profilepics",
+                public_id: publicId,
+                overwrite: true,
+                resource_type: "image",
+                format: "webp",
+            },
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(result);
+            },
+        );
+        stream.end(buffer);
+    });
+};
 const stripe = new Stripe(process.env.STRIPE_PRIVATE_KEY);
 // const os = require('os');
 
@@ -85,16 +149,59 @@ const decodeBase64Image = async (req, res, next) => {
 // INIT SERVER
 const app = express();
 
+// SECURITY HEADERS (Helmet)
+app.use(
+    helmet({
+        contentSecurityPolicy: false, // Avoid breaking external CDNs, Stripe and Recaptcha
+        crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow serving media to frontend
+    })
+);
+
 // CONFIGS
 // JSON enable
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+app.use(bodyParser.json({ limit: "10mb" }));
+
+// RATE LIMITING
+const generalLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 180, // 180 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(generalLimiter);
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // 20 attempts per 15 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        status: "error",
+        message: "Too many authentication attempts. Please try again in 15 minutes.",
+    },
+});
 
 // CORS
+const allowedOrigins = [
+    process.env.FRONT_URL,
+    process.env.CORS_ORIGIN_FRONT_URL ? `https://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
+    process.env.CORS_ORIGIN_FRONT_URL ? `http://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+].filter(Boolean);
+
 const corsOptions = {
-    //origin: process.env.CORS_ORIGIN_FRONT_URL,
-    origin: "*",
-    credentials: true, //access-control-allow-credentials:true
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== "production") {
+            return callback(null, true);
+        }
+        return callback(new Error("CORS policy: Not allowed by CORS"));
+    },
+    credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
     optionsSuccessStatus: 200,
 };
@@ -103,93 +210,116 @@ app.use(cors(corsOptions));
 // Cookies and compression
 app.use(cookieParser());
 app.use(compression());
-// app.use(morgan('combined'))
 
 // Serve public media
 app.use(express.static(path.join(__dirname, "public")));
 
 // DATABASE
 const dbConfig = {
-    host: process.env.DB_URL,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    connectionLimit: 300,
+    host: process.env.DB_URL || "127.0.0.1",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "hotelaurademallorca",
+    connectionLimit: 100,
     connectTimeout: 30000,
-    port: process.env.DB_PORT,
-    pingInterval: 60000,
+    port: Number(process.env.DB_PORT) || 3306,
     timezone: process.env.DB_TIMEZONE || "Europe/Madrid",
     ...(process.env.DB_SSL === "true" || process.env.DB_PORT == 4000
         ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
         : {}),
 };
 
-// const pool = isWindows ? mysql.createPool(dbConfig) : mysql2.createPool(dbConfig)
 const pool = mysql.createPool(dbConfig);
 
-// JWT
-const jwtSecretKey = "jwt-secret-key";
+// JWT SECRET
+const jwtSecretKey = process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
+if (!process.env.JWT_SECRET) {
+    console.warn("[SECURITY WARNING] JWT_SECRET is not configured in .env. Using fallback.");
+}
 
-// Verify user JWT
-const verifyUser = (req, res, next) => {
+// Token extraction helper
+const extractTokenFromReq = (req) => {
     let token = "";
-    //if (!req.cookies) {
-    if (!req.headers.authorization) {
+    if (req.headers && req.headers.authorization) {
+        const header = req.headers.authorization;
+        token = header.startsWith("Bearer ") ? header.slice(7) : header;
+    } else if (req.cookies && req.cookies.token) {
+        token = req.cookies.token;
+    } else if (req.body && req.body.token) {
         token = req.body.token;
-    } else {
-        token = req.headers.authorization;
     }
-    // } else {
-    //     token = req.cookies.token;
-    // }
+    return token ? token.trim() : "";
+};
+
+// Verify user JWT and identity
+const verifyUser = (req, res, next) => {
+    const token = extractTokenFromReq(req);
     if (!token) {
         return res.status(401).json({
             status: "error",
             message: "You are not authenticated, forbidden.",
         });
-    } else {
-        jwt.verify(token, jwtSecretKey, (err, decoded) => {
-            if (err) {
+    }
+
+    jwt.verify(token, jwtSecretKey, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({
+                status: "error",
+                message: "Token is not valid or expired, forbidden.",
+            });
+        }
+
+        // Query user and their role in a single optimized query
+        const sql = `
+            SELECT u.id, u.user_dni, u.user_verified, r.name as role_name 
+            FROM app_user u 
+            LEFT JOIN user_role ur ON ur.user_id = u.id 
+            LEFT JOIN role r ON r.id = ur.role_id 
+            WHERE u.access_token = ? AND u.isEnabled = 1
+        `;
+        req.dbConnectionPool.query(sql, [token], (queryErr, result) => {
+            if (queryErr) {
+                console.error("Token verification DB error:", queryErr);
+                return res.status(500).json({
+                    status: "error",
+                    message: "Database error verifying credentials.",
+                });
+            }
+
+            if (result && result.length > 0) {
+                if (result[0].user_verified == 1) {
+                    req.id = decoded.userID || result[0].id;
+                    req.dni = result[0].user_dni;
+                    req.userRole = result[0].role_name || "CLIENT";
+                    next();
+                } else {
+                    return res.status(403).json({
+                        status: "error",
+                        message: "Token is valid, but user is not verified.",
+                    });
+                }
+            } else {
                 return res.status(401).json({
                     status: "error",
-                    message: "Token is not valid, forbidden.",
+                    message: "Session is invalid or expired, forbidden.",
                 });
-            } else {
-                // Check also on db
-                req.dbConnectionPool.query(
-                    "SELECT id, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1",
-                    [token],
-                    (err, result) => {
-                        if (err) {
-                            return res.status(401).json({
-                                status: "error",
-                                message:
-                                    "Couldn't check user token in db query.",
-                            });
-                        }
-                        if (result && result.length > 0) {
-                            if (result[0].user_verified == 1) {
-                                req.id = decoded.userID;
-                                req.dni = result[0].user_dni;
-                                next();
-                            } else {
-                                return res.status(401).json({
-                                    status: "error",
-                                    message:
-                                        "Token is valid, but user is not verified.",
-                                });
-                            }
-                        } else {
-                            return res.status(401).json({
-                                status: "error",
-                                message: "Token is not valid, forbidden.",
-                            });
-                        }
-                    },
-                );
             }
         });
-    }
+    });
+};
+
+// Verify Administrator or Employee privileges
+const verifyAdmin = (req, res, next) => {
+    verifyUser(req, res, () => {
+        if (req.userRole === "ADMIN" || req.userRole === "EMPLOYEE") {
+            next();
+        } else {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied: Administrator privileges required.",
+            });
+        }
+    });
 };
 
 // Hashing for passwords
@@ -387,13 +517,19 @@ expressRouter.post("/checkUserExists", (req, res) => {
         });
     }
 });
-expressRouter.post("/register", (req, res) => {
+expressRouter.post("/register", authLimiter, (req, res) => {
     try {
         const data = req.body;
-        if (data && data.password && data.password.length < 4) {
-            return res.status(500).json({
+        if (!data || !data.email || !data.dni || !data.password) {
+            return res.status(400).json({
                 status: "error",
-                message: "Password must be at least 4 characters long",
+                message: "Missing required registration fields",
+            });
+        }
+        if (data.password.length < 8) {
+            return res.status(400).json({
+                status: "error",
+                message: "Password must be at least 8 characters long",
             });
         }
         const checkSQL =
@@ -407,7 +543,7 @@ expressRouter.post("/register", (req, res) => {
                 });
             }
             if (resultss.length > 0) {
-                return res.status(500).json({
+                return res.status(409).json({
                     status: "error",
                     message:
                         "Existing email OR DNI found in DB, use another email or DNI!",
@@ -429,32 +565,24 @@ expressRouter.post("/register", (req, res) => {
                         values,
                         (error, results) => {
                             if (error) {
-                                console.error(error);
+                                console.error("Registration insert error:", error);
                                 return res.status(500).json({
                                     status: "error",
-                                    message: "Inserting data error on server",
+                                    message: "Error creating account on server",
                                 });
                             }
                             let userID = results.insertId;
                             let jwtToken = jwt.sign({ userID }, jwtSecretKey, {
                                 expiresIn: "1d",
                             });
-                            // res.cookie('token', jwtToken)
 
-                            // Insert default picture to user
-                            // req.dbConnectionPool.query('INSERT INTO user_media (user_id, media_id) VALUES (?, ?)', [userID, 1], (err) => {
-                            //     if (err) {
-                            //         console.error(err)
-                            //     }
-                            // })
-
-                            // Insert user role to user
+                            // Always assign CLIENT role (1) to prevent privilege escalation
                             req.dbConnectionPool.query(
-                                "INSERT INTO user_role (user_id, role_id) VALUES (?,?)",
-                                [userID, data.roleID],
-                                (err) => {
-                                    if (err) {
-                                        console.error(err);
+                                "INSERT INTO user_role (user_id, role_id) VALUES (?, 1)",
+                                [userID],
+                                (roleErr) => {
+                                    if (roleErr) {
+                                        console.error("Error setting client role:", roleErr);
                                     }
                                 },
                             );
@@ -660,164 +788,128 @@ expressRouter.post("/registerWithQR", decodeBase64Image, async (req, res) => {
     }
 });
 
-expressRouter.post("/login", (req, res) => {
+expressRouter.post("/login", authLimiter, (req, res) => {
     try {
-        let data = req.body;
-        let sql =
-            "SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1";
-        let values = [data.email];
-        req.dbConnectionPool.query(sql, values, (error, results) => {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                status: "error",
+                message: "Email and password are required.",
+            });
+        }
+        const sql = "SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1";
+        req.dbConnectionPool.query(sql, [email], (error, results) => {
             if (error) {
-                console.error(error);
+                console.error("Login DB query error:", error);
                 return res.status(500).json({
                     status: "error",
-                    message: "Error on connecting db",
+                    message: "Internal server error during login",
                 });
             }
-            if (results.length > 0) {
-                bcrypt.compare(
-                    data.password,
-                    results[0].user_password,
-                    (error, response) => {
-                        if (error)
-                            return res.status(500).json({
-                                status: "error",
-                                message: "Passwords matching error",
-                            });
-                        if (response) {
-                            // Check is verified
-                            if (results[0].user_verified === 1) {
-                                // Login
-                                // Generating jwt manually, but we use our db
-                                // const userID = results[0].id;
-                                // let jwtToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: '1d' })
+            if (!results || results.length === 0) {
+                return res.status(401).json({
+                    status: "error",
+                    message: "Invalid email or password",
+                });
+            }
 
-                                if (!results[0].access_token) {
-                                    // If user hasn't a token, generate jwt token and update the user on db
-                                    const userID = results[0].id;
-                                    const jwtToken = jwt.sign(
-                                        { userID },
-                                        jwtSecretKey,
-                                        { expiresIn: "1d" },
-                                    );
-                                    req.dbConnectionPool.query(
-                                        "UPDATE app_user SET access_token = ? WHERE id = ?",
-                                        [jwtToken, userID],
-                                        (error, result) => {
-                                            if (error) {
-                                                console.log(
-                                                    "Error updating access token to user on login which haven't gone one before.",
-                                                );
-                                            }
-                                            if (result) {
-                                                return res.status(200).send({
-                                                    status: "success",
-                                                    message: "",
-                                                    cookieJWT: jwtToken,
-                                                    result: {
-                                                        id: results[0].id,
-                                                        name: results[0]
-                                                            .user_name,
-                                                        email: results[0]
-                                                            .user_email,
-                                                        dni: results[0]
-                                                            .user_dni,
-                                                    },
-                                                });
-                                            } else {
-                                                console.log(
-                                                    "Error updating access token to user on login which haven't gone one before.",
-                                                );
-                                            }
-                                        },
-                                    );
-                                } else {
-                                    // Return the user of db
-                                    return res.status(200).send({
-                                        status: "success",
-                                        message: "",
-                                        cookieJWT: results[0].access_token,
-                                        result: {
-                                            id: results[0].id,
-                                            name: results[0].user_name,
-                                            email: results[0].user_email,
-                                            dni: results[0].user_dni,
-                                        },
-                                    });
-                                }
-                            } else {
-                                return res.status(500).send({
-                                    status: "error",
-                                    message: "User not verified",
-                                });
-                            }
-                        } else {
-                            return res.status(500).send({
-                                status: "error",
-                                message: "Passwords do not match",
-                            });
+            const user = results[0];
+            bcrypt.compare(password, user.user_password, (bcryptErr, match) => {
+                if (bcryptErr || !match) {
+                    return res.status(401).json({
+                        status: "error",
+                        message: "Invalid email or password",
+                    });
+                }
+
+                if (user.user_verified !== 1) {
+                    return res.status(403).json({
+                        status: "error",
+                        message: "User account is not verified. Please check your email.",
+                    });
+                }
+
+                // Always issue a fresh, secure JWT token
+                const userID = user.id;
+                const freshToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: "1d" });
+
+                req.dbConnectionPool.query(
+                    "UPDATE app_user SET access_token = ? WHERE id = ?",
+                    [freshToken, userID],
+                    (updateErr) => {
+                        if (updateErr) {
+                            console.error("Error updating user access token:", updateErr);
                         }
+                        return res.status(200).json({
+                            status: "success",
+                            message: "Login successful",
+                            cookieJWT: freshToken,
+                            result: {
+                                id: user.id,
+                                name: user.user_name,
+                                email: user.user_email,
+                                dni: user.user_dni,
+                            },
+                        });
                     },
                 );
-            } else {
-                return res
-                    .status(500)
-                    .send({ status: "error", message: "User not found" });
-            }
+            });
         });
     } catch (error) {
-        return res
-            .status(500)
-            .send({ status: "error", message: "Internal server error" });
+        return res.status(500).json({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
 });
 
-expressRouter.post("/loginByToken", (req, res) => {
+expressRouter.post("/loginByToken", authLimiter, (req, res) => {
     try {
-        const token = req.body.token;
-        let sql =
-            "SELECT * FROM app_user WHERE access_token = ? AND isEnabled = 1";
-        let values = [token];
-        req.dbConnectionPool.query(sql, values, (error, results) => {
-            if (error) {
-                console.error(error);
-                return res.status(500).json({
-                    status: "error",
-                    message: "Error on connecting db",
-                });
+        const token = extractTokenFromReq(req);
+        if (!token) {
+            return res.status(401).json({ status: "error", message: "Token not provided" });
+        }
+
+        jwt.verify(token, jwtSecretKey, (jwtErr, decoded) => {
+            if (jwtErr) {
+                return res.status(401).json({ status: "error", message: "Token expired or invalid" });
             }
-            if (results.length > 0) {
-                // Check is verified
-                if (results[0].user_verified === 1) {
-                    // Login
-                    return res.status(200).send({
-                        status: "success",
-                        message: "",
-                        cookieJWT: results[0].access_token,
-                        result: {
-                            id: results[0].id,
-                            name: results[0].user_name,
-                            email: results[0].user_email,
-                        },
-                    });
-                } else {
-                    return res.status(500).send({
+
+            const sql = "SELECT id, user_name, user_email, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1";
+            req.dbConnectionPool.query(sql, [token], (error, results) => {
+                if (error) {
+                    console.error("Login by token DB error:", error);
+                    return res.status(500).json({
                         status: "error",
-                        message: "User not verified",
+                        message: "Internal server error",
                     });
                 }
-            } else {
-                return res
-                    .status(500)
-                    .send({ status: "error", message: "Token not valid" });
-            }
+                if (results && results.length > 0) {
+                    const user = results[0];
+                    if (user.user_verified === 1) {
+                        return res.status(200).json({
+                            status: "success",
+                            message: "Token valid",
+                            cookieJWT: token,
+                            result: {
+                                id: user.id,
+                                name: user.user_name,
+                                email: user.user_email,
+                                dni: user.user_dni,
+                            },
+                        });
+                    } else {
+                        return res.status(403).json({
+                            status: "error",
+                            message: "User not verified",
+                        });
+                    }
+                } else {
+                    return res.status(401).json({ status: "error", message: "Session expired or invalid" });
+                }
+            });
         });
     } catch (error) {
-        return res
-            .status(500)
-            .send({ status: "error", message: "Internal server error" });
+        return res.status(500).json({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -883,52 +975,52 @@ expressRouter.post("/editUserPassword", verifyUser, async (req, res) => {
 });
 
 // Reset password sending temporal token of 10 minutes
-expressRouter.post("/sendRecoverAccountMail", (req, res) => {
+expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
     try {
         const { email } = req.body;
-        if (email) {
-            // Find the user by email
-            findUserByEmail(req.dbConnectionPool, email)
-                .then((user) => {
-                    if (!user) {
-                        return res.status(400).json({
-                            status: "error",
-                            message: "User not found.",
-                        });
-                    }
-
-                    // Send the temporal token to reset the password
-                    sendRecoverPasswordEmail(
-                        req.dbConnectionPool,
-                        user.id,
-                        user.user_email,
-                    )
-                        .then((_) => {
-                            return res.status(200).json({
-                                status: "success",
-                                message:
-                                    "Temporal token for password reset sent successfully.",
-                            });
-                        })
-                        .catch((err) => {
-                            return res
-                                .status(500)
-                                .send({ status: "error", message: err });
-                        });
-                })
-                .catch((err) => {
-                    console.log(err);
-                    return res
-                        .status(500)
-                        .send({ status: "error", message: err });
-                });
-        } else {
-            return res
-                .status(500)
-                .json({ status: "error", message: "No email" });
+        if (!email) {
+            return res.status(400).json({ status: "error", message: "Email is required." });
         }
+
+        // Find the user by email
+        findUserByEmail(req.dbConnectionPool, email)
+            .then((user) => {
+                if (!user) {
+                    // Prevent user enumeration: always return standard success message
+                    return res.status(200).json({
+                        status: "success",
+                        message: "If that email is registered, a password reset token has been sent.",
+                    });
+                }
+
+                // Send the temporal token to reset the password
+                sendRecoverPasswordEmail(
+                    req.dbConnectionPool,
+                    user.id,
+                    user.user_email,
+                )
+                    .then((_) => {
+                        return res.status(200).json({
+                            status: "success",
+                            message: "If that email is registered, a password reset token has been sent.",
+                        });
+                    })
+                    .catch((err) => {
+                        console.error("Error sending recovery email:", err);
+                        return res
+                            .status(500)
+                            .send({ status: "error", message: "Error sending recovery email." });
+                    });
+            })
+            .catch((err) => {
+                console.error("findUserByEmail error:", err);
+                return res.status(200).json({
+                    status: "success",
+                    message: "If that email is registered, a password reset token has been sent.",
+                });
+            });
     } catch (error) {
-        console.log(error);
+        console.error("sendRecoverAccountMail error:", error);
         return res
             .status(500)
             .json({ status: "error", message: "Internal server error." });
@@ -936,66 +1028,81 @@ expressRouter.post("/sendRecoverAccountMail", (req, res) => {
         req.dbConnectionPool.release();
     }
 });
-expressRouter.post("/recoverAccount", (req, res) => {
+
+expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
     try {
         const { token, email, password } = req.body;
-        if (token && email && password) {
-            // Find the user by email
-            req.dbConnectionPool.query(
-                "SELECT id, reset_token_expiry FROM app_user WHERE user_email = ? AND reset_token = ?",
-                [email, token],
-                async (err, results) => {
-                    if (err) {
-                        return res.status(500).json({
-                            status: "error",
-                            message: "Internal server error.",
-                        });
-                    }
-                    if (results && results.length > 0) {
-                        const id = results[0].id;
-                        const resetTokenExpiry = new Date(
-                            results[0].reset_token_expiry,
-                        );
-                        const now = new Date();
-
-                        if (now < resetTokenExpiry) {
-                            const encryptedPassword = await bcrypt.hash(
-                                password,
-                                salt,
-                            );
-                            await req.dbConnectionPool.query(
-                                "UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?",
-                                [encryptedPassword, id],
-                            );
-                            await req.dbConnectionPool.commit();
-                            return res.status(200).json({
-                                status: "success",
-                                message:
-                                    "Account recovered, password changed successfully!",
-                            });
-                        } else {
-                            return res.status(500).json({
-                                status: "error",
-                                message: "Reset token expired",
-                            });
-                        }
-                    } else {
-                        return res.status(500).json({
-                            status: "error",
-                            message: "Code is invalid or expired!",
-                        });
-                    }
-                },
-            );
-        } else {
-            return res.status(500).json({
+        if (!token || !email || !password) {
+            return res.status(400).json({
                 status: "error",
-                message: "No token, email or password",
+                message: "Token, email, and new password are required.",
             });
         }
+        if (password.length < 8) {
+            return res.status(400).json({
+                status: "error",
+                message: "Password must be at least 8 characters long.",
+            });
+        }
+
+        // Find the user by email and reset token
+        req.dbConnectionPool.query(
+            "SELECT id, reset_token_expiry FROM app_user WHERE user_email = ? AND reset_token = ?",
+            [email, token],
+            async (err, results) => {
+                if (err) {
+                    console.error("recoverAccount DB error:", err);
+                    return res.status(500).json({
+                        status: "error",
+                        message: "Internal server error.",
+                    });
+                }
+                if (results && results.length > 0) {
+                    const id = results[0].id;
+                    const resetTokenExpiry = new Date(
+                        results[0].reset_token_expiry,
+                    );
+                    const now = new Date();
+
+                    if (now < resetTokenExpiry) {
+                        const encryptedPassword = await bcrypt.hash(
+                            password,
+                            salt,
+                        );
+                        req.dbConnectionPool.query(
+                            "UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?",
+                            [encryptedPassword, id],
+                            (updateErr) => {
+                                if (updateErr) {
+                                    console.error("Error updating recovered password:", updateErr);
+                                    return res.status(500).json({
+                                        status: "error",
+                                        message: "Error updating password.",
+                                    });
+                                }
+                                return res.status(200).json({
+                                    status: "success",
+                                    message:
+                                        "Account recovered, password changed successfully!",
+                                });
+                            },
+                        );
+                    } else {
+                        return res.status(400).json({
+                            status: "error",
+                            message: "Reset token expired",
+                        });
+                    }
+                } else {
+                    return res.status(400).json({
+                        status: "error",
+                        message: "Code is invalid or expired!",
+                    });
+                }
+            },
+        );
     } catch (error) {
-        console.log(error);
-        req.dbConnectionPool.rollback();
+        console.error("recoverAccount error:", error);
         return res
             .status(500)
             .json({ status: "error", message: "Internal server error." });
@@ -1058,14 +1165,22 @@ expressRouter.post("/getLoggedUserID", verifyUser, (req, res) => {
 
 expressRouter.get("/getUserRole/:id", verifyUser, (req, res) => {
     try {
+        const targetID = parseInt(req.params.id, 10);
+        if (req.id !== targetID && req.userRole !== "ADMIN" && req.userRole !== "EMPLOYEE") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied: You are not authorized to view this user's role.",
+            });
+        }
+
         req.dbConnectionPool.query(
             "SELECT r.* FROM role r INNER JOIN user_role ur ON ur.role_id = r.id WHERE ur.user_id = ?",
-            [req.params.id],
+            [targetID],
             (err, results) => {
                 if (err) {
                     return res.status(500).json({
                         status: "error",
-                        message: "Error on connecting db",
+                        message: "Error connecting to database",
                     });
                 }
                 if (results.length > 0) {
@@ -1075,7 +1190,7 @@ expressRouter.get("/getUserRole/:id", verifyUser, (req, res) => {
                         data: results[0],
                     });
                 } else {
-                    return res.status(500).send({
+                    return res.status(404).send({
                         status: "error",
                         message: "No user role exists with that user id",
                     });
@@ -1091,19 +1206,25 @@ expressRouter.get("/getUserRole/:id", verifyUser, (req, res) => {
     }
 });
 
-// get current logged user data without jwt, only by id param
+// get current logged user data with ownership/admin verification
 expressRouter.get("/loggedUser/:id", verifyUser, (req, res) => {
     try {
-        let userID = req.params.id;
-        let sql =
+        const targetID = parseInt(req.params.id, 10);
+        if (req.id !== targetID && req.userRole !== "ADMIN" && req.userRole !== "EMPLOYEE") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied: You are not authorized to view this profile.",
+            });
+        }
+
+        const sql =
             "SELECT id, user_name, user_surnames, user_email, user_dni, isEnabled, user_verified, created_at, updated_at FROM app_user WHERE id = ? AND isEnabled = 1";
-        let values = [userID];
-        req.dbConnectionPool.query(sql, values, (error, results) => {
+        req.dbConnectionPool.query(sql, [targetID], (error, results) => {
             if (error) {
-                console.error(error);
+                console.error("loggedUser query error:", error);
                 return res.status(500).json({
                     status: "error",
-                    message: "Error on connecting db",
+                    message: "Error connecting to database",
                 });
             }
             if (results.length > 0) {
@@ -1113,7 +1234,7 @@ expressRouter.get("/loggedUser/:id", verifyUser, (req, res) => {
                     data: results[0],
                 });
             } else {
-                return res.status(500).send({
+                return res.status(404).send({
                     status: "error",
                     message: "No user exists with that id",
                 });
@@ -1173,8 +1294,8 @@ expressRouter.get("/checkUserIsVerified/:id", verifyUser, (req, res) => {
 expressRouter.post(
     "/uploadUserImg",
     verifyUser,
-    uploadWithMulterForUserPic.single("image"),
-    (req, res) => {
+    uploadUserPicMiddleware,
+    async (req, res) => {
         const userID = req.id;
 
         function deleteUserMediaPromise(userID, connection) {
@@ -1187,9 +1308,6 @@ expressRouter.post(
                             reject(error);
                             return;
                         }
-
-                        // Filter the results to keep only those with media_id not equal to '1'
-                        // const filteredResults = results.filter(result => result.media_id !== 1);
 
                         if (results.length > 0) {
                             // Create an array of Promises for deletion
@@ -1228,18 +1346,15 @@ expressRouter.post(
         }
 
         // Insert the new media and user_media records.
-        function insertMediaAndUserMediaPromise(filename, userID, connection) {
+        function insertMediaAndUserMediaPromise(mediaUrl, userID, connection) {
             return new Promise((resolve, reject) => {
                 try {
-                    if (!req.file) {
-                        reject("No file found");
-                    }
                     connection.query(
                         "INSERT INTO media (type, url) VALUES (?, ?)",
-                        ["image", rutaProfilePics + filename],
+                        ["image", mediaUrl],
                         (err, result) => {
                             if (err) {
-                                reject(err);
+                                return reject(err);
                             }
 
                             try {
@@ -1249,7 +1364,7 @@ expressRouter.post(
                                     [userID, newMediaID],
                                     (error) => {
                                         if (error) {
-                                            reject(err);
+                                            return reject(error);
                                         }
                                         resolve();
                                     },
@@ -1265,25 +1380,45 @@ expressRouter.post(
             });
         }
 
-        if (req.file) {
-            // Wait for both promises to resolve before sending a response to the client.
-            Promise.all([
-                deleteUserMediaPromise(userID, req.dbConnectionPool),
-                insertMediaAndUserMediaPromise(
-                    req.file.filename,
-                    userID,
-                    req.dbConnectionPool,
-                ),
-            ]).then(() => {
+        try {
+            if (!req.file) {
                 return res.status(200).json({
                     status: "success",
-                    message: `Image ${req.file.filename} successfully uploaded`,
+                    message: `Image not changed, not uploaded.`,
                 });
-            });
-        } else {
+            }
+
+            let mediaUrl = "";
+            let uploadedFilename = "";
+
+            if (process.env.NEEDS_CLOUDINARY_FOR_MEDIA === "1") {
+                // Primary: Cloudinary cloud storage
+                const rawName = (req && req.dni ? req.dni : (req.file.originalname || "").replace(fileExtensionRegex, "")) || `user_${userID}`;
+                const sanitized = rawName.replace(/[^a-zA-Z0-9_-]/g, "");
+                const publicId = sanitized || `user_${userID}`;
+
+                const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer, publicId);
+                mediaUrl = cloudinaryResult.secure_url;
+                uploadedFilename = `${publicId}.webp`;
+            } else {
+                // Fallback: Local disk storage
+                uploadedFilename = req.file.filename;
+                mediaUrl = rutaProfilePics + uploadedFilename;
+            }
+
+            await deleteUserMediaPromise(userID, req.dbConnectionPool);
+            await insertMediaAndUserMediaPromise(mediaUrl, userID, req.dbConnectionPool);
+
             return res.status(200).json({
                 status: "success",
-                message: `Image not changed, not uploaded.`,
+                message: `Image ${uploadedFilename} successfully uploaded`,
+                url: mediaUrl,
+            });
+        } catch (error) {
+            console.error("[UPLOAD ERROR]", error);
+            return res.status(500).json({
+                status: "error",
+                message: "Error processing image upload",
             });
         }
     },
@@ -1576,7 +1711,7 @@ const getUserRoleById = (connection, userId) => {
     });
 };
 
-expressRouter.get("/usersID", (req, res) => {
+expressRouter.get("/usersID", verifyAdmin, (req, res) => {
     try {
         req.dbConnectionPool.query(
             "SELECT id FROM app_user",
@@ -2191,14 +2326,13 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     INNER JOIN booking b ON r.id = b.room_id
                     WHERE b.is_cancelled = 0
                     AND (
-                        (b.booking_start_date BETWEEN ? AND ?) OR
-                        (b.booking_end_date BETWEEN ? AND ?)
+                        b.booking_start_date <= ? AND b.booking_end_date >= ?
                     )
                     `;
 
         req.dbConnectionPool.query(
             sql,
-            [startDate, endDate, startDate, endDate],
+            [endDate, startDate],
             (err, results) => {
                 if (err) {
                     console.error(err);
@@ -2308,7 +2442,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
 });
 
 // BOOKING
-expressRouter.delete("/booking/:bookingID", verifyUser, (req, res) => {
+expressRouter.delete("/booking/:bookingID", verifyAdmin, (req, res) => {
     try {
         // Delete booking, only for admins
         const bookingId = req.params.bookingID;
@@ -3021,7 +3155,7 @@ function insertBookingGuests(connection, bookingId, guestIds) {
     }
 }
 
-expressRouter.get("/bookings", verifyUser, (req, res) => {
+expressRouter.get("/bookings", verifyAdmin, (req, res) => {
     try {
         req.dbConnectionPool.query("SELECT * FROM booking", (err, results) => {
             if (err) {
@@ -3303,16 +3437,16 @@ function deleteUserMediaByUserID(userID, connection) {
 
 // Google ReCAPTCHA
 // Verify site
-expressRouter.post("/captchaSiteVerify", async (req, res) => {
+expressRouter.post("/captchaSiteVerify", authLimiter, async (req, res) => {
     try {
-        const { secret, response } = req.body;
-        const captchaSecret =
-            secret && secret !== "def"
-                ? secret
-                : process.env.reCAPTCHA_SECRET_KEY &&
-                    process.env.reCAPTCHA_SECRET_KEY !== "def"
-                  ? process.env.reCAPTCHA_SECRET_KEY
-                  : "6Le_wa4tAAAAABNH3iJhJwS6FKJF_0UhVBnKl-Fr";
+        const { response } = req.body;
+        // The secret key must ONLY be read from server environment variables
+        const captchaSecret = process.env.reCAPTCHA_SECRET_KEY;
+        if (!captchaSecret) {
+            console.error("reCAPTCHA server secret key is not set in environment");
+            return res.status(500).json({ success: false, message: "reCAPTCHA server misconfiguration" });
+        }
+
         const reCaptchaURLEndpoint =
             "https://www.google.com/recaptcha/api/siteverify";
         const verificationResponse = await axios.post(
@@ -3326,15 +3460,16 @@ expressRouter.post("/captchaSiteVerify", async (req, res) => {
             },
         );
 
-        if (verificationResponse.data.success) {
-            // reCAPTCHA verification successful
+        if (verificationResponse.data && verificationResponse.data.success) {
             res.status(200).json({ success: true });
         } else {
-            // reCAPTCHA verification failed
-            res.status(400).json({ success: false });
+            res.status(400).json({
+                success: false,
+                errors: verificationResponse.data ? verificationResponse.data["error-codes"] : null,
+            });
         }
     } catch (error) {
-        console.error("reCAPTCHA verification error:", error);
+        console.error("reCAPTCHA verification error:", error.message || error);
         res.status(500).json({ success: false });
     } finally {
         req.dbConnectionPool.release();

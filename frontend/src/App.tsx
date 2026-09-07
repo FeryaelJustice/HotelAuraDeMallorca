@@ -1,10 +1,21 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
-import { Home, Services, Contact, UserVerify, NotFound, UserBookings, Admin, PrivacyPolicy, LegalNotice, CookiePolicy, TermsOfUse } from './pages';
+import { Home } from './pages/Home';
+const Services = lazy(() => import('./pages/Services').then(m => ({ default: m.Services })));
+const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
+const UserVerify = lazy(() => import('./pages/UserVerify').then(m => ({ default: m.UserVerify })));
+const UserBookings = lazy(() => import('./pages/UserBookings').then(m => ({ default: m.UserBookings })));
+const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const LegalNotice = lazy(() => import('./pages/LegalNotice').then(m => ({ default: m.LegalNotice })));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse').then(m => ({ default: m.TermsOfUse })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+
 import ScrollToTop from './ScrollToTop';
 import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
@@ -19,7 +30,6 @@ import { UserRoles } from "./constants";
 import { Role, Booking } from './models/index';
 
 import summerParty from './assets/music/summer-party.mp3'
-import { API_URL } from './services/consts';
 
 function App() {
     // MODALS
@@ -38,7 +48,9 @@ function App() {
     const [userHasBookings, setUserHasBookings] = useState(false);
 
     // Color scheme
-    const [colorScheme, setColorScheme] = useState(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const [colorScheme, setColorScheme] = useState(
+        typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    );
 
     // Translations
     const { t } = useTranslation();
@@ -66,7 +78,7 @@ function App() {
     };
 
     useEffect(() => {
-        document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', colorScheme)
+        document.documentElement.setAttribute('data-bs-theme', colorScheme)
 
         // background music
         if (audioRef.current) {
@@ -85,18 +97,24 @@ function App() {
         if (cookies.token) {
             // Verificamos en el verify user del backend la base de datos con el access token
             getAllLoggedUserData()
-            serverAPI.get(API_URL + '/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
+            serverAPI.get('/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
                 setUserHasBookings(res.data.data.length > 0)
             }).catch(err => console.log(err))
         }
     }, [cookies])
 
-    // Color theme listener
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-        const newColorScheme = event.matches ? "dark" : "light";
-        document.getElementsByTagName('html')[0].setAttribute('data-bs-theme', newColorScheme)
-        setColorScheme(newColorScheme);
-    });
+    // Color theme listener with proper cleanup to prevent memory leaks
+    useEffect(() => {
+        if (typeof window === "undefined" || !window.matchMedia) return;
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (event: MediaQueryListEvent) => {
+            const newColorScheme = event.matches ? "dark" : "light";
+            document.documentElement.setAttribute('data-bs-theme', newColorScheme);
+            setColorScheme(newColorScheme);
+        };
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, []);
 
     // Book modal
     const openBookingModal = () => {

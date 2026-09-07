@@ -70,10 +70,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         process.env.reCAPTCHA_SITE_KEY && process.env.reCAPTCHA_SITE_KEY !== "abc"
             ? process.env.reCAPTCHA_SITE_KEY
             : "6Le_wa4tAAAAAJurghi0g584K9-TBNOod089b5wM";
-    const captchaServerKey =
-        process.env.reCAPTCHA_SECRET_KEY && process.env.reCAPTCHA_SECRET_KEY !== "def"
-            ? process.env.reCAPTCHA_SECRET_KEY
-            : "6Le_wa4tAAAAABNH3iJhJwS6FKJF_0UhVBnKl-Fr";
     // const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
 
     useEffect(() => {
@@ -82,7 +78,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 let picURL = '';
                 if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    const rawUrl = res.data.fileURL.url;
+                    picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                        ? rawUrl
+                        : API_URL_BASE + "/" + rawUrl;
                 }
                 setImagePicPreview(picURL);
             })
@@ -94,7 +93,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             setCurrentScreen(UserModalScreens.ScreenEditProfile)
             getAllLoggedUserData().then(res => {
                 const userData = res.data;
-                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: userData.user_password, verified: userData.user_verified, enabled: userData.isEnabled })
+                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: '', verified: userData.user_verified, enabled: userData.isEnabled })
                 setCurrentUser(modelUserData)
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
 
@@ -126,7 +125,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 let picURL = '';
                 if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                    picURL = API_URL_BASE + "/" + res.data.fileURL.url;
+                    const rawUrl = res.data.fileURL.url;
+                    picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                        ? rawUrl
+                        : API_URL_BASE + "/" + rawUrl;
                 }
                 setImagePicPreview(picURL);
             })
@@ -246,7 +248,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             return;
         }
         const body = {
-            secret: captchaServerKey,
             response: value,
         };
         const headers = {
@@ -367,7 +368,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             return;
         }
         const body = {
-            secret: captchaServerKey,
             response: token,
         };
         const headers = {
@@ -413,11 +413,13 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 serverAPI.post('/uploadUserImg', formData, { headers: { 'Authorization': cookies.token } }).then(_ => {
                     // retrieve profile pic and put
                     serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            setImagePicPreview(reader.result);
+                        if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                            const rawUrl = res.data.fileURL.url;
+                            const pic = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                                ? rawUrl
+                                : API_URL_BASE + "/" + rawUrl;
+                            setImagePicPreview(pic);
                         }
-                        reader.readAsDataURL(res.data.fileURL.url)
                     })
 
                     // Emit event

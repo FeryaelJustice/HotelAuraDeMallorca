@@ -280,16 +280,14 @@ CREATE TABLE plan_media (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
--- RESTRICTIONS
-ALTER TABLE
-    `app_user`
-ADD
-    UNIQUE INDEX `user_id_UNIQUE` (`id` ASC);
+-- PERFORMANCE INDEXES & CONSTRAINTS
+-- Optimize user lookups by auth tokens
+ALTER TABLE `app_user` ADD INDEX `idx_app_user_access_token` (`access_token`);
+ALTER TABLE `app_user` ADD INDEX `idx_app_user_reset_token` (`reset_token`);
+ALTER TABLE `app_user` ADD INDEX `idx_app_user_verification_token` (`verification_token`);
 
-ALTER TABLE
-    `guest`
-ADD
-    UNIQUE INDEX `guest_id_UNIQUE` (`id` ASC);
+-- Optimize booking availability lookups
+ALTER TABLE `booking` ADD INDEX `idx_booking_availability` (`booking_start_date`, `booking_end_date`, `is_cancelled`);
 
 -- INSERTS of example data
 INSERT INTO
