@@ -6,6 +6,8 @@ backend/node_modules/
 backend/.env
 backend/package-lock.json
 
+database/*.pem
+
 # Logs
 logs
 *.log

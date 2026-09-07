@@ -117,9 +117,11 @@ const dbConfig = {
     connectionLimit: 300,
     connectTimeout: 30000,
     port: process.env.DB_PORT,
-    timezone: process.env.DB_TIMEZONE,
     pingInterval: 60000,
-    timezone: "Europe/Madrid", // Set the timezone here
+    timezone: process.env.DB_TIMEZONE || "Europe/Madrid",
+    ...(process.env.DB_SSL === "true" || process.env.DB_PORT == 4000
+        ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
+        : {}),
 };
 
 // const pool = isWindows ? mysql.createPool(dbConfig) : mysql2.createPool(dbConfig)
