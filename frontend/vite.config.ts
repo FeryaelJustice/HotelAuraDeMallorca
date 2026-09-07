@@ -13,29 +13,24 @@ export default defineConfig(({ mode }) => {
   // Helper to safely sanitize env vars (stripping surrounding quotes or accidental whitespace)
   const cleanEnv = (val: string | undefined, fallback: string = ""): string => {
     const raw = val !== undefined && val !== null && val !== "" ? val : fallback;
-    const trimmed = String(raw).trim().replace(/^["']|["']$/g, "");
-    return JSON.stringify(trimmed);
-  };
-
-  // Expose ONLY safe client-side environment variables to prevent leaking OS/system secrets
-  const safeClientEnv = {
-    NODE_ENV: JSON.stringify(mode),
-    FRONT_URL: cleanEnv(env.FRONT_URL, "http://hotelaurademallorca.com"),
-    TRANSLATIONS_DATA_URL: cleanEnv(env.TRANSLATIONS_DATA_URL, "https://hotelaurademallorca.com"),
-    FRONT_ASSETS_URL: cleanEnv(env.FRONT_ASSETS_URL, "https://hotelaurademallorca.com/assets"),
-    API_URL: cleanEnv(env.API_URL, "https://hotelaurademallorca.com"),
-    reCAPTCHA_SITE_KEY: cleanEnv(env.reCAPTCHA_SITE_KEY, "6Le_wa4tAAAAAJurghi0g584K9-TBNOod089b5wM"),
-    STRIPE_PUBLISHABLE_KEY: cleanEnv(env.STRIPE_PUBLISHABLE_KEY, ""),
-    APP_NAME: cleanEnv(env.APP_NAME, "Hotel Aura de Mallorca"),
-    OPENWEATHERMAP_API_KEY: cleanEnv(env.OPENWEATHERMAP_API_KEY, ""),
-    OPENWEATHERMAP_BASE_URL: cleanEnv(env.OPENWEATHERMAP_BASE_URL, "https://api.openweathermap.org"),
-    ACCUWEATHER_API_KEY: cleanEnv(env.ACCUWEATHER_API_KEY, ""),
-    ACCUWEATHER_BASE_URL: cleanEnv(env.ACCUWEATHER_BASE_URL, "https://dataservice.accuweather.com"),
+    return String(raw).trim().replace(/^["']|["']$/g, "").replace(/\/+$/, "");
   };
 
   return {
     define: {
-      "process.env": safeClientEnv,
+      "process.env.NODE_ENV": JSON.stringify(mode),
+      "process.env.FRONT_URL": JSON.stringify(cleanEnv(env.FRONT_URL, "https://hotel-aura-de-mallorca.vercel.app")),
+      "process.env.TRANSLATIONS_DATA_URL": JSON.stringify(cleanEnv(env.TRANSLATIONS_DATA_URL, "https://hotel-aura-de-mallorca.vercel.app")),
+      "process.env.FRONT_ASSETS_URL": JSON.stringify(cleanEnv(env.FRONT_ASSETS_URL, "https://hotel-aura-de-mallorca.vercel.app/assets")),
+      "process.env.API_URL": JSON.stringify(cleanEnv(env.API_URL, "https://hotel-aura-de-mallorca-backend-qkh3.onrender.com")),
+      "process.env.reCAPTCHA_SITE_KEY": JSON.stringify(cleanEnv(env.reCAPTCHA_SITE_KEY, "6Le_wa4tAAAAAJurghi0g584K9-TBNOod089b5wM")),
+      "process.env.STRIPE_PUBLISHABLE_KEY": JSON.stringify(cleanEnv(env.STRIPE_PUBLISHABLE_KEY, "")),
+      "process.env.APP_NAME": JSON.stringify(cleanEnv(env.APP_NAME, "Hotel Aura de Mallorca")),
+      "process.env.OPENWEATHERMAP_API_KEY": JSON.stringify(cleanEnv(env.OPENWEATHERMAP_API_KEY, "")),
+      "process.env.OPENWEATHERMAP_BASE_URL": JSON.stringify(cleanEnv(env.OPENWEATHERMAP_BASE_URL, "https://api.openweathermap.org")),
+      "process.env.ACCUWEATHER_API_KEY": JSON.stringify(cleanEnv(env.ACCUWEATHER_API_KEY, "")),
+      "process.env.ACCUWEATHER_BASE_URL": JSON.stringify(cleanEnv(env.ACCUWEATHER_BASE_URL, "https://dataservice.accuweather.com")),
+      "process.env": "{}",
     },
     plugins: [react(), ViteImageOptimizer({})],
     test: {

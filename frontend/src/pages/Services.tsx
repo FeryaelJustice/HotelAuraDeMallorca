@@ -41,7 +41,9 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                     return prevServices.map((service) => {
                         const matchingData = responseData.find((data: any) => data.serviceID === service.id);
                         if (matchingData) {
-                            return { ...service, imageURL: API_URL_BASE + "/" + matchingData.mediaURL };
+                            const media = matchingData.mediaURL || "";
+                            const fullURL = media.startsWith("http://") || media.startsWith("https://") ? media : API_URL_BASE + "/" + media;
+                            return { ...service, imageURL: fullURL };
                         }
                         return service; // No match found, return the original service
                     });
