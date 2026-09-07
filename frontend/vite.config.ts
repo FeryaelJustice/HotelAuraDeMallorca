@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         input: {
-          main: resolve(__dirname, "index.html"),
+          main: resolve(import.meta.dirname, "index.html"),
         },
         output: {
           entryFileNames: `assets/[name].js`,
