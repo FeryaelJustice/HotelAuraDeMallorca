@@ -408,15 +408,36 @@ VALUES
         'Standard Room',
         'Standard room with sea view',
         80.00,
-        '2023-10-15',
-        '2023-12-31'
+        '2024-01-01',
+        '2035-12-31'
     ),
     (
         'VIP Suite',
         'VIP suite with luxury services',
         200.00,
-        '2023-12-01',
-        '2024-03-31'
+        '2024-01-01',
+        '2035-12-31'
+    ),
+    (
+        'Deluxe Ocean View',
+        'Spacious deluxe room facing the Mediterranean sea with private balcony',
+        130.00,
+        '2024-01-01',
+        '2035-12-31'
+    ),
+    (
+        'Royal VIP Penthouse',
+        'Exclusive top-floor penthouse with private jacuzzi, butler service and panoramic terrace',
+        350.00,
+        '2024-01-01',
+        '2035-12-31'
+    ),
+    (
+        'Family Comfort Room',
+        'Spacious family room with two king beds, kids area and quiet garden view',
+        160.00,
+        '2024-01-01',
+        '2035-12-31'
     );
 
 -- Servicios
@@ -433,36 +454,36 @@ VALUES
         'Luxury Garden',
         'Premium garden services',
         20.00,
-        '2023-10-27',
-        '2023-12-31'
+        '2024-01-01',
+        '2035-12-31'
     ),
     (
         'Deluxe Pool',
         'Exclusive pool services',
         30.00,
-        '2023-11-01',
-        '2024-01-06'
+        '2024-01-01',
+        '2035-12-31'
     ),
     (
         'High-speed Wi-Fi',
         'High-speed Wi-Fi connection',
         10.00,
-        '2023-12-01',
-        '2024-02-28'
+        '2024-01-01',
+        '2035-12-31'
     ),
     (
         'Spa',
         'A luxury spa inside the hotel',
         50.00,
-        '2023-12-11',
-        '2024-03-06'
+        '2024-01-01',
+        '2035-12-31'
     ),
     (
         'Gym',
         'Awesome gym to stay healthy during your stay',
         5.00,
-        '2023-11-18',
-        '2024-04-23'
+        '2024-01-01',
+        '2035-12-31'
     );
 
 -- Reservas
@@ -597,7 +618,10 @@ INSERT INTO
     room_media (room_id, media_id)
 VALUES
     (1, 11),
-    (2, 12);
+    (2, 12),
+    (3, 11),
+    (4, 12),
+    (5, 11);
 
 INSERT INTO
     plan_media (plan_id, media_id)

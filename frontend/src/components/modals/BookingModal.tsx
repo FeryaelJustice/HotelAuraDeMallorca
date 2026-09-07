@@ -47,12 +47,67 @@ enum BookingSteps {
 }
 
 type PricesToPayBackup = {
-    [key in BookingSteps]: number; // Assume the value is a number, adjust as needed
+    [key in BookingSteps]: number;
 };
 
 // Booking step: calendar properties
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
+
+interface StripeCheckoutFormProps {
+    plan: any;
+    stripeOptions?: StripeElementsOptions;
+    totalPriceToPay: number;
+    onPay: (paymentData: any) => Promise<void>;
+}
+
+const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay, onPay }: StripeCheckoutFormProps) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [errorMessage, setErrorMessage] = useState<string | undefined>();
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (elements == null || stripe == null) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        setErrorMessage(undefined);
+
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+            setErrorMessage(submitError.message);
+            setIsSubmitting(false);
+            return;
+        }
+
+        const paymentData = {
+            amount: Math.max(50, Math.round(totalPriceToPay * 100)),
+            currency: stripeOptions?.currency || 'eur',
+            plan: plan
+        };
+
+        try {
+            await onPay(paymentData);
+        } catch (err: any) {
+            setErrorMessage(err.message || 'Payment processing failed');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <PaymentElement />
+            <Button variant="primary" type="submit" disabled={!stripe || !elements || isSubmitting} className="mt-3">
+                {isSubmitting ? 'Processing...' : `Pay €${totalPriceToPay.toFixed(2)}`}
+            </Button>
+            {errorMessage && <div className="text-danger mt-2">{errorMessage}</div>}
+        </form>
+    );
+};
 
 // BOOKING MODAL COMPONENT
 const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
@@ -60,78 +115,117 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const { t } = useTranslation();
 
     const handleClose = () => {
-        // De cualquier forma cuando lo cierre, vaciar el modal de data
         resetBookingModal();
         onClose();
-    }
+    };
 
-    // Stripe
+    // Stripe and Price States
     const [totalPriceToPay, setTotalPriceToPay] = useState<number>(0);
-    const [pricesToPayBackup, setPricesToPayBackup] = useState<PricesToPayBackup | undefined>(undefined);
-    const [comesFromNextSteps, setComesFromNextSteps] = useState<boolean>(false)
+    const [appliedPromoDiscount, setAppliedPromoDiscount] = useState<number>(0);
     const [stripeOptions, setStripeOptions] = useState<StripeElementsOptions | undefined>({
         mode: 'payment',
-        amount: 200,
+        amount: 5000,
         currency: 'eur',
-        // Fully customizable with appearance API.
-        appearance: {
-            /*...*/
-        },
+        appearance: {},
     });
     const [paymentTransactionID, setPaymentTransactionID] = useState<string>();
-
-    // STRIPE FORM
-    const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay }: any) => {
-        const stripe = useStripe();
-        const elements = useElements();
-
-        const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-        const handleSubmit = async (event: any) => {
-            event.preventDefault();
-            if (elements == null) {
-                return;
-            }
-
-            // Trigger form validation and wallet collection
-            const { error: submitError } = await elements.submit();
-            if (submitError) {
-                // Show error to your customer
-                setErrorMessage(submitError.message);
-                return;
-            }
-
-            // Create the PaymentIntent and obtain clientSecret from your server endpoint
-            const paymentData = {
-                amount: totalPriceToPay * 100, // Due to how Stripe works, if you send 1 euro, it charges 0.01 euros.
-                currency: stripeOptions.currency,
-                plan: plan
-            }
-
-            bookingProcess(paymentData);
-        };
-
-        return (
-            <form onSubmit={handleSubmit}>
-                <PaymentElement />
-                <button type="submit" disabled={!stripe || !elements}>
-                    Pay
-                </button>
-                {/* Show error message to your customers */}
-                {errorMessage && <div>{errorMessage}</div>}
-            </form>
-        );
-    };
 
     // Booking Modal
     const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
     const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
-    // const [promotions, setPromotions] = useState<Promotion[]>([]);
-    const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>(""); // the promo code that user puts on payment and will apply
-    const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1); // the selected promo id retrieved with the promo code
+    const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>("");
+    const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1);
     const [userSelectedPromoIsAssociatedWithUser, setUserSelectedPromoIsAssociatedWithUser] = useState<boolean>(false);
+
+    // Plans, Rooms, Services, Payment Methods State
+    const [plans, setPlans] = useState<Plan[]>([]);
+    const [checkedPlan, setCheckedPlan] = useState<number | null>(1);
+    const [rooms, setRooms] = useState<Room[]>([]);
+    const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
+    const [services, setServices] = useState<Service[]>([]);
+    const [selectedServicesIDs, setSelectedServicesIDs] = useState<{ [key: string]: boolean }>({});
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<number | null>(1);
+
+    // Dates (default today + 2 to today + 5 to satisfy 48h advance booking policy)
+    const defaultStart = new Date();
+    defaultStart.setDate(defaultStart.getDate() + 2);
+    defaultStart.setHours(12, 0, 0, 0);
+
+    const defaultEnd = new Date();
+    defaultEnd.setDate(defaultEnd.getDate() + 5);
+    defaultEnd.setHours(12, 0, 0, 0);
+
+    const [startDate, onChangeStartDate] = useState<Value>(defaultStart);
+    const [endDate, onChangeEndDate] = useState<Value>(defaultEnd);
+    const [adults, setAdults] = useState(1);
+    const [children, setChildren] = useState(0);
+    const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+
+    // Guests State
+    const [guests, setGuests] = useState<Guest[]>([
+        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
+    ]);
+    const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
+    const [userWantsToBecomeGuest, setUserWantsToBecomeGuest] = useState(false);
+    const [isUserGuestAdult, setIsUserGuestAdult] = useState(false);
+
+    // Personal Data State
+    const [userPersonalData, setUserPersonalData] = useState({ name: '', dni: '', surnames: '', email: '' });
+    const [userPersonalDataErrors, setUserPersonalDataErrors] = useState({ nameError: '', dniError: '', surnamesError: '', emailError: '' });
+
+    // Deterministic price calculation helper
+    const computeTotalPrice = (): number => {
+        let total = 0;
+
+        // 1. Plan price
+        const currentPlan = plans.find(p => p.id === checkedPlan);
+        if (currentPlan && currentPlan.price) {
+            total += Number(currentPlan.price);
+        }
+
+        // 2. Room price * number of nights
+        if (selectedRoomID && startDate && endDate) {
+            const currentRoom = rooms.find(r => r.id === selectedRoomID);
+            if (currentRoom && currentRoom.price) {
+                const sDate = new Date(startDate as Date);
+                const eDate = new Date(endDate as Date);
+                const diffTime = eDate.getTime() - sDate.getTime();
+                const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                total += Number(currentRoom.price) * nights;
+            }
+        }
+
+        // 3. Services (VIP plan checkedPlan === 2 includes all services for 0€ extra)
+        if (checkedPlan !== 2) {
+            services.forEach(service => {
+                if (service.id && selectedServicesIDs[service.id] && service.price) {
+                    total += Number(service.price);
+                }
+            });
+        }
+
+        // 4. Promo discount percentage
+        if (appliedPromoDiscount > 0) {
+            total = total * (1 - appliedPromoDiscount / 100);
+        }
+
+        return Math.max(0, Math.round(total * 100) / 100);
+    };
+
+    // Reactive price update
+    useEffect(() => {
+        const calculatedPrice = computeTotalPrice();
+        setTotalPriceToPay(calculatedPrice);
+        setStripeOptions(prev => ({
+            ...prev,
+            mode: 'payment',
+            currency: 'eur',
+            amount: Math.max(100, Math.round(calculatedPrice * 100)),
+        }));
+    }, [checkedPlan, selectedRoomID, startDate, endDate, selectedServicesIDs, appliedPromoDiscount, plans, rooms, services]);
 
     // Get JWT user data
     async function getAllLoggedUserData(): Promise<any> {
@@ -302,208 +396,104 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     }
 
     // Logica de navegacion por el modal
+    // Navigation logic: Next Step
     const goToNextStep = async () => {
-        setComesFromNextSteps(false);
-
-        // Lógica específica para cada paso
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
                 serverAPI.post('/checkUserExists', { email: userPersonalData.email, dni: userPersonalData.dni }).then(_ => {
                     setCurrentStep(BookingSteps.StepPlan);
                 }).catch(error => {
                     if (error && error.response && error.response.data && error.response.data.message) {
-                        alert(error.response.data.message)
+                        alert(error.response.data.message);
                     }
-                })
+                });
                 break;
             case BookingSteps.StepPlan:
-                if (checkedPlan === 1) {
-                    // Basic selected
-                    setTotalPriceToPay((plans[0].price ? plans[0].price : 50));
-
-                    // After the step, backup the step price
-                    setPricesToPayBackup({
-                        ...pricesToPayBackup!,
-                        [BookingSteps.StepPlan]: (plans[0].price ? plans[0].price : 50),
+                if (checkedPlan === 2) {
+                    // VIP selected: all services included automatically
+                    const allServicesSelected: { [key: string]: boolean } = {};
+                    services.forEach(s => {
+                        if (s.id) allServicesSelected[s.id] = true;
                     });
-                } else if (checkedPlan === 2) {
-                    // VIP selected
-
-                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                    // Crear una copia del estado actual
-                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                    // Establecer todos los valores en true
-                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                        updatedSelectedServicesIDs[key] = true;
-                    });
-                    setSelectedServicesIDs(updatedSelectedServicesIDs)
-
-                    // Update price to all selected services
-                    let totalServicesPrice = 0;
-                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
-                        // console.log(`${key}: ${value}`);
-                        if (value) {
-                            // Si es true, es que esta seleccionado
-                            const res = await serverAPI.get('/service/' + key)
-                            if (res) {
-                                totalServicesPrice += res.data.data[0].serv_price;
-                            }
-                        }
-                    }
-
-                    // Sum all the services prices + the plan price itself (we dont append it to the current total price to pay to make sure its the first step from 0)
-                    setTotalPriceToPay(totalServicesPrice + (plans[1].price ? plans[1].price : 150))
-
-                    // After the step, backup the step price
-                    setPricesToPayBackup({
-                        ...pricesToPayBackup!,
-                        [BookingSteps.StepChooseServices]: totalServicesPrice,
-                        [BookingSteps.StepPlan]: (plans[1].price ? plans[1].price : 150),
-                    });
+                    setSelectedServicesIDs(allServicesSelected);
                 }
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepChooseRoom:
                 if (selectedRoomID != null) {
-                    // asegurarse que adultos son 10 o menos y con niños igual
                     if (adults <= 10 && children <= 10) {
-                        // Check booking availability
-                        const availabilityResponse = await serverAPI.post('/checkBookingAvailability', { roomID: selectedRoomID, start_date: startDate, end_date: endDate });
+                        try {
+                            const availabilityResponse = await serverAPI.post('/checkBookingAvailability', {
+                                roomID: selectedRoomID,
+                                start_date: startDate,
+                                end_date: endDate
+                            });
 
-                        if (availabilityResponse.data && availabilityResponse.data.status === "success") {
-                            if (availabilityResponse.data.isAvailable) {
-                                // Check if startDate is Today
-                                const extractedStartDate = Array.isArray(startDate) ? startDate[0] : startDate;
-                                const formattedStartDate = extractedStartDate ? new Date(extractedStartDate).toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                }) : 'N/A';
-                                const currentDate = new Date();
-                                const formattedCurrentDate = currentDate.toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                });
-                                const tomorrowDate = new Date();
-                                tomorrowDate.setDate(currentDate.getDate() + 1);
-                                const formattedTomorrowDate = tomorrowDate.toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                });
+                            if (availabilityResponse.data && availabilityResponse.data.status === "success") {
+                                if (availabilityResponse.data.isAvailable) {
+                                    const extractedStartDate = extractDate(startDate) || new Date();
+                                    const formattedStartDate = extractedStartDate.toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                    });
+                                    const currentDate = new Date();
+                                    const formattedCurrentDate = currentDate.toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                    });
+                                    const tomorrowDate = new Date();
+                                    tomorrowDate.setDate(currentDate.getDate() + 1);
+                                    const formattedTomorrowDate = tomorrowDate.toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                    });
 
-                                if (formattedStartDate != formattedCurrentDate && formattedStartDate !== formattedTomorrowDate) {
-                                    // Get weather forecast
-                                    serverAPI.get('/weather').then(res => {
-                                        // Check if the startDate is in good weather conditions
-                                        if (checkCanBookBasedOnWeather(res.data.data)) {
-                                            // Check selectedPlan and do some logic depending
-                                            if (checkedPlan == 2) {
-                                                serverAPI.get('/room/' + selectedRoomID).then(async res => {
-                                                    // Seleccionó vip, por lo que no elige servicios, todos estan incluidos
-                                                    // Crear una copia del estado actual
-                                                    const updatedSelectedServicesIDs = { ...selectedServicesIDs };
-                                                    // Establecer todos los valores en true
-                                                    Object.keys(updatedSelectedServicesIDs).forEach(key => {
-                                                        updatedSelectedServicesIDs[key] = true;
-                                                    });
-                                                    setSelectedServicesIDs(updatedSelectedServicesIDs)
-
-                                                    // Update price to all selected services
-                                                    let totalServicesPrice = 0;
-                                                    for (const [key, value] of Object.entries(updatedSelectedServicesIDs)) {
-                                                        // console.log(`${key}: ${value}`);
-                                                        if (value) {
-                                                            // Si es true, es que esta seleccionado
-                                                            const resp = await serverAPI.get('/service/' + key)
-                                                            if (resp) {
-                                                                totalServicesPrice += resp.data.data[0].serv_price;
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // If comes from previous step to control the check plan vip
-                                                    if (comesFromNextSteps) {
-                                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price + totalServicesPrice)
-                                                    } else {
-                                                        setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-                                                    }
-
-                                                    // After the step, backup the step price
-                                                    setPricesToPayBackup({
-                                                        ...pricesToPayBackup!,
-                                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                                        [BookingSteps.StepChooseServices]: totalServicesPrice,
-                                                    });
-                                                }).catch(err => console.log(err))
-
+                                    if (formattedStartDate !== formattedCurrentDate && formattedStartDate !== formattedTomorrowDate) {
+                                        serverAPI.get('/weather').then(res => {
+                                            if (checkCanBookBasedOnWeather(res.data.data)) {
+                                                if (checkedPlan === 2) {
+                                                    // VIP plan skips choosing services (already included)
+                                                    setCurrentStep(BookingSteps.StepFillGuests);
+                                                } else {
+                                                    setCurrentStep(BookingSteps.StepChooseServices);
+                                                }
+                                            } else {
+                                                alert("You can't book on booking start date due to bad weather conditions: " + WeatherStates.RAIN + ", please choose another start date!");
+                                            }
+                                        }).catch(() => {
+                                            if (checkedPlan === 2) {
                                                 setCurrentStep(BookingSteps.StepFillGuests);
                                             } else {
-                                                serverAPI.get('/room/' + selectedRoomID).then(res => {
-                                                    setTotalPriceToPay(totalPriceToPay + res.data.data[0].room_price)
-
-                                                    // After the step, backup the step price
-                                                    setPricesToPayBackup({
-                                                        ...pricesToPayBackup!,
-                                                        [BookingSteps.StepChooseRoom]: res.data.data[0].room_price,
-                                                    });
-                                                }).catch(err => console.log(err))
-
                                                 setCurrentStep(BookingSteps.StepChooseServices);
                                             }
-                                        } else {
-                                            alert("You can't book a service on booking start date: " + startDate?.toString() + " due to bad weather conditions: " + WeatherStates.RAIN + ", choose another start date for your booking!")
-                                        }
-                                    })
+                                        });
+                                    } else {
+                                        alert('You cannot put the start day of your booking in the day of today or tomorrow! Cancellation policy requires at least 48h advance booking.');
+                                    }
                                 } else {
-                                    alert('You cannot put the start day of your booking in the day of today or tomorrow!')
+                                    alert(availabilityResponse.data.message || "Cannot book these dates; they're occupied.");
                                 }
                             } else {
-                                if (availabilityResponse.data.available) {
-                                    const list = availabilityResponse.data.available.join(' / ');
-                                    alert("Cannot book these dates; they're occupied. List of available dates: " + list);
-                                } else {
-                                    alert("Cannot book these dates; they're occupied");
-                                }
+                                alert("No rooms available on those dates.");
                             }
-                        } else {
-                            alert("No rooms available on those dates");
+                        } catch (err: any) {
+                            console.error("Availability error:", err);
+                            alert("Error checking room availability. Please try again.");
                         }
-
                     } else {
-                        alert('Adults: maximum 10. Children: maximum 10.')
+                        alert('Adults: maximum 10. Children: maximum 10.');
                     }
                 } else {
-                    alert('No room selected')
+                    alert('No room selected');
                 }
-                // setCurrentStep(BookingSteps.StepChooseServices);
                 break;
             case BookingSteps.StepChooseServices:
-                let totalServicesPrice = 0;
-                for (const [key, value] of Object.entries(selectedServicesIDs)) {
-                    // console.log(`${key}: ${value}`);
-                    if (value) {
-                        // Si es true, es que esta seleccionado
-                        const res = await serverAPI.get('/service/' + key)
-                        if (res) {
-                            totalServicesPrice += res.data.data[0].serv_price;
-                        }
-                    }
-                }
-
-                setTotalPriceToPay(totalPriceToPay + totalServicesPrice)
-
-                // After the step, backup the step price
-                setPricesToPayBackup({
-                    ...pricesToPayBackup!,
-                    [BookingSteps.StepChooseServices]: totalServicesPrice,
-                });
-
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
-                // Asegurarse que corresponde el numero de niños y adultos con lo marcado ahora
                 let countAdults = 0;
                 let countChildren = 0;
 
@@ -516,38 +506,48 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     }
                 }
 
-                if (countAdults == adults && countChildren == children) {
+                if (countAdults === adults && countChildren === children) {
                     setCurrentStep(BookingSteps.StepPromoCode);
                 } else {
-                    alert("Adults and children are not matching in number with a previous step! Please make it match or change the number of adults/children!")
+                    alert("Adults and children counts do not match the previous step! Please adjust guests form.");
                 }
                 break;
             case BookingSteps.StepPromoCode:
-                // Get promotions
                 serverAPI.get('/promotions').then(async res => {
                     let promos = res.data.data;
                     let retrievedPromos: Promotion[] = [];
                     promos.forEach((prm: any) => {
-                        retrievedPromos.push(new Promotion({ id: prm.id, code: prm.code, discount_price: prm.discount_price, name: prm.name, description: prm.description, start_date: prm.start_date, end_date: prm.end_date }))
-                    })
-                    // setPromotions(retrievedPromos);
+                        retrievedPromos.push(new Promotion({
+                            id: prm.id,
+                            code: prm.code,
+                            discount_price: prm.discount_price,
+                            name: prm.name,
+                            description: prm.description,
+                            start_date: prm.start_date,
+                            end_date: prm.end_date
+                        }));
+                    });
 
-                    // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value
-                    const afterPromosTotalPriceAndPromoIDIfApplied = await getUpdatedTotalPriceToPayWithPromos(retrievedPromos, totalPriceToPay, userSelectedPromoCode)
-                    const updatedPrice = afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice ? afterPromosTotalPriceAndPromoIDIfApplied.updatedTotalPrice : totalPriceToPay;
-                    const promoID = afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId ? afterPromosTotalPriceAndPromoIDIfApplied.appliedPromoId : -1; // -1 means no promo applied
-
-                    setTotalPriceToPay(updatedPrice)
-                    setUserSelectedPromoID(promoID)
+                    if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '') {
+                        const promoResult = await getPromoDiscountPercentage(retrievedPromos, userSelectedPromoCode);
+                        setAppliedPromoDiscount(promoResult.discountPercentage);
+                        setUserSelectedPromoID(promoResult.appliedPromoId);
+                        setUserSelectedPromoIsAssociatedWithUser(promoResult.isUserPromo);
+                    } else {
+                        setAppliedPromoDiscount(0);
+                        setUserSelectedPromoID(-1);
+                        setUserSelectedPromoIsAssociatedWithUser(false);
+                    }
 
                     setCurrentStep(BookingSteps.StepPaymentMethod);
                 }).catch(err => {
-                    console.log(err)
-                    alert("Error recovering promo codes, can't continue with booking: " + err)
-                })
+                    console.error("Error retrieving promotions:", err);
+                    setAppliedPromoDiscount(0);
+                    setUserSelectedPromoID(-1);
+                    setCurrentStep(BookingSteps.StepPaymentMethod);
+                });
                 break;
             case BookingSteps.StepPaymentMethod:
-                // Migrado a usarlo directamente en un método en los propios forms de stripe, paypal o whatever
                 break;
             case BookingSteps.StepConfirmation:
                 resetBookingModal();
@@ -558,106 +558,27 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     };
 
-    // Logica de navegacion por el modal, paso atrás
-    const goToPreviousStep = async () => {
-        setComesFromNextSteps(true);
-
-        let priceToDiscount = 0;
-        let priceResult = 0;
-
+    // Navigation logic: Previous Step
+    const goToPreviousStep = () => {
         switch (currentStep) {
             case BookingSteps.StepPersonalData:
-                alert("You can't turn back, you are in the first step!")
+                alert("You can't turn back, you are in the first step!");
                 break;
             case BookingSteps.StepPlan:
-                setCurrentStep(BookingSteps.StepPersonalData);
+                if (!cookies.token) {
+                    setCurrentStep(BookingSteps.StepPersonalData);
+                }
                 break;
             case BookingSteps.StepChooseRoom:
-                // Restore price backup of the previous step (we discount what we have on that step)
-                if (checkedPlan == 2) {
-                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepPlan] || 0) + (pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0)
-                } else {
-                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPlan] || 0
-                }
-                priceResult = totalPriceToPay - priceToDiscount;
-
-                if (priceResult >= 0) {
-                    setTotalPriceToPay(priceResult);
-                } else {
-                    setTotalPriceToPay(0)
-                }
-
-                if (checkedPlan == 2) {
-                    // Empty selected step previous step of where we are price backup and the services step due to the checked plan vip
-                    setPricesToPayBackup((prevPrices) => {
-                        const updatedPrices = { ...prevPrices! };
-                        updatedPrices[BookingSteps.StepPlan] = 0;
-                        updatedPrices[BookingSteps.StepChooseServices] = 0;
-                        return updatedPrices;
-                    });
-                } else {
-                    // Empty selected step previous step of where we are price backup
-                    setPricesToPayBackup((prevPrices) => {
-                        const updatedPrices = { ...prevPrices! };
-                        updatedPrices[BookingSteps.StepPlan] = 0;
-                        return updatedPrices;
-                    });
-                }
-
                 setCurrentStep(BookingSteps.StepPlan);
                 break;
             case BookingSteps.StepChooseServices:
-                // Restore price backup of the previous step (we discount what we have on that step)
-                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseRoom] || 0;
-                priceResult = totalPriceToPay - priceToDiscount;
-
-                if (priceResult >= 0) {
-                    setTotalPriceToPay(priceResult);
-                } else {
-                    resetBookingModal();
-                }
-
-                // Empty selected step previous step of where we are price backup
-                setPricesToPayBackup((prevPrices) => {
-                    const updatedPrices = { ...prevPrices! };
-                    updatedPrices[BookingSteps.StepChooseRoom] = 0;
-                    return updatedPrices;
-                });
-
                 setCurrentStep(BookingSteps.StepChooseRoom);
                 break;
             case BookingSteps.StepFillGuests:
-                // Restore price backup of the previous step (we discount what we have on that step)
-                if (checkedPlan == 2) {
-                    priceToDiscount = (pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0) + (pricesToPayBackup?.[BookingSteps.StepChooseRoom] || 0) + (pricesToPayBackup?.[BookingSteps.StepPlan] || 0)
+                if (checkedPlan === 2) {
+                    setCurrentStep(BookingSteps.StepChooseRoom);
                 } else {
-                    priceToDiscount = pricesToPayBackup?.[BookingSteps.StepChooseServices] || 0
-                }
-                priceResult = totalPriceToPay - priceToDiscount;
-
-                if (priceResult >= 0) {
-                    setTotalPriceToPay(priceResult);
-                }
-
-                if (checkedPlan == 2) {
-                    // Empty selected step previous step of where we are price backup and the 2nd previous due to the checked plan vip
-                    setPricesToPayBackup((prevPrices) => {
-                        const updatedPrices = { ...prevPrices! };
-                        updatedPrices[BookingSteps.StepChooseServices] = 0;
-                        updatedPrices[BookingSteps.StepChooseRoom] = 0;
-                        updatedPrices[BookingSteps.StepPlan] = 0;
-                        return updatedPrices;
-                    });
-
-                    setCurrentStep(BookingSteps.StepPlan);
-                } else {
-                    // Empty selected step previous step of where we are price backup
-                    setPricesToPayBackup((prevPrices) => {
-                        const updatedPrices = { ...prevPrices! };
-                        updatedPrices[BookingSteps.StepChooseServices] = 0;
-                        return updatedPrices;
-                    });
-
                     setCurrentStep(BookingSteps.StepChooseServices);
                 }
                 break;
@@ -665,22 +586,15 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepPaymentMethod:
-                // Para volver a promo codes, restauramos lo descontado
-                priceToDiscount = pricesToPayBackup?.[BookingSteps.StepPromoCode] || 0;
-                priceResult = totalPriceToPay + priceToDiscount; // in this case, we sum because the promo was a discount, not an addition to the price
-
-                if (priceResult >= 0) {
-                    setTotalPriceToPay(priceResult);
-                }
                 setCurrentStep(BookingSteps.StepPromoCode);
                 break;
             case BookingSteps.StepConfirmation:
-                alert("You can't turn back, you already did the booking!")
+                alert("You can't turn back, you already did the booking!");
                 break;
             default:
                 break;
         }
-    }
+    };
 
     async function bookingProcess(paymentData: any) {
         try {
@@ -854,9 +768,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     }
 
     // Step Personal data Form
-    const [userPersonalData, setUserPersonalData] = useState({ name: '', dni: '', surnames: '', email: '' });
-    const [userPersonalDataErrors, setUserPersonalDataErrors] = useState({ nameError: '', dniError: '', surnamesError: '', emailError: '' });
-
     const validatePersonalDataForm = () => {
         const { name, surnames, email, dni } = userPersonalData;
         const newErrors = { nameError: '', surnamesError: '', emailError: '', dniError: '' }
@@ -898,22 +809,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }
 
-    // Step choose Plan
-    const [plans, setPlans] = useState<Plan[]>([])
-    const [checkedPlan, setCheckedPlan] = useState<number | null>(1);
-
     const selectPlan = (planID: any) => {
         setCheckedPlan(planID);
     };
-
-    // Step booking
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const [startDate, onChangeStartDate] = useState<Value>(new Date());
-    const [endDate, onChangeEndDate] = useState<Value>(tomorrow);
-    const [rooms, setRooms] = useState<Room[]>([]);
-    const [selectedRoomID, setSelectedRoomID] = useState<number | null>(null);
 
     const handleStartDateChange = (newStartDate: Value) => {
         onChangeStartDate(newStartDate);
@@ -922,10 +820,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const handleEndDateChange = (newEndDate: Value) => {
         onChangeEndDate(newEndDate);
     }
-
-    const [adults, setAdults] = useState(1);
-    const [children, setChildren] = useState(0);
-    const [filteredRooms, setFilteredRooms] = useState<Room[]>([])
 
     // Filter rooms
     useEffect(() => {
@@ -947,10 +841,6 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         setSelectedRoomID(roomID)
     }
 
-    // Step choose services
-    const [services, setServices] = useState<Service[]>([])
-    const [selectedServicesIDs, setSelectedServicesIDs] = useState<{ [key: string]: boolean }>({});
-
     const serviceSelected = (serviceID: any) => {
         if (selectedServicesIDs[serviceID]) {
             setSelectedServicesIDs(prevState => ({ ...prevState, [serviceID]: false }));
@@ -959,147 +849,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }
 
-    // Step fill guests
-    const [guests, setGuests] = useState<Guest[]>([
-        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
-    ]);
-    const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
-    const [userWantsToBecomeGuest, setUserWantsToBecomeGuest] = useState(false);
-    const [isUserGuestAdult, setIsUserGuestAdult] = useState(false);
-
-    const addGuest = () => {
-        if (guests.length < 20) {
-            // Maximum we allow 20 guests, 10 adults and 10 childs
-            setGuests([...guests, { id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false }]);
-            setGuestsDataErrors([...guestsDataErrors, { nameError: '', surnamesError: '', emailError: '' }])
-        } else {
-            alert('The maximum is 20 guests')
-        }
-    };
-
-    const substractGuest = () => {
-        if (guests.length > 1) {
-            const updatedGuests = guests.slice(0, -1);
-            setGuests(updatedGuests);
-            const updatedErrors = guestsDataErrors.slice(0, -1);
-            setGuestsDataErrors(updatedErrors);
-        }
-    }
-
-    const handleGuestsInputChange = (index: any, event: any) => {
-        const { name, value, type, checked } = event.target;
-        const updatedGuests = [...guests];
-        updatedGuests[index] = {
-            ...updatedGuests[index],
-            [name]: type === 'checkbox' ? checked : value
-        };
-        setGuests(updatedGuests);
-    };
-
-    const validateGuestsDataForm = () => {
-        let errors = [{ nameError: '', surnamesError: '', emailError: '' }];
-        guests.forEach((guest, index) => {
-            if (index === 0) {
-                errors = [];
-            }
-            const { name, surnames, email } = guest;
-            const newErrors = { nameError: '', surnamesError: '', emailError: '' };
-
-            if (isEmptyOrSpaces(name)) {
-                newErrors.nameError = 'Please enter a valid name'
-            }
-            if (isEmptyOrSpaces(surnames)) {
-                newErrors.surnamesError = 'Please enter valid surnames'
-            }
-            if (!validateEmail(email)) {
-                newErrors.emailError = 'Please enter a valid email'
-            }
-            errors.push(newErrors)
-        })
-
-        return errors;
-    }
-
-    const handleGuestsSubmit = (event: any) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        //let form = event.currentTarget;
-        const formErrors = validateGuestsDataForm();
-        let isAnError = false;
-
-        formErrors.forEach((formError) => {
-            if (formError.nameError !== '' || formError.surnamesError !== '' || formError.emailError !== '') {
-                isAnError = true;
-                return;
-            }
-        })
-
-        if (!isAnError) {
-            // Filter out guests with specific values for id, name, surnames, and isAdult (EXTRA FORM VALIDATION SECURITY)
-            const filteredGuests = guests.filter(guest => {
-                return (
-                    guest.id !== null ||
-                    guest.name !== '' ||
-                    guest.email !== '' ||
-                    guest.surnames !== '' ||
-                    guest.isAdult !== false
-                );
-            });
-            setGuests(filteredGuests)
-
-            goToNextStep();
-        } else {
-            setGuestsDataErrors(formErrors)
-        }
-    };
-
-    // On change user wants to become a guest
-    useEffect(() => {
-        if (userWantsToBecomeGuest) {
-            if (cookies && cookies.token) {
-                getAllLoggedUserData().then((data: any) => {
-                    let user: any = data.data;
-                    const newUserAsGuest = new Guest({ id: user.id, name: user.user_name, surnames: user.user_surnames, email: user.user_email, isAdult: isUserGuestAdult, isSystemUser: true })
-                    setGuests([newUserAsGuest, ...guests]);
-                    setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
-                }).catch(err => console.log(err));
-            } else {
-                const newUserAsGuest = new Guest({ id: null, name: userPersonalData.name, surnames: userPersonalData.surnames, email: userPersonalData.email, isAdult: isUserGuestAdult, isSystemUser: true })
-                setGuests([newUserAsGuest, ...guests]);
-                setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }, ...guestsDataErrors])
-            }
-        } else {
-            if (guests.length > 1) {
-                setGuests(prevGuests => prevGuests.slice(1));
-                setGuestsDataErrors(prevErrors => prevErrors.slice(1));
-            }
-        }
-    }, [userWantsToBecomeGuest]);
-
-    // On change user wants to become guest is an adult checkbox
-    useEffect(() => {
-        setGuests(prevGuests => {
-            return prevGuests.map((guest, index) => {
-                if (index === 0) {
-                    return { ...guest, isAdult: isUserGuestAdult };
-                }
-                return guest;
-            })
-        });
-    }, [isUserGuestAdult]);
-
-    // Step choose payment method and pay
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-    const [checkedPaymentMethod, setCheckedPaymentMethod] = useState<number | null>(1);
-
     const paymentMethodSelected = (paymentMethodID: any) => {
         setCheckedPaymentMethod(paymentMethodID);
     };
 
     // FUNCTIONS TO CHECK FOR PROMOS
-
-    // Get the discount percentage for a promotion
     async function getPromoDiscount(promoId: number): Promise<number> {
         try {
             const response = await serverAPI.get(`/get-promo-discount/${promoId}`);
@@ -1109,153 +863,89 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             return 0;
         }
     }
-    async function getUpdatedTotalPriceToPayWithPromos(promotions: Promotion[], totalPriceToPay: number, userSelectedPromoCode: string) {
-        // Check promos before payment and update its price with the promo that applies, and if not it wont have a valid value (default totalPriceToPay or -1 in appliedPromoId)
 
-        let updatedTotalPrice = totalPriceToPay;
-        let appliedPromoId: number = -1;
-        let selectedPromoIsAssociatedWithUser = false;
+    async function getPromoDiscountPercentage(promotions: Promotion[], userSelectedPromoCode: string): Promise<{ discountPercentage: number, appliedPromoId: number, isUserPromo: boolean }> {
+        let discountPercentage = 0;
+        let appliedPromoId = -1;
+        let isUserPromo = false;
 
-        if (userSelectedPromoCode != "") {
-            // Find the promotion with the selected promo code
-            const selectedPromo = promotions.find(promo => promo.code === userSelectedPromoCode);
-
+        if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '') {
+            const selectedPromo = promotions.find(promo => promo.code === userSelectedPromoCode.trim());
             if (selectedPromo) {
                 try {
-                    // Make parallel requests to getUserAssociatedPromos and getPromoDiscount
                     const [userPromosResponse, discount] = await Promise.all([
                         serverAPI.post('/getUserAssociatedPromos', { userID: userAllData?.id }),
                         getPromoDiscount(selectedPromo.id ? selectedPromo.id : -1),
                     ]);
 
-                    const promoDiscountOfTotalPrice = (totalPriceToPay * discount) / 100
-                    const userAssociatedPromos: Promotion[] = userPromosResponse.data.results;
-
-                    // With userSelectedPromoIsAssociatedWithUser we control if we apply the promotion of user of one time and set it to used, or use a normal promotion code with dates
-
+                    const userAssociatedPromos: Promotion[] = userPromosResponse.data.results || [];
                     const currentDate = new Date();
                     const promoStartDate = selectedPromo.start_date ? new Date(selectedPromo.start_date) : null;
                     const promoEndDate = selectedPromo.end_date ? new Date(selectedPromo.end_date) : null;
 
-                    // We check user associated promos
-                    userAssociatedPromos.forEach(async (userPromo: any) => {
-                        // Retrieved user associated promo and selected global promo from all retrieved promos are matching
-                        if ((userPromo.promotion_id === selectedPromo.id) && !userSelectedPromoIsAssociatedWithUser) {
-                            // User has this promotion
-                            // We check it's not used
-                            if (!userPromo.isUsed) {
-                                selectedPromoIsAssociatedWithUser = true;
-                                setUserSelectedPromoIsAssociatedWithUser(selectedPromoIsAssociatedWithUser)
-                                // Ensure promoStartDate and promoEndDate are defined before further processing
-                                if (promoStartDate && promoEndDate) {
-                                    // Convert dates to "YYYY-MM-DD" format from db
-                                    const currentDateString = currentDate.toISOString().slice(0, 10);
-                                    const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
-                                    const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
-
-                                    // Check if promo is in dates or the promo is for the user
-                                    if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
-                                        // Backup the discount
-                                        setPricesToPayBackup({
-                                            ...pricesToPayBackup!,
-                                            [BookingSteps.StepPromoCode]: promoDiscountOfTotalPrice,
-                                        });
-
-                                        // Apply the discount to the total price
-                                        updatedTotalPrice -= promoDiscountOfTotalPrice;
-                                        updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
-                                        // Set the applied promo ID
-                                        appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
-
-                                        // Set promo associated with user to be used
-                                        // await serverAPI.post('/setUserPromoUsed', { promoID: appliedPromoId, userID: userAllData?.id }, { headers: { 'Authorization': cookies.token } });
-                                    }
-                                } else {
-                                    // If dates not properly defined, we don't do anything
-                                    setPricesToPayBackup({
-                                        ...pricesToPayBackup!,
-                                        [BookingSteps.StepPromoCode]: 0,
-                                    });
+                    for (const userPromo of userAssociatedPromos as any[]) {
+                        if (userPromo.promotion_id === selectedPromo.id && !userPromo.isUsed) {
+                            if (promoStartDate && promoEndDate) {
+                                const currentDateString = currentDate.toISOString().slice(0, 10);
+                                const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
+                                const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
+                                if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
+                                    discountPercentage = discount;
+                                    appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
+                                    isUserPromo = true;
+                                    break;
                                 }
-                            } else {
-                                // If used, we don't do anything
-                                setPricesToPayBackup({
-                                    ...pricesToPayBackup!,
-                                    [BookingSteps.StepPromoCode]: 0,
-                                });
                             }
-                        }
-                    });
-
-                    // If we didn't find user associated promos matching this selected promo
-                    if (!selectedPromoIsAssociatedWithUser) {
-                        // User hasn't this promotion
-
-                        // Ensure promoStartDate and promoEndDate are defined before further processing
-                        if (promoStartDate && promoEndDate) {
-                            // Convert dates to "YYYY-MM-DD" format
-                            const currentDateString = currentDate.toISOString().slice(0, 10);
-                            const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
-                            const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
-
-                            // Check if promo is in dates or the promo is for the user
-                            if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
-                                // Backup the discount
-                                setPricesToPayBackup({
-                                    ...pricesToPayBackup!,
-                                    [BookingSteps.StepPromoCode]: promoDiscountOfTotalPrice,
-                                });
-
-                                // Apply the discount to the total price
-                                updatedTotalPrice -= promoDiscountOfTotalPrice;
-                                updatedTotalPrice = parseFloat(updatedTotalPrice.toFixed());
-                                // Set the applied promo ID
-                                appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
-                            }
-                        } else {
-                            // If dates not properly defined, we don't do anything
-                            setPricesToPayBackup({
-                                ...pricesToPayBackup!,
-                                [BookingSteps.StepPromoCode]: 0,
-                            });
                         }
                     }
 
+                    if (!isUserPromo && promoStartDate && promoEndDate) {
+                        const currentDateString = currentDate.toISOString().slice(0, 10);
+                        const promoStartDateString = promoStartDate.toISOString().slice(0, 10);
+                        const promoEndDateString = promoEndDate.toISOString().slice(0, 10);
+                        if (promoStartDateString <= currentDateString && currentDateString <= promoEndDateString) {
+                            discountPercentage = discount;
+                            appliedPromoId = selectedPromo.id ? selectedPromo.id : -1;
+                        }
+                    }
                 } catch (error) {
-                    setPricesToPayBackup({
-                        ...pricesToPayBackup!,
-                        [BookingSteps.StepPromoCode]: 0,
-                    });
-                    console.log(error);
+                    console.log('Error verifying promo code:', error);
                 }
             }
         }
 
-        return { updatedTotalPrice, appliedPromoId };
+        return { discountPercentage, appliedPromoId, isUserPromo };
     }
 
     // RESET
     const resetBookingModal = () => {
-        setCurrentStep(BookingSteps.StepPersonalData)
+        setCurrentStep(BookingSteps.StepPersonalData);
         if (cookies.token) {
-            // Si ya esta logeado, no pedir los datos personales
-            setCurrentStep(BookingSteps.StepPlan)
+            setCurrentStep(BookingSteps.StepPlan);
         }
         setUserPersonalData({ name: '', surnames: '', email: '', dni: '' });
-        setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '', dniError: '' })
+        setUserPersonalDataErrors({ nameError: '', surnamesError: '', emailError: '', dniError: '' });
         setGuests([
             new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
         ]);
-        setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }])
-        setCheckedPlan(1)
-        onChangeStartDate(new Date())
-        onChangeEndDate(new Date())
-        setAdults(1)
-        setChildren(0)
-        setFilteredRooms([])
-        setTotalPriceToPay(0);
-        setPricesToPayBackup(undefined);
-    }
+        setGuestsDataErrors([{ nameError: '', surnamesError: '', emailError: '' }]);
+        setCheckedPlan(1);
+        const resetStart = new Date();
+        resetStart.setDate(resetStart.getDate() + 2);
+        resetStart.setHours(12, 0, 0, 0);
+        const resetEnd = new Date();
+        resetEnd.setDate(resetEnd.getDate() + 5);
+        resetEnd.setHours(12, 0, 0, 0);
+        onChangeStartDate(resetStart);
+        onChangeEndDate(resetEnd);
+        setAdults(1);
+        setChildren(0);
+        setFilteredRooms([]);
+        setSelectedRoomID(null);
+        setAppliedPromoDiscount(0);
+        setUserSelectedPromoCode("");
+        setUserSelectedPromoID(-1);
+    };
 
     // When close, reset modal data
     useEffect(() => {

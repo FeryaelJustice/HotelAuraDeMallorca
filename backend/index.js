@@ -2336,133 +2336,152 @@ expressRouter.get("/paymentmethods", (req, res) => {
 expressRouter.post("/checkBookingAvailability", (req, res) => {
     try {
         const { start_date, end_date } = req.body;
-        // Añadimos un dia por la diferencia de timezone al recibir los datos y la base de datos
-        const startDateAsDate = new Date(start_date);
-        startDateAsDate.setDate(startDateAsDate.getDate() + 1);
-        const endDateAsDate = new Date(end_date);
-        endDateAsDate.setDate(endDateAsDate.getDate() + 1);
-        const startDate = startDateAsDate
-            .toISOString()
-            .slice(0, 11)
-            .replace("T", " ");
-        const endDate = endDateAsDate
-            .toISOString()
-            .slice(0, 11)
-            .replace("T", " ");
-        const sql = `SELECT r.id, r.room_availability_start, r.room_availability_end, b.booking_start_date, b.booking_end_date 
-                    FROM room r
-                    INNER JOIN booking b ON r.id = b.room_id
-                    WHERE b.is_cancelled = 0
-                    AND (
-                        b.booking_start_date <= ? AND b.booking_end_date >= ?
-                    )
-                    `;
+        const roomID = req.body.roomID || req.body.roomId;
 
-        req.dbConnectionPool.query(
-            sql,
-            [endDate, startDate],
-            (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).json({
-                        status: "error",
-                        message: "Error on connecting db",
-                    });
-                }
+        const formatDateStr = (d) => {
+            if (!d) return null;
+            if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+                return d.slice(0, 10);
+            }
+            const dateObj = new Date(d);
+            if (isNaN(dateObj.getTime())) return null;
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const day = String(dateObj.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        };
 
-                if (results && results.length > 0) {
-                    // Esto significa que está ocupada, sino estará a null
-                    if (results[0].booking_start_date) {
-                        // Buscar fechas disponibles
-                        const roomAvailabilityStart = new Date(
-                            results[0].room_availability_start,
-                        );
-                        const roomAvailabilityEnd = new Date(
-                            results[0].room_availability_end,
-                        );
+        const startDate = formatDateStr(start_date);
+        const endDate = formatDateStr(end_date);
 
-                        const availableDates = [];
-                        const today = new Date();
+        if (!startDate || !endDate) {
+            return res.status(400).json({
+                status: "error",
+                message: "Valid start_date and end_date are required",
+            });
+        }
 
-                        for (
-                            let currentDate = roomAvailabilityStart;
-                            currentDate <= roomAvailabilityEnd;
-                            currentDate.setDate(currentDate.getDate() + 1)
-                        ) {
-                            let isDateOccupied = false; // buscando si esta ocupado en las fechas disponibles del room con las del book ya reservado
-
-                            for (const row of results) {
-                                const bookingStartDate = new Date(
-                                    row.booking_start_date,
-                                );
-                                const bookingEndDate = new Date(
-                                    row.booking_end_date,
-                                );
-                                if (
-                                    currentDate >= bookingStartDate &&
-                                    currentDate <= bookingEndDate
-                                ) {
-                                    isDateOccupied = true;
-                                    break; // No need to check further, the date is occupied
-                                }
-                            }
-
-                            if (
-                                !isDateOccupied &&
-                                currentDate >= today &&
-                                currentDate
-                                    .toISOString()
-                                    .slice(0, 11)
-                                    .replace("T", " ") >= startDate
-                            ) {
-                                availableDates.push(
-                                    currentDate.toISOString().split("T")[0],
-                                );
-                            }
-                        }
-
-                        if (availableDates.length === 0) {
-                            return res.status(200).json({
-                                status: "success",
-                                isAvailable: false,
-                                message:
-                                    "No rooms available, they're occupied.",
-                            });
-                        } else {
-                            // return res.status(200).json({
-                            //     status: "success",
-                            //     message: "OK, rooms occupied but with available dates.",
-                            //     isAvailable: false,
-                            //     available: availableDates
-                            // });
-                            return res.status(200).json({
-                                status: "success",
-                                isAvailable: false,
-                                message:
-                                    "No rooms available for these dates, they're occupied.",
-                            });
-                        }
-                    } else {
-                        return res.status(200).send({
-                            status: "success",
-                            message: "OK, no rooms occupied.",
-                            isAvailable: true,
+        if (roomID) {
+            // Check specific room availability and overlap
+            req.dbConnectionPool.query(
+                "SELECT id, room_name, room_availability_start, room_availability_end FROM room WHERE id = ?",
+                [roomID],
+                (roomErr, roomResults) => {
+                    if (roomErr) {
+                        console.error("Error querying room:", roomErr);
+                        return res.status(500).json({
+                            status: "error",
+                            message: "Error on connecting db",
                         });
                     }
-                } else {
-                    return res.status(200).send({
+
+                    if (!roomResults || roomResults.length === 0) {
+                        return res.status(200).json({
+                            status: "success",
+                            isAvailable: false,
+                            message: "Room not found",
+                        });
+                    }
+
+                    const room = roomResults[0];
+                    const rStart = formatDateStr(room.room_availability_start);
+                    const rEnd = formatDateStr(room.room_availability_end);
+
+                    if ((rStart && startDate < rStart) || (rEnd && endDate > rEnd)) {
+                        return res.status(200).json({
+                            status: "success",
+                            isAvailable: false,
+                            message: "No rooms available on those dates",
+                        });
+                    }
+
+                    const overlapSql = `
+                        SELECT id, booking_start_date, booking_end_date 
+                        FROM booking 
+                        WHERE room_id = ? 
+                          AND is_cancelled = 0 
+                          AND booking_start_date <= ? 
+                          AND booking_end_date >= ?
+                    `;
+
+                    req.dbConnectionPool.query(
+                        overlapSql,
+                        [roomID, endDate, startDate],
+                        (overlapErr, overlapResults) => {
+                            if (overlapErr) {
+                                console.error("Error checking overlap:", overlapErr);
+                                return res.status(500).json({
+                                    status: "error",
+                                    message: "Error checking room booking overlap",
+                                });
+                            }
+
+                            if (overlapResults && overlapResults.length > 0) {
+                                return res.status(200).json({
+                                    status: "success",
+                                    isAvailable: false,
+                                    message: "Cannot book these dates; they're occupied",
+                                });
+                            }
+
+                            return res.status(200).json({
+                                status: "success",
+                                isAvailable: true,
+                                message: "OK, room is available",
+                            });
+                        }
+                    );
+                }
+            );
+        } else {
+            // General availability check across any room
+            const generalSql = `
+                SELECT r.id 
+                FROM room r 
+                WHERE (r.room_availability_start IS NULL OR ? >= r.room_availability_start)
+                  AND (r.room_availability_end IS NULL OR ? <= r.room_availability_end)
+                  AND r.id NOT IN (
+                      SELECT b.room_id 
+                      FROM booking b 
+                      WHERE b.is_cancelled = 0 
+                        AND b.booking_start_date <= ? 
+                        AND b.booking_end_date >= ?
+                  )
+            `;
+
+            req.dbConnectionPool.query(
+                generalSql,
+                [startDate, endDate, endDate, startDate],
+                (err, results) => {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({
+                            status: "error",
+                            message: "Error on connecting db",
+                        });
+                    }
+
+                    if (results && results.length > 0) {
+                        return res.status(200).json({
+                            status: "success",
+                            isAvailable: true,
+                            message: "Rooms available",
+                        });
+                    }
+
+                    return res.status(200).json({
                         status: "success",
-                        message: "OK, no rooms occupied.",
-                        isAvailable: true,
+                        isAvailable: false,
+                        message: "No rooms available on those dates",
                     });
                 }
-            },
-        );
+            );
+        }
     } catch (error) {
-        return res.status(500).send({
+        return res.status(500).json({
             status: "error",
             message: "Internal server error",
-            message: error,
+            error: error.message || error,
         });
     } finally {
         req.dbConnectionPool.release();
