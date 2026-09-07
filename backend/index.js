@@ -197,7 +197,12 @@ const allowedOrigins = [
 const corsOptions = {
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        const isVercel = /\.vercel\.app$/.test(new URL(origin).hostname);
+        let isVercel = false;
+        try {
+            isVercel = /\.vercel\.app$/.test(new URL(origin).hostname);
+        } catch {
+            isVercel = false;
+        }
         if (allowedOrigins.indexOf(origin) !== -1 || isVercel || process.env.NODE_ENV !== "production") {
             return callback(null, true);
         }
