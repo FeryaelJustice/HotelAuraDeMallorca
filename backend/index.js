@@ -2368,6 +2368,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
         const endDate = formatDateStr(end_date);
 
         if (!startDate || !endDate) {
+            req.dbConnectionPool.release();
             return res.status(400).json({
                 status: "error",
                 message: "Valid start_date and end_date are required",
@@ -2382,6 +2383,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                 (roomErr, roomResults) => {
                     if (roomErr) {
                         console.error("Error querying room:", roomErr);
+                        req.dbConnectionPool.release();
                         return res.status(500).json({
                             status: "error",
                             message: "Error on connecting db",
@@ -2389,6 +2391,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     }
 
                     if (!roomResults || roomResults.length === 0) {
+                        req.dbConnectionPool.release();
                         return res.status(200).json({
                             status: "success",
                             isAvailable: false,
@@ -2408,6 +2411,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     }
 
                     if ((rStart && startDate < rStart) || (rEnd && endDate > rEnd)) {
+                        req.dbConnectionPool.release();
                         return res.status(200).json({
                             status: "success",
                             isAvailable: false,
@@ -2430,6 +2434,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                         (overlapErr, overlapResults) => {
                             if (overlapErr) {
                                 console.error("Error checking overlap:", overlapErr);
+                                req.dbConnectionPool.release();
                                 return res.status(500).json({
                                     status: "error",
                                     message: "Error checking room booking overlap",
@@ -2437,6 +2442,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                             }
 
                             if (overlapResults && overlapResults.length > 0) {
+                                req.dbConnectionPool.release();
                                 return res.status(200).json({
                                     status: "success",
                                     isAvailable: false,
@@ -2444,6 +2450,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                                 });
                             }
 
+                            req.dbConnectionPool.release();
                             return res.status(200).json({
                                 status: "success",
                                 isAvailable: true,
@@ -2475,6 +2482,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                 (err, results) => {
                     if (err) {
                         console.error(err);
+                        req.dbConnectionPool.release();
                         return res.status(500).json({
                             status: "error",
                             message: "Error on connecting db",
@@ -2482,6 +2490,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     }
 
                     if (results && results.length > 0) {
+                        req.dbConnectionPool.release();
                         return res.status(200).json({
                             status: "success",
                             isAvailable: true,
@@ -2489,6 +2498,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                         });
                     }
 
+                    req.dbConnectionPool.release();
                     return res.status(200).json({
                         status: "success",
                         isAvailable: false,
@@ -2498,13 +2508,12 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
             );
         }
     } catch (error) {
+        req.dbConnectionPool.release();
         return res.status(500).json({
             status: "error",
             message: "Internal server error",
             error: error.message || error,
         });
-    } finally {
-        req.dbConnectionPool.release();
     }
 });
 
