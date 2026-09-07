@@ -461,7 +461,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
                             if (availabilityResponse.data && availabilityResponse.data.status === "success") {
                                 if (availabilityResponse.data.isAvailable) {
-                                    const extractedStartDate = extractDate(startDate) || new Date();
+                                    const extractedStartDate = startDate ? new Date(startDate as Date) : new Date();
                                     const formattedStartDate = extractedStartDate.toLocaleDateString('es-ES', {
                                         year: 'numeric',
                                         month: '2-digit',
