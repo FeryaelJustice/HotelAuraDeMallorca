@@ -22,6 +22,13 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    react: {
+      useSuspense: true,
+    },
+    detection: {
+      order: ["querystring", "cookie", "localStorage", "navigator", "htmlTag"],
+      caches: ["cookie", "localStorage"],
+    },
     backend: {
       loadPath: translationsLoadPath,
       crossDomain: true,

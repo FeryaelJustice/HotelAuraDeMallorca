@@ -52,9 +52,20 @@ export const Header = ({ colorScheme, onOpenBookingModal, onOpenUserModal, curre
     };
 
     useEffect(() => {
-        // Set the default language to the one detected by i18next
-        setSelectedLanguage(i18n.language);
-    }, [])
+        // Set the default language to the resolved language (short 2-letter code)
+        const currentLang = (i18n.resolvedLanguage || i18n.language || 'es').split('-')[0].toLowerCase();
+        setSelectedLanguage(currentLang);
+
+        const handleLanguageChanged = (lng: string) => {
+            const cleanLang = (lng || 'es').split('-')[0].toLowerCase();
+            setSelectedLanguage(cleanLang);
+        };
+
+        i18n.on('languageChanged', handleLanguageChanged);
+        return () => {
+            i18n.off('languageChanged', handleLanguageChanged);
+        };
+    }, [i18n.resolvedLanguage, i18n.language]);
 
     useEffect(() => {
         if (cookies.token) {
