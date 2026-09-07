@@ -215,11 +215,12 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         event.stopPropagation();
 
         let form = event.currentTarget;
-        setLoginValidated(form.checkValidity());
+        const isFormValid = form.checkValidity();
+        setLoginValidated(isFormValid);
         if (!captchaLoginValid && import.meta.env.MODE != 'development') {
             setCaptchaLoginError(true);
         }
-        if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
+        if ((isFormValid && captchaLoginValid) || import.meta.env.MODE == 'development') {
             serverAPI.post('/login', userLogin).then(res => {
                 if (!res.data.cookieJWT) {
                     resetUserModal();

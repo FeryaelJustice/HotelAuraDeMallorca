@@ -187,16 +187,18 @@ const allowedOrigins = [
     process.env.FRONT_URL,
     process.env.CORS_ORIGIN_FRONT_URL ? `https://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
     process.env.CORS_ORIGIN_FRONT_URL ? `http://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
+    "https://hotel-aura-de-mallorca.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
-].filter(Boolean);
+].filter(Boolean).map(origin => origin.trim().replace(/^["']|["']$/g, ""));
 
 const corsOptions = {
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== "production") {
+        const isVercel = /\.vercel\.app$/.test(new URL(origin).hostname);
+        if (allowedOrigins.indexOf(origin) !== -1 || isVercel || process.env.NODE_ENV !== "production") {
             return callback(null, true);
         }
         return callback(new Error("CORS policy: Not allowed by CORS"));
