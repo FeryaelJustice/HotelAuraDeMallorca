@@ -274,7 +274,7 @@ async function sendEmailNotification({
             return dest;
         });
 
-        return await brevoClient.transactionalEmails.sendTransacEmail({
+        const brevoResponse = await brevoClient.transactionalEmails.sendTransacEmail({
             subject: subject,
             htmlContent: html,
             textContent: text || "",
@@ -286,6 +286,16 @@ async function sendEmailNotification({
                     : replyTo
                 : undefined,
         });
+
+        const messageId =
+            brevoResponse?.messageId ||
+            brevoResponse?.body?.messageId ||
+            (typeof brevoResponse === "string" ? brevoResponse : null);
+
+        return {
+            ...brevoResponse,
+            messageId: messageId,
+        };
     } else {
         // Fallback a Nodemailer (SMTP)
         return await transporter.sendMail({
@@ -1622,6 +1632,7 @@ expressRouter.post("/sendContactForm", async (req, res) => {
             .status(200)
             .send({ status: "success", message: "Your message was sent!" });
     } catch (error) {
+        console.error("[MAIL] Error al enviar correo de contacto:", error);
         return res
             .status(500)
             .send({ status: "error", message: "Message couldn't be sent!" });
