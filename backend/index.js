@@ -257,7 +257,7 @@ async function sendEmailNotification({
     const senderEmail =
         fromEmail ||
         process.env.MAIL_SENDER_EMAIL ||
-        "hotelaurademallorca@hotmail.com";
+        "contact@feryaeljustice.dev";
     const senderName =
         fromName || process.env.APP_NAME || "Hotel Aura de Mallorca";
 
