@@ -66,8 +66,14 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
     const [currentUser, setCurrentUser] = useState(new User());
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
-    const captchaKey = process.env.reCAPTCHA_SITE_KEY
-    const captchaServerKey = process.env.reCAPTCHA_SECRET_KEY;
+    const captchaKey =
+        process.env.reCAPTCHA_SITE_KEY && process.env.reCAPTCHA_SITE_KEY !== "abc"
+            ? process.env.reCAPTCHA_SITE_KEY
+            : "6Le_wa4tAAAAAJurghi0g584K9-TBNOod089b5wM";
+    const captchaServerKey =
+        process.env.reCAPTCHA_SECRET_KEY && process.env.reCAPTCHA_SECRET_KEY !== "def"
+            ? process.env.reCAPTCHA_SECRET_KEY
+            : "6Le_wa4tAAAAABNH3iJhJwS6FKJF_0UhVBnKl-Fr";
     // const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
 
     useEffect(() => {

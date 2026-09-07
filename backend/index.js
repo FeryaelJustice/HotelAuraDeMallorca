@@ -3295,6 +3295,13 @@ function deleteUserMediaByUserID(userID, connection) {
 expressRouter.post("/captchaSiteVerify", async (req, res) => {
     try {
         const { secret, response } = req.body;
+        const captchaSecret =
+            secret && secret !== "def"
+                ? secret
+                : process.env.reCAPTCHA_SECRET_KEY &&
+                    process.env.reCAPTCHA_SECRET_KEY !== "def"
+                  ? process.env.reCAPTCHA_SECRET_KEY
+                  : "6Le_wa4tAAAAABNH3iJhJwS6FKJF_0UhVBnKl-Fr";
         const reCaptchaURLEndpoint =
             "https://www.google.com/recaptcha/api/siteverify";
         const verificationResponse = await axios.post(
@@ -3302,7 +3309,7 @@ expressRouter.post("/captchaSiteVerify", async (req, res) => {
             null,
             {
                 params: {
-                    secret,
+                    secret: captchaSecret,
                     response,
                 },
             },

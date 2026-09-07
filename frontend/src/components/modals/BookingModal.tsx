@@ -255,22 +255,16 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }).catch
             (err => console.log(err))
 
-        // Weather information (5 days)
+        // Weather information (5 days) - AccuWeather primary with OpenWeatherMap fallback
         const params = {
             lat: 39.58130105,
             lon: 2.709183392285786,
         };
-        weatherAPI.get('data/2.5/forecast', { params }).then(res => {
-            postWeatherDataToDB(res.data.list);
-
-            // Esto es si quisieramos mantenerlo en un useState
-            // const forecastFiveDaysList = res.data.list;
-            // const fiveDaysListObj: Weather[] = [];
-            // forecastFiveDaysList.forEach((forecastDay: any) => {
-            //     const day = new Date(forecastDay.dt_txt)
-            //     fiveDaysListObj.push(new Weather({ id: null, date: day, affectedServiceID: null, state: forecastDay.weather[0].main }))
-            // });
-        }).catch(err => console.log('WEATHER API ERROR: ' + err.message))
+        weatherAPI.getFiveDayForecast(params).then((res: any) => {
+            if (res?.data?.list) {
+                postWeatherDataToDB(res.data.list);
+            }
+        }).catch((err: any) => console.log('WEATHER API ERROR: ' + err.message));
 
         // Get promotions
         // serverAPI.get('/promotions').then(res => {
