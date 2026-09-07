@@ -201,7 +201,8 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
-    const [captchaLoginValid, setCaptchaLoginValid] = useState(false)
+    const [captchaLoginValid, setCaptchaLoginValid] = useState(false);
+    const [captchaLoginError, setCaptchaLoginError] = useState(false);
 
     const handleLoginChange = (event: any) => {
         setUserLogin({ ...userLogin, [event.target.name]: event.target.value });
@@ -213,6 +214,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
         let form = event.currentTarget;
         setLoginValidated(form.checkValidity());
+        if (!captchaLoginValid && import.meta.env.MODE != 'development') {
+            setCaptchaLoginError(true);
+        }
         if ((loginValidated && captchaLoginValid) || import.meta.env.MODE == 'development') {
             serverAPI.post('/login', userLogin).then(res => {
                 if (!res.data.cookieJWT) {
@@ -237,27 +241,38 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const onLoginCaptchaChange = async (value: string | null) => {
+        if (!value) {
+            setCaptchaLoginValid(false);
+            return;
+        }
         const body = {
             secret: captchaServerKey,
-            response: value
-        }
+            response: value,
+        };
         const headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Content-Type": "application/json",
+        };
+        try {
+            const isHuman = await serverAPI.post("/captchaSiteVerify", body, { headers });
+            if (isHuman?.data?.success) {
+                setCaptchaLoginValid(true);
+                setCaptchaLoginError(false);
+            } else {
+                setCaptchaLoginValid(false);
+                setCaptchaLoginError(true);
+            }
+        } catch {
+            setCaptchaLoginValid(false);
+            setCaptchaLoginError(true);
         }
-        // Verify captcha to backend
-        const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
-        if (isHuman) {
-            setCaptchaLoginValid(true)
-        } else {
-            setCaptchaLoginValid(true)
-        }
-    }
+    };
 
     // Form register
     const [registerValidated, setRegisterValidated] = useState(false);
     const [userRegister, setUserRegister] = useState({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 }); // roleID: 1 CLIENT, 2 ADMIN, 3 EMPLOYEE
     const [userRegisterPasswordsVisibility, setUserRegisterPasswordsVisiblity] = useState({ passwordVisible: false, repeatPasswordVisible: false });
-    const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false)
+    const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false);
+    const [captchaRegisterError, setCaptchaRegisterError] = useState(false);
     // QR
     const [formWantsQRRegister, setFormWantsQRRegister] = useState(false);
     const qrData = {
@@ -302,6 +317,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         serverAPI.post('/checkUserExists', { email: userRegister.email, dni: userRegister.dni }).then(_ => {
             let formValidity = true;
             let passwordsMatching = userRegister.password === userRegister.repeatpassword;
+            if (!captchaRegisterValid && import.meta.env.MODE != 'development') {
+                setCaptchaRegisterError(true);
+            }
             formValidity = ((form.checkValidity() && captchaRegisterValid) || import.meta.env.MODE == 'development') && (passwordsMatching)
             setRegisterValidated(formValidity);
             if (formValidity) {
@@ -344,21 +362,31 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const onRegisterCaptchaChange = async (token: string | null) => {
+        if (!token) {
+            setCaptchaRegisterValid(false);
+            return;
+        }
         const body = {
             secret: captchaServerKey,
-            response: token
-        }
+            response: token,
+        };
         const headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Content-Type": "application/json",
+        };
+        try {
+            const isHuman = await serverAPI.post("/captchaSiteVerify", body, { headers });
+            if (isHuman?.data?.success) {
+                setCaptchaRegisterValid(true);
+                setCaptchaRegisterError(false);
+            } else {
+                setCaptchaRegisterValid(false);
+                setCaptchaRegisterError(true);
+            }
+        } catch {
+            setCaptchaRegisterValid(false);
+            setCaptchaRegisterError(true);
         }
-        // Verify captcha to backend
-        const isHuman = await serverAPI.post('/captchaSiteVerify', body, { headers: headers })
-        if (isHuman) {
-            setCaptchaRegisterValid(true)
-        } else {
-            setCaptchaRegisterValid(false)
-        }
-    }
+    };
 
     // Edit profile
 
@@ -533,7 +561,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 sitekey={captchaKey as string}
                                 onChange={(token) => onLoginCaptchaChange(token ?? '')}
                             />
-                            {captchaLoginValid == false ? (
+                            {captchaLoginError ? (
                                 <Alert key='danger' variant='danger'>
                                     Captcha error
                                 </Alert>
@@ -642,7 +670,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                                 sitekey={captchaKey as string}
                                 onChange={(token) => onRegisterCaptchaChange(token ?? '')}
                             />
-                            {captchaRegisterValid == false ? (
+                            {captchaRegisterError ? (
                                 <Alert key='danger' variant='danger'>
                                     Captcha error
                                 </Alert>
