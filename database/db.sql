@@ -649,10 +649,10 @@ VALUES
         CURRENT_DATE + INTERVAL 4 DAY
     ),
     (
-        'SUMMER2023',
+        'SUMMERVIP',
         15.00,
-        'Summer Discount',
-        'Get 15% off on your stay!',
+        'Summer VIP',
+        'Special 15% discount for early season bookings',
         CURRENT_DATE + INTERVAL 10 DAY,
         CURRENT_DATE + INTERVAL 14 DAY
     ),

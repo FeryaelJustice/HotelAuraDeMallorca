@@ -46,10 +46,6 @@ enum BookingSteps {
     StepConfirmation,
 }
 
-type PricesToPayBackup = {
-    [key in BookingSteps]: number;
-};
-
 // Booking step: calendar properties
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
@@ -291,8 +287,25 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         serverAPI.get('/services').then(res => {
             const services = res.data.data;
             let retrievedServices: Service[] = [];
+            const currentYear = new Date().getFullYear();
             services.forEach((service: any) => {
-                retrievedServices.push(new Service({ id: service.id, name: service.serv_name, description: service.serv_description, price: service.serv_price, availabilityStart: new Date(service.serv_availability_start), availabilityEnd: new Date(service.serv_availability_end), imageURL: API_URL_BASE + "/" + service.imageURL }))
+                let aStart = new Date(service.serv_availability_start);
+                let aEnd = new Date(service.serv_availability_end);
+                if (isNaN(aStart.getTime()) || aStart.getFullYear() < currentYear) {
+                    aStart = new Date('2024-01-01');
+                }
+                if (isNaN(aEnd.getTime()) || aEnd.getFullYear() < currentYear) {
+                    aEnd = new Date('2035-12-31');
+                }
+                retrievedServices.push(new Service({
+                    id: service.id,
+                    name: service.serv_name,
+                    description: service.serv_description,
+                    price: service.serv_price,
+                    availabilityStart: aStart,
+                    availabilityEnd: aEnd,
+                    imageURL: API_URL_BASE + "/" + service.imageURL
+                }));
             })
             setServices(retrievedServices)
 
@@ -311,8 +324,25 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         serverAPI.get('/rooms').then(res => {
             let rooms = res.data.data;
             let retrievedRooms: Room[] = [];
+            const currentYear = new Date().getFullYear();
             rooms.forEach((room: any) => {
-                retrievedRooms.push(new Room({ id: room.id, name: room.room_name, description: room.room_description, price: room.room_price, availabilityStart: new Date(room.room_availability_start), availabilityEnd: new Date(room.room_availability_end), imageURL: API_URL_BASE + "/" + room.imageURL }))
+                let aStart = new Date(room.room_availability_start);
+                let aEnd = new Date(room.room_availability_end);
+                if (isNaN(aStart.getTime()) || aStart.getFullYear() < currentYear) {
+                    aStart = new Date('2024-01-01');
+                }
+                if (isNaN(aEnd.getTime()) || aEnd.getFullYear() < currentYear) {
+                    aEnd = new Date('2035-12-31');
+                }
+                retrievedRooms.push(new Room({
+                    id: room.id,
+                    name: room.room_name,
+                    description: room.room_description,
+                    price: room.room_price,
+                    availabilityStart: aStart,
+                    availabilityEnd: aEnd,
+                    imageURL: API_URL_BASE + "/" + room.imageURL
+                }));
             })
             setRooms(retrievedRooms)
         }).catch
@@ -825,14 +855,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     useEffect(() => {
         setFilteredRooms(
             rooms.filter((room) => {
-                if (startDate && endDate && room && room.availabilityStart && room.availabilityEnd) {
-                    return room.availabilityStart <= startDate && room.availabilityEnd >= endDate;
-                } else {
+                if (startDate && endDate && room) {
+                    const roomStart = room.availabilityStart || new Date('2024-01-01');
+                    const roomEnd = room.availabilityEnd || new Date('2035-12-31');
+                    return roomStart <= startDate && roomEnd >= endDate;
+                } else if (room) {
                     const now = new Date();
-                    if (room && room.availabilityStart && room.availabilityEnd) {
-                        return room.availabilityStart <= now && room.availabilityEnd >= now;
-                    }
+                    const roomStart = room.availabilityStart || new Date('2024-01-01');
+                    const roomEnd = room.availabilityEnd || new Date('2035-12-31');
+                    return roomStart <= now && roomEnd >= now;
                 }
+                return false;
             })
         );
     }, [rooms, startDate, endDate, adults, children]);
@@ -1392,7 +1425,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                     <div className="stripe">
                                         <h4>Stripe</h4>
                                         <Elements stripe={stripePromise} options={stripeOptions}>
-                                            <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} />
+                                            <StripeCheckoutForm plan={checkedPlan ? checkedPlan : -1} stripeOptions={stripeOptions} totalPriceToPay={totalPriceToPay} onPay={bookingProcess} />
                                         </Elements>
                                     </div>
                                 ) : checkedPaymentMethod == 2 ? (

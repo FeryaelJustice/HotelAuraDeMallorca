@@ -1861,23 +1861,29 @@ expressRouter.get("/rooms", (req, res) => {
                 Promise.all(promises)
                     .then(() => {
                         const combinedArray = results.map((result) => {
-                            // Find the corresponding media object based on roomID
                             const mediaObject = roomsMedias.find(
                                 (media) => media.roomID === result.id,
                             );
-
-                            // If a matching media object is found, add its properties to the result
-                            if (mediaObject) {
-                                return {
-                                    ...result,
-                                    imageURL: mediaObject.mediaURL,
-                                };
+                            // Normalize availability dates: if null or in the past (before current year), update to valid range 2024-2035
+                            const nowYear = new Date().getFullYear();
+                            let startVal = result.room_availability_start;
+                            let endVal = result.room_availability_end;
+                            const parseYear = (d) => d ? new Date(d).getFullYear() : 0;
+                            if (!startVal || parseYear(startVal) < nowYear) {
+                                startVal = '2024-01-01T00:00:00.000Z';
+                            }
+                            if (!endVal || parseYear(endVal) < nowYear + 1) {
+                                endVal = '2035-12-31T23:59:59.000Z';
                             }
 
-                            // If no matching media object is found, return the result as it is
-                            return result;
+                            return {
+                                ...result,
+                                room_availability_start: startVal,
+                                room_availability_end: endVal,
+                                imageURL: mediaObject ? mediaObject.mediaURL : (result.imageURL || 'media/img/room.webp'),
+                            };
                         });
-                        // Return services
+                        // Return rooms
                         return res.status(200).send({
                             status: "success",
                             message: "Rooms found",
@@ -2158,16 +2164,23 @@ expressRouter.get("/services", (req, res) => {
                                 (media) => media.serviceID === result.id,
                             );
 
-                            // If a matching media object is found, add its properties to the result
-                            if (mediaObject) {
-                                return {
-                                    ...result,
-                                    imageURL: mediaObject.mediaURL,
-                                };
+                            const nowYear = new Date().getFullYear();
+                            let startVal = result.serv_availability_start;
+                            let endVal = result.serv_availability_end;
+                            const parseYear = (d) => d ? new Date(d).getFullYear() : 0;
+                            if (!startVal || parseYear(startVal) < nowYear) {
+                                startVal = '2024-01-01T00:00:00.000Z';
+                            }
+                            if (!endVal || parseYear(endVal) < nowYear + 1) {
+                                endVal = '2035-12-31T23:59:59.000Z';
                             }
 
-                            // If no matching media object is found, return the result as is
-                            return result;
+                            return {
+                                ...result,
+                                serv_availability_start: startVal,
+                                serv_availability_end: endVal,
+                                imageURL: mediaObject ? mediaObject.mediaURL : (result.imageURL || 'media/img/services.webp'),
+                            };
                         });
                         // Return services
                         return res.status(200).send({
@@ -2384,8 +2397,15 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     }
 
                     const room = roomResults[0];
-                    const rStart = formatDateStr(room.room_availability_start);
-                    const rEnd = formatDateStr(room.room_availability_end);
+                    let rStart = formatDateStr(room.room_availability_start);
+                    let rEnd = formatDateStr(room.room_availability_end);
+                    const nowYearStr = `${new Date().getFullYear()}-01-01`;
+                    if (!rStart || rStart < nowYearStr) {
+                        rStart = '2024-01-01';
+                    }
+                    if (!rEnd || rEnd < nowYearStr) {
+                        rEnd = '2035-12-31';
+                    }
 
                     if ((rStart && startDate < rStart) || (rEnd && endDate > rEnd)) {
                         return res.status(200).json({
