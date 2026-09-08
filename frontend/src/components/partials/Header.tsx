@@ -137,6 +137,19 @@ export const Header = ({ colorScheme, onToggleTheme, onOpenBookingModal, onOpenU
 
                     return classNames;
                 }}>{t("services")}</NavLink>
+                <NavLink to="/cupones" className={({ isActive }) => {
+                    let classNames = '';
+
+                    if (isActive) {
+                        classNames += 'is-active';
+                    }
+
+                    if (colorScheme !== 'dark') {
+                        classNames += classNames ? '-light' : '-light';
+                    }
+
+                    return classNames;
+                }}>{t("coupons")}</NavLink>
                 <NavLink to="/contact" className={({ isActive }) => {
                     let classNames = '';
 
@@ -305,6 +318,19 @@ export const Header = ({ colorScheme, onToggleTheme, onOpenBookingModal, onOpenU
 
                         return classNames;
                     }} onClick={closeMenu}>{t("services")}</NavLink>
+                    <NavLink to="/cupones" className={({ isActive }) => {
+                        let classNames = '';
+
+                        if (isActive) {
+                            classNames += 'is-active';
+                        }
+
+                        if (colorScheme !== 'dark') {
+                            classNames += classNames ? '-light' : '-light';
+                        }
+
+                        return classNames;
+                    }} onClick={closeMenu}>{t("coupons")}</NavLink>
                     <NavLink to="/contact" className={({ isActive }) => {
                         let classNames = '';
 

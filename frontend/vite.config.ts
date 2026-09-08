@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
       "process.env.OPENWEATHERMAP_BASE_URL": JSON.stringify(cleanEnv(env.OPENWEATHERMAP_BASE_URL, "https://api.openweathermap.org")),
       "process.env.ACCUWEATHER_API_KEY": JSON.stringify(cleanEnv(env.ACCUWEATHER_API_KEY, "")),
       "process.env.ACCUWEATHER_BASE_URL": JSON.stringify(cleanEnv(env.ACCUWEATHER_BASE_URL, "https://dataservice.accuweather.com")),
+      "process.env.IS_PRODUCTION": JSON.stringify(cleanEnv(env.IS_PRODUCTION, "false")),
       "process.env": "{}",
     },
     plugins: [react(), ViteImageOptimizer({})],

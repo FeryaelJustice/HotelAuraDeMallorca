@@ -1,5 +1,6 @@
 export { Home } from "./Home";
 export { Services } from "./Services";
+export { Coupons } from "./Coupons";
 export { Contact } from "./Contact";
 export { UserVerify } from "./UserVerify";
 export { UserBookings } from "./UserBookings";

@@ -1,3 +1,8 @@
+/**
+ * Modelo de datos: Reserva (Booking)
+ * Que hace: Representa una reserva de estancia en el hotel para el cliente frontend.
+ * Por que: Tipa los campos requeridos en el wizard de reserva y en el panel de reservas del usuario.
+ */
 export class Booking {
   id: number | null = null;
   userID: number | null = null;

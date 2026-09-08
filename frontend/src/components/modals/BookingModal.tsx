@@ -35,8 +35,21 @@ interface BookingModalProps {
     colorScheme: string,
     show: boolean,
     onClose: () => void;
+    initialPromoCode?: string | null;
 }
 
+/**
+ * Enumeracion: BookingSteps
+ * Que hace: Define la maquina de estados de los 8 pasos secuenciales del proceso de reserva:
+ * 1. Datos personales y fechas en calendario
+ * 2. Seleccion de plan (Basic / VIP)
+ * 3. Seleccion de habitacion disponible
+ * 4. Extras y servicios contratables
+ * 5. Registro de huespedes y menores
+ * 6. Aplicacion de codigo promocional
+ * 7. Checkout con Stripe o pasarela de pago
+ * 8. Pantalla final de confirmacion con QR
+ */
 enum BookingSteps {
     StepPersonalData,
     StepPlan,
@@ -155,7 +168,7 @@ const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay, onPay }: Str
 };
 
 // BOOKING MODAL COMPONENT
-const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
+const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingModalProps) => {
 
     const { t } = useTranslation();
 
@@ -183,6 +196,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>("");
     const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1);
     const [userSelectedPromoIsAssociatedWithUser, setUserSelectedPromoIsAssociatedWithUser] = useState<boolean>(false);
+    const [publicPromotions, setPublicPromotions] = useState<Promotion[]>([]);
+    const [promoValidationStatus, setPromoValidationStatus] = useState<{ checked: boolean; valid: boolean; message: string; discount?: number } | null>(null);
+
+    // Titular as Guest 1 state
+    const [isTitularStayingAsGuest1, setIsTitularStayingAsGuest1] = useState<boolean>(true);
 
     // Plans, Rooms, Services, Payment Methods State
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -205,17 +223,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     const [startDate, onChangeStartDate] = useState<Value>(defaultStart);
     const [endDate, onChangeEndDate] = useState<Value>(defaultEnd);
-    const [adults, setAdults] = useState(1);
-    const [children, setChildren] = useState(0);
+    const [adults, setAdults] = useState<number>(1);
+    const [children, setChildren] = useState<number>(0);
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
 
     // Guests State
     const [guests, setGuests] = useState<Guest[]>([
-        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
+        new Guest({ id: null, name: '', surnames: '', email: '', isAdult: true, isSystemUser: false })
     ]);
     const [guestsDataErrors, setGuestsDataErrors] = useState([{ nameError: '', surnamesError: '', emailError: '' }]);
     const [userWantsToBecomeGuest, setUserWantsToBecomeGuest] = useState(false);
-    const [isUserGuestAdult, setIsUserGuestAdult] = useState(false);
+    const [isUserGuestAdult, setIsUserGuestAdult] = useState(true);
 
     // Personal Data State
     const [userPersonalData, setUserPersonalData] = useState({ name: '', dni: '', surnames: '', email: '' });
@@ -225,6 +243,29 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
     const [isProcessingBooking, setIsProcessingBooking] = useState(false);
     const [occupancyList, setOccupancyList] = useState<OccupancyRecord[]>([]);
     const [hoveredDateInfo, setHoveredDateInfo] = useState<{ dateStr: string; occupiedRooms: string[] } | null>(null);
+
+    // Handle initial promo code passed from external navigation (e.g. /cupones)
+    useEffect(() => {
+        if (initialPromoCode && initialPromoCode.trim()) {
+            const cleanCode = initialPromoCode.trim();
+            setUserSelectedPromoCode(cleanCode);
+            // Auto check promo
+            serverAPI.post('/checkPromoCode', { code: cleanCode })
+                .then(res => {
+                    if (res.data && res.data.valid && res.data.promotion) {
+                        setPromoValidationStatus({
+                            checked: true,
+                            valid: true,
+                            message: `Cupón ${res.data.promotion.code} activado (${res.data.promotion.discount_price}% de descuento)`,
+                            discount: res.data.promotion.discount_price,
+                        });
+                        setAppliedPromoDiscount(Number(res.data.promotion.discount_price));
+                        setUserSelectedPromoID(res.data.promotion.id);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [initialPromoCode, show]);
 
     // Fetch calendar occupancy from backend
     const fetchOccupancy = async () => {
@@ -238,6 +279,27 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     };
 
+    const fetchPublicPromotions = async () => {
+        try {
+            const res = await serverAPI.get('/promotions?visible=true');
+            if (res.data && res.data.data) {
+                const promos = res.data.data.map((p: any) => new Promotion({
+                    id: p.id,
+                    code: p.code,
+                    discount_price: p.discount_price,
+                    name: p.name,
+                    description: p.description,
+                    start_date: p.start_date,
+                    end_date: p.end_date,
+                    is_active: p.is_active,
+                    is_visible: p.is_visible,
+                }));
+                setPublicPromotions(promos);
+            }
+        } catch (err) {
+            console.log('Error fetching public promotions:', err);
+        }
+    };
 
     // Helpers to query occupancy by date
     const getOccupiedRoomsForDate = (date: Date): string[] => {
@@ -265,12 +327,22 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         if (!startDate || !endDate) return false;
         const sStr = extractFormattedDate(startDate);
         const eStr = extractFormattedDate(endDate);
-        return occupancyList.some(item =>
-            item.room_id === roomId &&
-            item.booking_start_date <= eStr &&
-            item.booking_end_date >= sStr
-        );
+        const isStrictRange = sStr < eStr;
+        return occupancyList.some(item => {
+            if (item.room_id !== roomId) return false;
+            if (isStrictRange) {
+                return item.booking_start_date < eStr && item.booking_end_date > sStr;
+            }
+            return item.booking_start_date <= eStr && item.booking_end_date >= sStr;
+        });
     };
+
+    // Reactive unselection: If dates change and selected room is occupied, deselect it
+    useEffect(() => {
+        if (selectedRoomID && isRoomOccupiedInSelectedRange(selectedRoomID)) {
+            setSelectedRoomID(null);
+        }
+    }, [startDate, endDate, occupancyList]);
 
     const getCalendarTileClassName = ({ date, view }: { date: Date; view: string }) => {
         if (view !== 'month') return '';
@@ -293,18 +365,22 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
         const isSelectedOccupied = selectedRoomID ? isDateOccupiedForSelectedRoom(date) : false;
         const isFull = rooms.length > 0 && occupied.length >= rooms.length;
+        const badgeClass = isSelectedOccupied ? 'occupied-badge-danger' : isFull ? 'occupied-badge-full' : 'occupied-badge-partial';
+        const badgeText = isSelectedOccupied ? 'Ocupada' : isFull ? 'Completo' : `${occupied.length} ocup`;
         const tooltipText = isSelectedOccupied
-            ? `¡Habitación elegida ocupada! (${occupied.join(', ')})`
-            : `Ocupadas: ${occupied.join(', ')}`;
+            ? `Habitación elegida ocupada en esta fecha (${occupied.join(', ')})`
+            : `Habitaciones ocupadas (${occupied.length}): ${occupied.join(', ')}`;
 
         return (
             <div
-                className="calendar-tile-badge-wrapper"
+                className="calendar-tile-full-overlay"
                 title={tooltipText}
                 onMouseEnter={() => setHoveredDateInfo({ dateStr: extractFormattedDate(date), occupiedRooms: occupied })}
                 onMouseLeave={() => setHoveredDateInfo(null)}
             >
-                <span className={`calendar-occupancy-dot ${isSelectedOccupied ? 'dot-danger' : isFull ? 'dot-full' : 'dot-warning'}`} />
+                <span className={`calendar-tile-status-tag ${badgeClass}`}>
+                    {badgeText}
+                </span>
             </div>
         );
     };
@@ -570,6 +646,9 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             case BookingSteps.StepChooseServices:
                 fetchServices();
                 break;
+            case BookingSteps.StepPromoCode:
+                fetchPublicPromotions();
+                break;
             case BookingSteps.StepPaymentMethod:
                 fetchPaymentMethods();
                 break;
@@ -625,12 +704,46 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 nextGuests.length = totalRequired;
             }
             for (let i = 0; i < nextGuests.length; i++) {
-                if (i < totalAdults) {
-                    nextGuests[i] = { ...nextGuests[i], isAdult: true } as Guest;
-                } else {
-                    nextGuests[i] = { ...nextGuests[i], isAdult: false } as Guest;
-                }
+                const isAdult = i < totalAdults;
+                nextGuests[i] = {
+                    ...nextGuests[i],
+                    isAdult: isAdult
+                } as Guest;
             }
+
+            // Sync Guest 1 (Titular or first adult)
+            if (cookies.token) {
+                if (isTitularStayingAsGuest1) {
+                    const titularName = userAllData?.name || userPersonalData.name || '';
+                    const titularSurnames = userAllData?.surnames || userPersonalData.surnames || '';
+                    const titularEmail = userAllData?.email || userPersonalData.email || '';
+                    nextGuests[0] = {
+                        ...nextGuests[0],
+                        name: titularName,
+                        surnames: titularSurnames,
+                        email: titularEmail,
+                        isAdult: true,
+                        isSystemUser: true
+                    } as Guest;
+                } else {
+                    nextGuests[0] = {
+                        ...nextGuests[0],
+                        isAdult: true,
+                        isSystemUser: false
+                    } as Guest;
+                }
+            } else {
+                // Not logged in: prefill from Step 1 personal data if empty
+                nextGuests[0] = {
+                    ...nextGuests[0],
+                    name: nextGuests[0].name || userPersonalData.name || '',
+                    surnames: nextGuests[0].surnames || userPersonalData.surnames || '',
+                    email: nextGuests[0].email || userPersonalData.email || '',
+                    isAdult: true,
+                    isSystemUser: false
+                } as Guest;
+            }
+
             return nextGuests;
         });
 
@@ -646,26 +759,35 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         });
     };
 
-    const addGuest = () => {
-        if (guests.length < 20) {
-            setGuests(prev => [
-                ...prev,
-                new Guest({ id: null, name: '', surnames: '', email: '', isAdult: false, isSystemUser: false })
-            ]);
-            setGuestsDataErrors(prev => [
-                ...prev,
-                { nameError: '', surnamesError: '', emailError: '' }
-            ]);
-        } else {
-            alert('El número máximo permitido es de 20 huéspedes');
-        }
-    };
-
-    const substractGuest = () => {
-        if (guests.length > 1) {
-            setGuests(prev => prev.slice(0, -1));
-            setGuestsDataErrors(prev => prev.slice(0, -1));
-        }
+    const handleTitularStayingToggle = (checked: boolean) => {
+        setIsTitularStayingAsGuest1(checked);
+        setGuests(prev => {
+            if (prev.length === 0) return prev;
+            const next = [...prev];
+            if (checked) {
+                const titularName = userAllData?.name || userPersonalData.name || '';
+                const titularSurnames = userAllData?.surnames || userPersonalData.surnames || '';
+                const titularEmail = userAllData?.email || userPersonalData.email || '';
+                next[0] = {
+                    ...next[0],
+                    name: titularName,
+                    surnames: titularSurnames,
+                    email: titularEmail,
+                    isAdult: true,
+                    isSystemUser: true
+                } as Guest;
+            } else {
+                next[0] = {
+                    ...next[0],
+                    name: '',
+                    surnames: '',
+                    email: '',
+                    isAdult: true,
+                    isSystemUser: false
+                } as Guest;
+            }
+            return next;
+        });
     };
 
     const handleGuestsInputChange = (index: number, event: any) => {
@@ -689,7 +811,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     const validateGuestsDataForm = () => {
         const errors: { nameError: string; surnamesError: string; emailError: string }[] = [];
-        guests.forEach((guest) => {
+        guests.forEach((guest, index) => {
             const newErrors = { nameError: '', surnamesError: '', emailError: '' };
             if (isEmptyOrSpaces(guest.name)) {
                 newErrors.nameError = 'Por favor, introduce un nombre válido';
@@ -697,8 +819,16 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
             if (isEmptyOrSpaces(guest.surnames)) {
                 newErrors.surnamesError = 'Por favor, introduce apellidos válidos';
             }
-            if (!validateEmail(guest.email)) {
-                newErrors.emailError = 'Por favor, introduce un correo electrónico válido';
+            if (index === 0) {
+                // Huésped 1 email mandatory
+                if (isEmptyOrSpaces(guest.email) || !validateEmail(guest.email)) {
+                    newErrors.emailError = 'Por favor, introduce un correo electrónico válido para el huésped principal';
+                }
+            } else {
+                // Huésped 2+ email optional, but format checked if provided
+                if (!isEmptyOrSpaces(guest.email) && !validateEmail(guest.email)) {
+                    newErrors.emailError = 'El formato del correo electrónico no es válido';
+                }
             }
             errors.push(newErrors);
         });
@@ -717,30 +847,49 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     };
 
-    useEffect(() => {
-        if (userWantsToBecomeGuest) {
-            const primaryName = userPersonalData.name || userAllData?.name || '';
-            const primarySurnames = userPersonalData.surnames || userAllData?.surnames || '';
-            const primaryEmail = userPersonalData.email || userAllData?.email || '';
+    const validatePromoCodeManual = async (codeToValidate?: string) => {
+        const code = (codeToValidate || userSelectedPromoCode || '').trim();
+        if (!code) {
+            setPromoValidationStatus({
+                checked: true,
+                valid: false,
+                message: 'Introduce un código de cupón para validar',
+            });
+            setAppliedPromoDiscount(0);
+            setUserSelectedPromoID(-1);
+            return;
+        }
 
-            setGuests(prev => {
-                const next = [...prev];
-                if (next.length === 0) {
-                    next.push(new Guest({ id: null, name: primaryName, surnames: primarySurnames, email: primaryEmail, isAdult: isUserGuestAdult, isSystemUser: true }));
-                } else {
-                    next[0] = {
-                        ...next[0],
-                        name: primaryName,
-                        surnames: primarySurnames,
-                        email: primaryEmail,
-                        isAdult: isUserGuestAdult,
-                        isSystemUser: true
-                    } as Guest;
-                }
-                return next;
+        try {
+            const res = await serverAPI.post('/checkPromoCode', { code });
+            if (res.data && res.data.valid && res.data.promotion) {
+                const promo = res.data.promotion;
+                setUserSelectedPromoCode(promo.code);
+                setUserSelectedPromoID(promo.id);
+                setAppliedPromoDiscount(Number(promo.discount_price));
+                setPromoValidationStatus({
+                    checked: true,
+                    valid: true,
+                    message: `Cupón "${promo.code}" aplicado con éxito: ¡${promo.discount_price}% de descuento!`,
+                    discount: promo.discount_price
+                });
+            } else {
+                setPromoValidationStatus({
+                    checked: true,
+                    valid: false,
+                    message: res.data?.message || 'Cupón no encontrado, inactivo o expirado',
+                });
+                setAppliedPromoDiscount(0);
+                setUserSelectedPromoID(-1);
+            }
+        } catch (err) {
+            setPromoValidationStatus({
+                checked: true,
+                valid: false,
+                message: 'Error al verificar el cupón. Inténtalo de nuevo.',
             });
         }
-    }, [userWantsToBecomeGuest, isUserGuestAdult, userPersonalData, userAllData]);
+    };
 
     // Navigation logic: Next Step
     const goToNextStep = async () => {
@@ -767,6 +916,10 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 break;
             case BookingSteps.StepChooseRoom:
                 if (selectedRoomID != null) {
+                    if (isRoomOccupiedInSelectedRange(selectedRoomID)) {
+                        alert("La habitación seleccionada está ocupada en las fechas elegidas. Por favor selecciona otra habitación o cambia las fechas en el calendario.");
+                        return;
+                    }
                     if (adults <= 10 && children <= 10) {
                         try {
                             const availabilityResponse = await serverAPI.post('/checkBookingAvailability', {
@@ -843,58 +996,34 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                 setCurrentStep(BookingSteps.StepFillGuests);
                 break;
             case BookingSteps.StepFillGuests:
-                let countAdults = 0;
-                let countChildren = 0;
-
-                for (let i = 0; i < guests.length; i++) {
-                    const guest = guests[i];
-                    if (guest.isAdult) {
-                        countAdults++;
-                    } else {
-                        countChildren++;
-                    }
-                }
-
-                if (countAdults === Number(adults) && countChildren === Number(children)) {
-                    setCurrentStep(BookingSteps.StepPromoCode);
-                } else {
-                    alert(`El desglose de huéspedes (${countAdults} adultos, ${countChildren} niños) no coincide con lo indicado en el paso anterior (${adults} adultos, ${children} niños). Ajusta las casillas correspondientes.`);
-                }
+                fetchPublicPromotions();
+                setCurrentStep(BookingSteps.StepPromoCode);
                 break;
             case BookingSteps.StepPromoCode:
-                serverAPI.get('/promotions').then(async res => {
-                    let promos = res.data.data;
-                    let retrievedPromos: Promotion[] = [];
-                    promos.forEach((prm: any) => {
-                        retrievedPromos.push(new Promotion({
-                            id: prm.id,
-                            code: prm.code,
-                            discount_price: prm.discount_price,
-                            name: prm.name,
-                            description: prm.description,
-                            start_date: prm.start_date,
-                            end_date: prm.end_date
-                        }));
-                    });
-
-                    if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '') {
-                        const promoResult = await getPromoDiscountPercentage(retrievedPromos, userSelectedPromoCode);
-                        setAppliedPromoDiscount(promoResult.discountPercentage);
-                        setUserSelectedPromoID(promoResult.appliedPromoId);
-                        setUserSelectedPromoIsAssociatedWithUser(promoResult.isUserPromo);
-                    } else {
-                        setAppliedPromoDiscount(0);
-                        setUserSelectedPromoID(-1);
-                        setUserSelectedPromoIsAssociatedWithUser(false);
+                if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '') {
+                    try {
+                        const checkRes = await serverAPI.post('/checkPromoCode', { code: userSelectedPromoCode.trim() });
+                        if (checkRes.data && checkRes.data.valid && checkRes.data.promotion) {
+                            const promo = checkRes.data.promotion;
+                            setAppliedPromoDiscount(Number(promo.discount_price));
+                            setUserSelectedPromoID(promo.id);
+                            setUserSelectedPromoIsAssociatedWithUser(false);
+                            setCurrentStep(BookingSteps.StepPaymentMethod);
+                        } else {
+                            alert(checkRes.data?.message || 'El cupón introducido no es válido o ha expirado.');
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Error validando cupón:', err);
+                        alert('No se pudo verificar el cupón introducido. Inténtalo de nuevo o continúa sin cupón.');
+                        return;
                     }
-
-                    setCurrentStep(BookingSteps.StepPaymentMethod);
-                }).catch(err => {
-                    console.error("Error retrieving promotions:", err);
+                } else {
                     setAppliedPromoDiscount(0);
                     setUserSelectedPromoID(-1);
+                    setUserSelectedPromoIsAssociatedWithUser(false);
                     setCurrentStep(BookingSteps.StepPaymentMethod);
-                });
+                }
                 break;
             case BookingSteps.StepPaymentMethod:
                 break;
@@ -1607,8 +1736,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                 type="number"
                                                 min={1}
                                                 max={10}
-                                                value={adults}
-                                                onChange={(e: any) => setAdults(Number(e.target.value))}
+                                                value={Math.max(1, adults)}
+                                                onChange={(e: any) => setAdults(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
                                             />
                                         </Col>
                                         <Col md={6}>
@@ -1617,8 +1746,8 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                 type="number"
                                                 min={0}
                                                 max={10}
-                                                value={children}
-                                                onChange={(e: any) => setChildren(Number(e.target.value))}
+                                                value={Math.max(0, children)}
+                                                onChange={(e: any) => setChildren(Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
                                             />
                                         </Col>
                                     </Row>
@@ -1806,40 +1935,38 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
                             <Container>
                                 <Form id='fillGuestsForm' noValidate onSubmit={handleGuestsSubmit}>
-                                    <div className="userWantsToBecomeGuest" style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', marginBottom: '18px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                        <Form.Check
-                                            type='checkbox'
-                                            id="userWantsToBecomeGuest"
-                                            name="userWantsToBecomeGuest"
-                                            label={t("modal_booking_guests_adduserasguest")}
-                                            checked={userWantsToBecomeGuest}
-                                            onChange={() => setUserWantsToBecomeGuest(!userWantsToBecomeGuest)}
-                                        />
-                                        {userWantsToBecomeGuest && (
-                                            <div style={{ marginTop: '8px', marginLeft: '24px' }}>
+                                    {cookies.token && (
+                                        <div className="titular-reservation-banner">
+                                            <div className="titular-reservation-header">
+                                                <strong>📋 Datos del Titular de la Reserva</strong>
+                                                <span className="titular-reservation-badge">Sesión Activa</span>
+                                            </div>
+                                            <p className="titular-reservation-info">
+                                                <strong>{userAllData?.name || userPersonalData.name} {userAllData?.surnames || userPersonalData.surnames}</strong> - {userAllData?.email || userPersonalData.email} {userAllData?.dni ? `(DNI: ${userAllData.dni})` : ''}
+                                            </p>
+                                            <div className="titular-staying-checkbox">
                                                 <Form.Check
-                                                    type='checkbox'
-                                                    id="isLoggedUserGuestAdult"
-                                                    name="isLoggedUserGuestAdult"
-                                                    label={t("modal_booking_guests_adduserasguest_adult")}
-                                                    checked={isUserGuestAdult}
-                                                    onChange={() => setIsUserGuestAdult(!isUserGuestAdult)}
+                                                    type="checkbox"
+                                                    id="isTitularStayingAsGuest1"
+                                                    label="¿El titular de la reserva se aloja como Huésped 1?"
+                                                    checked={isTitularStayingAsGuest1}
+                                                    onChange={(e: any) => handleTitularStayingToggle(e.target.checked)}
                                                 />
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
 
                                     {guests.map((guest, index) => {
-                                        const isPrimaryUser = userWantsToBecomeGuest && index === 0;
+                                        const isTitularGuest = cookies.token && isTitularStayingAsGuest1 && index === 0;
                                         const err = guestsDataErrors[index] || { nameError: '', surnamesError: '', emailError: '' };
 
                                         return (
                                             <div key={index} className="guest-item-card">
                                                 <div className="guest-item-header">
                                                     <span className="guest-item-title">
-                                                        👤 Huésped #{index + 1} {isPrimaryUser ? '(Titular de la reserva)' : ''}
+                                                        👤 Huésped #{index + 1} {isTitularGuest ? '(Titular de la reserva)' : ''}
                                                     </span>
-                                                    <span className="guest-type-badge">
+                                                    <span className={`guest-card-locked-badge ${guest.isAdult ? 'adult' : 'child'}`}>
                                                         {guest.isAdult ? 'Adulto (+18)' : 'Menor / Niño'}
                                                     </span>
                                                 </div>
@@ -1851,7 +1978,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                             <Form.Control
                                                                 type="text"
                                                                 name="name"
-                                                                disabled={isPrimaryUser}
+                                                                disabled={isTitularGuest}
                                                                 value={guest.name || ''}
                                                                 isInvalid={!!err.nameError}
                                                                 onChange={(e: any) => handleGuestsInputChange(index, e)}
@@ -1868,7 +1995,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                             <Form.Control
                                                                 type="text"
                                                                 name="surnames"
-                                                                disabled={isPrimaryUser}
+                                                                disabled={isTitularGuest}
                                                                 value={guest.surnames || ''}
                                                                 isInvalid={!!err.surnamesError}
                                                                 onChange={(e: any) => handleGuestsInputChange(index, e)}
@@ -1881,15 +2008,19 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Group controlId={`email-${index}`} className="mb-2">
-                                                            <Form.Label>{t("modal_booking_guests_guest_email")}</Form.Label>
+                                                            <Form.Label>
+                                                                {index === 0
+                                                                    ? `${t("modal_booking_guests_guest_email")} (obligatorio)`
+                                                                    : `${t("modal_booking_guests_guest_email")} (opcional)`}
+                                                            </Form.Label>
                                                             <Form.Control
                                                                 type="email"
                                                                 name="email"
-                                                                disabled={isPrimaryUser}
+                                                                disabled={isTitularGuest}
                                                                 value={guest.email || ''}
                                                                 isInvalid={!!err.emailError}
                                                                 onChange={(e: any) => handleGuestsInputChange(index, e)}
-                                                                placeholder="email@ejemplo.com"
+                                                                placeholder={index === 0 ? "email@ejemplo.com" : "email@ejemplo.com (opcional)"}
                                                             />
                                                             <Form.Control.Feedback type='invalid'>
                                                                 {err.emailError}
@@ -1897,34 +2028,11 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                                         </Form.Group>
                                                     </Col>
                                                 </Row>
-
-                                                <div style={{ marginTop: '6px' }}>
-                                                    <Form.Check
-                                                        type="checkbox"
-                                                        id={`isAdult-${index}`}
-                                                        name="isAdult"
-                                                        label={t("modal_booking_guests_guest_adult")}
-                                                        disabled={isPrimaryUser}
-                                                        checked={guest.isAdult || false}
-                                                        onChange={(e: any) => handleGuestsInputChange(index, e)}
-                                                    />
-                                                </div>
                                             </div>
                                         );
                                     })}
 
-                                    <div style={{ display: 'flex', gap: '10px', marginTop: '12px', marginBottom: '16px' }}>
-                                        <Button variant="outline-light" size="sm" onClick={addGuest}>
-                                            + {t("modal_booking_guests_button_add")}
-                                        </Button>
-                                        {guests.length > 1 && (
-                                            <Button variant="outline-danger" size="sm" onClick={substractGuest}>
-                                                - {t("modal_booking_guests_button_remove")}
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    <div className='bookingNavButtons'>
+                                    <div className='bookingNavButtons' style={{ marginTop: '20px' }}>
                                         <Button variant="secondary" type='button' onClick={goToPreviousStep} className="btn-luxury-secondary">
                                             ← {t("modal_booking_previousstep")}
                                         </Button>
@@ -1941,29 +2049,117 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     {/* Step 6: Promo Code */}
                     {currentStep === BookingSteps.StepPromoCode && (
                         <div>
-                            <h2>Código Promocional</h2>
-                            <p style={{ opacity: 0.85, fontSize: '0.92rem' }}>
-                                Si dispones de un código de descuento o cupón de socio, ingrésalo a continuación.
+                            <h2>Cupones de Descuento</h2>
+                            <p style={{ opacity: 0.85, fontSize: '0.92rem', marginBottom: '20px' }}>
+                                Aplica un cupón promocional para disfrutar de descuentos exclusivos en tu reserva.
                             </p>
-                            <div className='payment-promocode' style={{ maxWidth: '420px', margin: '20px 0' }}>
-                                <Form id='promoCodeForm' noValidate onSubmit={(e: any) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    goToNextStep();
-                                }}>
-                                    <Form.Group className="mb-3" controlId="formPromoCode">
-                                        <Form.Label>Cupón de descuento:</Form.Label>
+
+                            {publicPromotions && publicPromotions.length > 0 && (
+                                <div style={{ marginBottom: '24px' }}>
+                                    <h4 style={{ fontSize: '1.05rem', color: '#c5a059', marginBottom: '12px' }}>
+                                        ✨ Cupones Disponibles para Seleccionar:
+                                    </h4>
+                                    <div className="promo-cards-grid">
+                                        {publicPromotions.map((promo) => {
+                                            const isSelected = userSelectedPromoCode.trim().toUpperCase() === (promo.code || '').trim().toUpperCase();
+                                            return (
+                                                <div
+                                                    key={promo.id}
+                                                    className={`promo-card-luxury ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setUserSelectedPromoCode('');
+                                                            setAppliedPromoDiscount(0);
+                                                            setUserSelectedPromoID(-1);
+                                                            setPromoValidationStatus(null);
+                                                        } else {
+                                                            setUserSelectedPromoCode(promo.code);
+                                                            validatePromoCodeManual(promo.code);
+                                                        }
+                                                    }}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                >
+                                                    <div className="promo-card-luxury-badge">
+                                                        -{promo.discount_price}%
+                                                    </div>
+                                                    <div className="promo-card-luxury-name">
+                                                        {promo.name || promo.code}
+                                                    </div>
+                                                    {promo.description && (
+                                                        <div className="promo-card-luxury-desc">
+                                                            {promo.description}
+                                                        </div>
+                                                    )}
+                                                    <div className="promo-card-luxury-code">
+                                                        CÓDIGO: <strong>{promo.code}</strong>
+                                                    </div>
+                                                    <div className="promo-card-luxury-action">
+                                                        {isSelected ? '✓ Cupón Seleccionado' : 'Clic para Seleccionar'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="promo-manual-input-box">
+                                <h4 style={{ fontSize: '1rem', marginBottom: '8px' }}>
+                                    ¿Dispones de un cupón privado o exclusivo?
+                                </h4>
+                                <p style={{ fontSize: '0.84rem', opacity: 0.85, marginBottom: '12px' }}>
+                                    Introduce tu código para validarlo y aplicarlo a la reserva:
+                                </p>
+                                <Form
+                                    id='promoCodeForm'
+                                    noValidate
+                                    onSubmit={(e: any) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        goToNextStep();
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', gap: '8px', maxWidth: '440px', marginBottom: '12px' }}>
                                         <Form.Control
                                             type="text"
                                             name="promoCode"
-                                            placeholder='Ej: VERANO2026'
+                                            placeholder="Ej: AURA2026"
                                             maxLength={255}
                                             value={userSelectedPromoCode}
-                                            onChange={(e: any) => setUserSelectedPromoCode(e.target.value)}
+                                            onChange={(e: any) => {
+                                                setUserSelectedPromoCode(e.target.value);
+                                                setPromoValidationStatus(null);
+                                            }}
+                                            style={{ textTransform: 'uppercase' }}
                                         />
-                                    </Form.Group>
+                                        <Button
+                                            variant="outline-primary"
+                                            type="button"
+                                            onClick={() => validatePromoCodeManual()}
+                                        >
+                                            Validar
+                                        </Button>
+                                    </div>
 
-                                    <div className='bookingNavButtons'>
+                                    {promoValidationStatus && (
+                                        <div
+                                            style={{
+                                                padding: '10px 14px',
+                                                borderRadius: '8px',
+                                                fontSize: '0.88rem',
+                                                marginBottom: '16px',
+                                                maxWidth: '440px',
+                                                background: promoValidationStatus.valid ? 'rgba(40,167,69,0.15)' : 'rgba(220,53,69,0.15)',
+                                                border: `1px solid ${promoValidationStatus.valid ? 'rgba(40,167,69,0.4)' : 'rgba(220,53,69,0.4)'}`,
+                                                color: promoValidationStatus.valid ? '#51cf66' : '#ff6b6b'
+                                            }}
+                                        >
+                                            {promoValidationStatus.message}
+                                        </div>
+                                    )}
+
+                                    <div className='bookingNavButtons' style={{ marginTop: '24px' }}>
                                         <Button variant="secondary" type='button' onClick={goToPreviousStep} className="btn-luxury-secondary">
                                             ← {t("modal_booking_previousstep")}
                                         </Button>
@@ -1981,6 +2177,17 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                     {currentStep === BookingSteps.StepPaymentMethod && (
                         <div>
                             <h2>{t("modal_booking_payment_title")}</h2>
+                            {process.env.IS_PRODUCTION !== 'true' && (
+                                <div className="portfolio-showcase-payment-disclaimer">
+                                    <h5>⚠️ Entorno de Demostración - Portafolio de Fernando González Serrano</h5>
+                                    <p>
+                                        Hotel Aura de Mallorca es una plataforma demostrativa que forma parte del portafolio profesional de Fernando González Serrano. El código fuente, la lógica transaccional y la arquitectura están completamente preparados y listos para producción real.
+                                    </p>
+                                    <p>
+                                        Cualquier pago procesado a través de Stripe se efectúa en modo de prueba o con cargos puramente demostrativos reembolsables.
+                                    </p>
+                                </div>
+                            )}
                             <p style={{ opacity: 0.85, fontSize: '0.9rem', marginBottom: '18px' }}>
                                 Selecciona cómo deseas abonar tu estancia. Tu reserva se confirmará al instante.
                             </p>

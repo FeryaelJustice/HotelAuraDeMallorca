@@ -20,6 +20,32 @@ export const Footer = ({ colorScheme, onOpenTechModal }: FooterProps) => {
             aria-label="Pie de página de Hotel Aura de Mallorca"
         >
             <div className="site-footer__container">
+                {process.env.IS_PRODUCTION !== 'true' && (
+                    <div
+                        className="site-footer__portfolio-disclaimer"
+                        role="alert"
+                        style={{
+                            backgroundColor: '#fee2e2',
+                            color: '#991b1b',
+                            border: '2px solid #ef4444',
+                            borderRadius: '12px',
+                            padding: '1.25rem 1.5rem',
+                            marginBottom: '2.5rem',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '1rem',
+                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.15)',
+                        }}
+                    >
+                        <div style={{ fontSize: '1.75rem', lineHeight: 1, flexShrink: 0 }}>⚠️</div>
+                        <div style={{ fontSize: '0.92rem', lineHeight: 1.55 }}>
+                            <strong style={{ display: 'block', fontSize: '1.05rem', marginBottom: '0.35rem', color: '#7f1d1d' }}>
+                                Aviso de Demostración Técnica y Portafolio Profesional - Fernando González Serrano
+                            </strong>
+                            Este sitio web es una muestra interactiva para el portafolio profesional de <strong>Fernando González Serrano</strong>. El <em>Hotel Aura de Mallorca</em> es un establecimiento ficticio concebido con fines demostrativos, si bien toda la plataforma (frontend, backend, base de datos y pasarelas de pago) está completamente optimizada y lista para producción (<em>production-ready</em>). Puedes probar el proceso de reserva con total libertad: cualquier pago simulado o transacción mediante Stripe es de prueba y 100% reembolsable.
+                        </div>
+                    </div>
+                )}
                 <div className="site-footer__grid">
                     {/* Columna 1: Identidad & Compromiso Hotelero */}
                     <div className="site-footer__grid-col site-footer__brand">
@@ -78,6 +104,12 @@ export const Footer = ({ colorScheme, onOpenTechModal }: FooterProps) => {
                                 <NavLink to="/services" className="site-footer__nav-link">
                                     <span className="site-footer__link-bullet" aria-hidden="true">→</span>
                                     <span>{t("services")}</span>
+                                </NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/cupones" className="site-footer__nav-link">
+                                    <span className="site-footer__link-bullet" aria-hidden="true">→</span>
+                                    <span>{t("coupons")}</span>
                                 </NavLink>
                             </li>
                             <li>

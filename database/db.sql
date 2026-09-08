@@ -182,7 +182,9 @@ CREATE TABLE promotion (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     start_date DATE,
-    end_date DATE
+    end_date DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_visible BOOLEAN DEFAULT TRUE
 );
 
 -- -- Tabla: booking_promotion
@@ -611,9 +613,10 @@ VALUES
 
 -- Payment methods
 INSERT INTO
-    payment_method (payment_method_name)
+    payment_method (id, payment_method_name)
 VALUES
-    ('Stripe');
+    (1, 'Stripe'),
+    (2, 'Hotel Reception');
 
 -- Payment (transacciones)
 /*
@@ -688,32 +691,50 @@ INSERT INTO
         name,
         description,
         start_date,
-        end_date
+        end_date,
+        is_active,
+        is_visible
     )
 VALUES
     (
         'BLACKFRIDAY',
         20.00,
-        'Black Friday',
-        'Exclusive Black Friday discount!',
+        'Black Friday Deluxe',
+        'Descuento especial exclusivo para estancias de fin de temporada con desayuno incluido.',
         CURRENT_DATE,
-        CURRENT_DATE + INTERVAL 4 DAY
+        CURRENT_DATE + INTERVAL 30 DAY,
+        TRUE,
+        TRUE
     ),
     (
         'SUMMERVIP',
         15.00,
-        'Summer VIP',
-        'Special 15% discount for early season bookings',
-        CURRENT_DATE + INTERVAL 10 DAY,
-        CURRENT_DATE + INTERVAL 14 DAY
+        'Summer VIP Experience',
+        'Rebaja del 15% para reservas anticipadas de verano en cualquiera de nuestras suites.',
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL 60 DAY,
+        TRUE,
+        TRUE
     ),
     (
         'WEEKENDGETAWAY',
         10.00,
-        'Weekend Getaway',
-        'Enjoy a 10% discount for weekend stays!',
-        CURRENT_DATE + INTERVAL 12 DAY,
-        CURRENT_DATE + INTERVAL 16 DAY
+        'Escapada de Fin de Semana',
+        'Disfruta de un 10% de descuento en estancias de fin de semana con acceso a spa.',
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL 45 DAY,
+        TRUE,
+        TRUE
+    ),
+    (
+        'AURACLIENTEFIDELIDAD',
+        25.00,
+        'Club Fidelidad Secreto',
+        'Cupón exclusivo comunicado directamente por el hotel para huéspedes fieles. Válido pero no listado públicamente.',
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL 90 DAY,
+        TRUE,
+        FALSE
     );
 
 -- Insert promotion

@@ -2,18 +2,19 @@
    HOTEL AURA DE MALLORCA - BOOKING MODAL LUXURY STYLING
    ========================================================================== */
 
-/* React Calendar Luxury Styling */
+/* React Calendar Styling - High Contrast Light Mode */
 .react-calendar {
     width: 100%;
     max-width: 100%;
-    background: #ffffff;
-    border: 1px solid rgba(140, 140, 140, 0.25);
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
     border-radius: 14px;
     font-family: inherit;
     line-height: 1.25em;
-    padding: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 14px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
+    color: #0f172a !important;
 }
 
 .react-calendar,
@@ -28,7 +29,7 @@
     border: 0;
     outline: none;
     border-radius: 8px;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .react-calendar button:enabled:hover {
@@ -37,36 +38,36 @@
 
 .react-calendar__navigation {
     display: flex;
-    height: 44px;
+    height: 46px;
     margin-bottom: 0.8em;
 }
 
 .react-calendar__navigation button {
     min-width: 44px;
     background: none;
-    font-weight: 700;
-    font-size: 1rem;
-    color: inherit;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #0f172a !important;
 }
 
 .react-calendar__navigation button:enabled:hover,
 .react-calendar__navigation button:enabled:focus {
     background-color: rgba(13, 110, 253, 0.12);
-    color: #0d6efd;
+    color: #0d6efd !important;
 }
 
 .react-calendar__navigation button[disabled] {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
 }
 
 .react-calendar__month-view__weekdays {
     text-align: center;
     text-transform: uppercase;
-    font-weight: 700;
-    font-size: 0.76em;
-    opacity: 0.65;
-    padding-bottom: 6px;
+    font-weight: 800;
+    font-size: 0.78em;
+    color: #334155 !important;
+    padding-bottom: 8px;
 }
 
 .react-calendar__month-view__weekdays__weekday abbr {
@@ -74,48 +75,53 @@
 }
 
 .react-calendar__month-view__days__day {
-    color: inherit;
+    color: #0f172a !important;
+    font-weight: 700 !important;
     position: relative;
 }
 
 .react-calendar__month-view__days__day--weekend {
-    color: #0d6efd;
+    color: #0284c7 !important;
 }
 
 .react-calendar__month-view__days__day--neighboringMonth {
-    opacity: 0.35;
+    opacity: 0.45 !important;
+    color: #94a3b8 !important;
 }
 
 .react-calendar__tile {
     max-width: 100%;
     text-align: center;
-    padding: 0.85em 0.5em;
+    padding: 0.75em 0.4em 1.4em !important;
     background: none;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700 !important;
+    font-size: 0.95rem;
     position: relative;
     border-radius: 8px;
+    min-height: 48px;
 }
 
 .react-calendar__tile:disabled {
-    background-color: rgba(120, 120, 120, 0.08);
-    opacity: 0.4;
+    background-color: rgba(226, 232, 240, 0.5) !important;
+    opacity: 0.45 !important;
+    color: #94a3b8 !important;
     cursor: not-allowed;
 }
 
 .react-calendar__tile:enabled:hover,
 .react-calendar__tile:enabled:focus {
-    background-color: rgba(13, 110, 253, 0.12);
+    background-color: rgba(13, 110, 253, 0.14) !important;
 }
 
 .react-calendar__tile--now {
-    background: rgba(255, 193, 7, 0.2);
-    color: inherit;
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #b45309 !important;
+    font-weight: 800 !important;
 }
 
 .react-calendar__tile--now:enabled:hover,
 .react-calendar__tile--now:enabled:focus {
-    background: rgba(255, 193, 7, 0.3);
+    background: rgba(245, 158, 11, 0.3) !important;
 }
 
 .react-calendar__tile--active,
@@ -123,60 +129,119 @@
 .react-calendar__tile--active:enabled:focus {
     background: #0d6efd !important;
     color: #ffffff !important;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+    font-weight: 800 !important;
+    box-shadow: 0 4px 14px rgba(13, 110, 253, 0.45);
 }
 
-/* Occupancy Tile Badges and Dots */
-.calendar-tile-badge-wrapper {
-    position: absolute;
-    bottom: 3px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* React Calendar - High Contrast Dark Mode */
+[data-bs-theme="dark"] .react-calendar {
+    background: #0f172a !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.16) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
 }
 
-.calendar-occupancy-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    display: inline-block;
+[data-bs-theme="dark"] .react-calendar__navigation button {
+    color: #f8fafc !important;
 }
 
-.dot-warning {
-    background-color: #f59e0b;
-    box-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+[data-bs-theme="dark"] .react-calendar__navigation button:enabled:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa !important;
 }
 
-.dot-full {
-    background-color: #ef4444;
-    box-shadow: 0 0 4px rgba(239, 68, 68, 0.7);
+[data-bs-theme="dark"] .react-calendar__month-view__weekdays {
+    color: #cbd5e1 !important;
 }
 
-.dot-danger {
-    background-color: #dc2626;
-    width: 7px;
-    height: 7px;
-    box-shadow: 0 0 6px rgba(220, 38, 38, 0.9);
+[data-bs-theme="dark"] .react-calendar__month-view__days__day {
+    color: #f8fafc !important;
 }
 
-.dot-free {
-    background-color: #10b981;
+[data-bs-theme="dark"] .react-calendar__month-view__days__day--weekend {
+    color: #38bdf8 !important;
 }
 
+[data-bs-theme="dark"] .react-calendar__month-view__days__day--neighboringMonth {
+    color: #64748b !important;
+    opacity: 0.45 !important;
+}
+
+[data-bs-theme="dark"] .react-calendar__tile {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .react-calendar__tile:disabled {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+    color: #64748b !important;
+    opacity: 0.4 !important;
+}
+
+[data-bs-theme="dark"] .react-calendar__tile--now {
+    background: rgba(245, 158, 11, 0.25) !important;
+    color: #fbbf24 !important;
+}
+
+/* Occupancy Full-Tile Highlighting */
 .calendar-tile-occupied-partial {
-    background: rgba(245, 158, 11, 0.08);
+    background: rgba(245, 158, 11, 0.2) !important;
+    border: 1.5px solid #f59e0b !important;
 }
 
 .calendar-tile-occupied-full {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.22) !important;
+    border: 1.5px solid #ef4444 !important;
 }
 
 .calendar-tile-occupied-selected {
-    background: rgba(239, 68, 68, 0.18) !important;
-    border: 1px dashed #ef4444 !important;
+    background: rgba(220, 38, 38, 0.3) !important;
+    border: 2px solid #dc2626 !important;
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.4) !important;
+}
+
+/* Full Tile Hover Overlay & Tooltip Trigger */
+.calendar-tile-full-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 3px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.calendar-tile-status-tag {
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.occupied-badge-danger {
+    background: #dc2626;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.5);
+}
+
+.occupied-badge-full {
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.5);
+}
+
+.occupied-badge-partial {
+    background: #f59e0b;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.5);
 }
 
 /* Calendar Occupancy Legend and Hover Banner */
@@ -701,4 +766,181 @@
     padding: 40px 20px;
     gap: 16px;
     text-align: center;
+}
+
+/* Titular Reservation Banner (Step 5) */
+.titular-reservation-banner {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(245, 158, 11, 0.1));
+    border: 1.5px solid rgba(13, 110, 253, 0.35);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.titular-banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.titular-banner-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.titular-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+}
+
+.titular-info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.titular-info-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    opacity: 0.75;
+    font-weight: 600;
+}
+
+.titular-info-val {
+    font-weight: 700;
+}
+
+/* Locked Guest Classification Badge (Step 5) */
+.guest-card-locked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    user-select: none;
+}
+
+.guest-card-locked-badge.adult {
+    background: rgba(13, 110, 253, 0.18);
+    color: #0d6efd;
+    border: 1px solid rgba(13, 110, 253, 0.4);
+}
+
+.guest-card-locked-badge.child {
+    background: rgba(16, 185, 129, 0.18);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Promo Cards (Step 6) */
+.promo-cards-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.promo-selection-card {
+    border-radius: 16px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    border: 2px solid rgba(148, 163, 184, 0.2);
+}
+
+[data-bs-theme="dark"] .promo-selection-card {
+    background: #151d2f;
+}
+
+[data-bs-theme="light"] .promo-selection-card {
+    background: #ffffff;
+}
+
+.promo-selection-card:hover {
+    border-color: #f59e0b;
+    transform: translateY(-2px);
+}
+
+.promo-selection-card.is-selected {
+    border-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+.promo-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.promo-card-discount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #f59e0b;
+}
+
+.promo-card-code-badge {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    font-size: 0.95rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px dashed #f59e0b;
+}
+
+.promo-card-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 4px 0;
+}
+
+.promo-card-desc {
+    font-size: 0.84rem;
+    opacity: 0.85;
+    line-height: 1.45;
+    margin-bottom: 10px;
+}
+
+.promo-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    opacity: 0.8;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    padding-top: 8px;
+}
+
+/* Portfolio Showcase Disclaimer (Step 7) */
+.booking-showcase-disclaimer {
+    background-color: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #991b1b;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
 }

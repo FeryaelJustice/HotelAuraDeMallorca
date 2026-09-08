@@ -1,3 +1,8 @@
+/**
+ * Modelo de datos: Usuario (User)
+ * Que hace: Representa una entidad de cuenta de usuario autenticado o registrado.
+ * Por que: Tipa el estado del perfil, permisos y estado de verificacion en la aplicacion.
+ */
 export class User {
   id: number | null = null;
   name: string | null = null;

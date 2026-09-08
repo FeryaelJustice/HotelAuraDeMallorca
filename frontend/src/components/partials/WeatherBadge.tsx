@@ -6,6 +6,11 @@ interface WeatherBadgeProps {
     colorScheme: string;
 }
 
+/**
+ * Componente: WeatherBadge (Insignia Meteorologica)
+ * Que hace: Muestra en la cabecera la temperatura y condicion atmosferica en tiempo real de Mallorca.
+ * Por que: Provee contexto climatico dinamico a los visitantes para incentivar su decision de reserva.
+ */
 export const WeatherBadge = ({ colorScheme }: WeatherBadgeProps) => {
     const [temperature, setTemperature] = useState<number | null>(24);
     const [condition, setCondition] = useState<string>('Soleado');

@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Header, Footer } from './components/partials';
 import { Home } from './pages/Home';
 const Services = lazy(() => import('./pages/Services').then(m => ({ default: m.Services })));
+const Coupons = lazy(() => import('./pages/Coupons').then(m => ({ default: m.Coupons })));
 const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
 const UserVerify = lazy(() => import('./pages/UserVerify').then(m => ({ default: m.UserVerify })));
 const UserBookings = lazy(() => import('./pages/UserBookings').then(m => ({ default: m.UserBookings })));
@@ -98,12 +99,20 @@ function App() {
     }, [cookies]);
 
     // Book modal
-    const openBookingModal = () => {
+    const [bookingInitialPromoCode, setBookingInitialPromoCode] = useState<string | null>(null);
+
+    const openBookingModal = (promoCode?: string) => {
+        if (typeof promoCode === 'string' && promoCode.trim()) {
+            setBookingInitialPromoCode(promoCode.trim());
+        } else {
+            setBookingInitialPromoCode(null);
+        }
         setIsBookingModalOpen(true);
     };
 
     const closeBookingModal = () => {
         setIsBookingModalOpen(false);
+        setBookingInitialPromoCode(null);
     };
 
     // User modal
@@ -170,6 +179,7 @@ function App() {
                         <Routes>
                             <Route path="/" element={<Home colorScheme={colorScheme} />} />
                             <Route path="/services" element={<Services colorScheme={colorScheme} openImagePreviewModal={openImagePreviewModal} />} />
+                            <Route path="/cupones" element={<Coupons colorScheme={colorScheme} onOpenBookingModal={openBookingModal} />} />
                             <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
                             <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
                             <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} openDuplicateBookingModal={openDuplicateBookingModal} />} />
@@ -183,7 +193,7 @@ function App() {
 
                         {isBookingModalOpen && (
                             <Suspense fallback={null}>
-                                <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
+                                <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} initialPromoCode={bookingInitialPromoCode} />
                             </Suspense>
                         )}
                         {isUserModalOpen && (

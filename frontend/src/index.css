@@ -124,3 +124,23 @@ body {
     min-width: 100%;
   }
 }
+
+/* Ocultar asistente de Stripe para desarrolladores / badge de modo prueba en la esquina inferior derecha */
+iframe[name^="__privateStripeAssistant"],
+iframe[src*="stripe.com/v3/elements/assistant"],
+iframe[src*="stripe.com/assistant"],
+div[class*="StripeAssistant"],
+div[class*="stripe-assistant"],
+div[id*="stripe-assistant"],
+.stripe-assistant-root,
+[data-stripe-badge],
+.StripeTestBadge {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}

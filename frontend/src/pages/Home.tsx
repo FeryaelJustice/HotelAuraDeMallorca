@@ -9,6 +9,12 @@ interface HomeProps {
     colorScheme: string;
 }
 
+/**
+ * Pagina principal: Home
+ * Que hace: Presenta la experiencia de bienvenida con efectos Parallax de fondo,
+ * transiciones suaves y soporte multiidioma (i18n).
+ * Por que: Es el escaparate visual de primer impacto que conduce a la reserva y exploracion de servicios.
+ */
 export const Home = ({ colorScheme }: HomeProps) => {
     // Dependencies
     const { t } = useTranslation();

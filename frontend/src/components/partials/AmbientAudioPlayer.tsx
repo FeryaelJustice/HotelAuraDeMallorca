@@ -6,6 +6,11 @@ interface AmbientAudioPlayerProps {
     audioSrc: string;
 }
 
+/**
+ * Componente: AmbientAudioPlayer (Reproductor de Audio Ambiental)
+ * Que hace: Reproduce una pista musical relajante con control de volumen, muteo y barra de progreso.
+ * Por que: Enriquece la atmosfera inmersiva mediterranea del sitio web respetando el consentimiento del usuario.
+ */
 export const AmbientAudioPlayer = ({ colorScheme, audioSrc }: AmbientAudioPlayerProps) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);

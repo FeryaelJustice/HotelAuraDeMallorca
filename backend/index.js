@@ -263,6 +263,29 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
+// Verificacion y actualizacion defensiva del esquema en arranque
+pool.query(
+    "INSERT IGNORE INTO payment_method (id, payment_method_name) VALUES (1, 'Stripe'), (2, 'Hotel Reception')",
+    (err) => {
+        if (err) console.warn("[DB INIT] Advertencia en comprobacion de payment_method:", err.message);
+    }
+);
+
+pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
+    if (!err && rows && rows.length === 0) {
+        pool.query(
+            "ALTER TABLE promotion ADD COLUMN is_active BOOLEAN DEFAULT TRUE, ADD COLUMN is_visible BOOLEAN DEFAULT TRUE",
+            (alterErr) => {
+                if (alterErr) {
+                    console.warn("[DB INIT] No se pudieron anadir columnas is_active / is_visible a promotion:", alterErr.message);
+                } else {
+                    console.log("[DB INIT] Columnas is_active e is_visible anadidas exitosamente a promotion.");
+                }
+            }
+        );
+    }
+});
+
 // Clave secreta para firma y verificacion de JSON Web Tokens (JWT)
 const jwtSecretKey = process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
 if (!process.env.JWT_SECRET) {
@@ -1872,7 +1895,14 @@ expressRouter.post("/sendContactForm", async (req, res) => {
     }
 });
 
-// ROOMS
+// ==============================================================================
+// MODULO DE CATALOGOS: HABITACIONES Y PLANES
+// ==============================================================================
+
+// Endpoint: GET /api/rooms
+// Que hace: Recupera el listado completo de habitaciones, resuelve sus imagenes asociadas
+// desde la tabla media/room_media y normaliza sus rangos de disponibilidad activa.
+// Por que: Suministra el catalogo principal para la navegacion y seleccion en el modal de reserva.
 expressRouter.get("/rooms", (req, res) => {
     try {
         let sql = "SELECT * FROM room";
@@ -2414,6 +2444,14 @@ expressRouter.get("/paymentmethods", (req, res) => {
     }
 });
 
+// ==============================================================================
+// MODULO DE DISPONIBILIDAD Y OCUPACION DE RESERVAS
+// ==============================================================================
+
+// Endpoint: GET /api/bookingOccupancy
+// Que hace: Retorna todas las reservas activas no canceladas (`is_cancelled = 0`)
+// desde la fecha actual para mapear fechas no disponibles en el calendario.
+// Por que: Permite al componente react-calendar en frontend deshabilitar dias ocupados en tiempo real.
 expressRouter.get("/bookingOccupancy", (req, res) => {
     try {
         const sql = `
@@ -2449,6 +2487,10 @@ expressRouter.get("/bookingOccupancy", (req, res) => {
     }
 });
 
+// Endpoint: POST /api/checkBookingAvailability
+// Que hace: Verifica colisiones de fechas de reservas activas para una habitacion especifica
+// o devuelve las habitaciones completamente libres durante el rango de fechas solicitado.
+// Por que: Regla de negocio critica que evita el overbooking / doble reserva simultanea.
 expressRouter.post("/checkBookingAvailability", (req, res) => {
     try {
         const { start_date, end_date } = req.body;
@@ -2456,9 +2498,13 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
 
         const formatDateStr = (d) => {
             if (!d) return null;
-            if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) {
-                return d.slice(0, 10);
+            if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                return d;
             }
+            try {
+                const m = moment(d).tz("Europe/Madrid");
+                if (m.isValid()) return m.format("YYYY-MM-DD");
+            } catch (e) {}
             const dateObj = new Date(d);
             if (isNaN(dateObj.getTime())) return null;
             const year = dateObj.getFullYear();
@@ -2477,6 +2523,8 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                 message: "Valid start_date and end_date are required",
             });
         }
+
+        const isStrictRange = startDate < endDate;
 
         if (roomID) {
             // Check specific room availability and overlap
@@ -2522,14 +2570,23 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                         });
                     }
 
-                    const overlapSql = `
-                        SELECT id, booking_start_date, booking_end_date 
-                        FROM booking 
-                        WHERE room_id = ? 
-                          AND is_cancelled = 0 
-                          AND booking_start_date <= ? 
-                          AND booking_end_date >= ?
-                    `;
+                    const overlapSql = isStrictRange
+                        ? `
+                            SELECT id, booking_start_date, booking_end_date 
+                            FROM booking 
+                            WHERE room_id = ? 
+                              AND is_cancelled = 0 
+                              AND booking_start_date < ? 
+                              AND booking_end_date > ?
+                        `
+                        : `
+                            SELECT id, booking_start_date, booking_end_date 
+                            FROM booking 
+                            WHERE room_id = ? 
+                              AND is_cancelled = 0 
+                              AND booking_start_date <= ? 
+                              AND booking_end_date >= ?
+                        `;
 
                     req.dbConnectionPool.query(
                         overlapSql,
@@ -2565,19 +2622,33 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
             );
         } else {
             // General availability check across any room
-            const generalSql = `
-                SELECT r.id 
-                FROM room r 
-                WHERE (r.room_availability_start IS NULL OR ? >= r.room_availability_start)
-                  AND (r.room_availability_end IS NULL OR ? <= r.room_availability_end)
-                  AND r.id NOT IN (
-                      SELECT b.room_id 
-                      FROM booking b 
-                      WHERE b.is_cancelled = 0 
-                        AND b.booking_start_date <= ? 
-                        AND b.booking_end_date >= ?
-                  )
-            `;
+            const generalSql = isStrictRange
+                ? `
+                    SELECT r.id 
+                    FROM room r 
+                    WHERE (r.room_availability_start IS NULL OR ? >= r.room_availability_start)
+                      AND (r.room_availability_end IS NULL OR ? <= r.room_availability_end)
+                      AND r.id NOT IN (
+                          SELECT b.room_id 
+                          FROM booking b 
+                          WHERE b.is_cancelled = 0 
+                            AND b.booking_start_date < ? 
+                            AND b.booking_end_date > ?
+                      )
+                `
+                : `
+                    SELECT r.id 
+                    FROM room r 
+                    WHERE (r.room_availability_start IS NULL OR ? >= r.room_availability_start)
+                      AND (r.room_availability_end IS NULL OR ? <= r.room_availability_end)
+                      AND r.id NOT IN (
+                          SELECT b.room_id 
+                          FROM booking b 
+                          WHERE b.is_cancelled = 0 
+                            AND b.booking_start_date <= ? 
+                            AND b.booking_end_date >= ?
+                      )
+                `;
 
             req.dbConnectionPool.query(
                 generalSql,
@@ -2891,6 +2962,10 @@ expressRouter.post("/duplicateBooking", verifyUser, (req, res) => {
     );
 });
 
+// Endpoint: POST /api/createBooking
+// Que hace: Orquesta en una transaccion la creacion de huespedes (guest), insercion de la reserva principal (booking),
+// vinculacion de servicios extras (booking_service), relacion de huespedes (booking_guest) y actualiza el contador del usuario.
+// Por que: Punto culminante del flujo de contratacion donde se asegura la integridad referencial completa de la estancia.
 expressRouter.post("/createBooking", async (req, res) => {
     try {
         const data = req.body;
@@ -2929,7 +3004,9 @@ expressRouter.post("/createBooking", async (req, res) => {
     }
 });
 
-// Counter of bookings of user
+// Helper: Contador acumulado de reservas finalizadas por usuario
+// Que hace: Incrementa atomicamente el campo booking_count en user_booking_count.
+// Por que: Soporta el programa de fidelizacion y verificacion de regalos.
 async function addBookingCountToUser(userID, connectionPool) {
     try {
         const query =
@@ -2941,7 +3018,10 @@ async function addBookingCountToUser(userID, connectionPool) {
     }
 }
 
-// Check user present: if user has 5 bookings, present the user with a unique promo associated with him
+// Endpoint: POST /api/userPresentCheck
+// Que hace: Comprueba si el usuario ha completado 5 reservas o mas; de ser asi y no poseer
+// una promocion vigente, genera un cupon exclusivo del 50% de descuento valido por 7 dias.
+// Por que: Recompensa la fidelidad del cliente con incentivos de conversion directa.
 expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
     let userID = req.body.userID;
     try {
@@ -3063,7 +3143,10 @@ expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
     }
 });
 
-// Check user punishment: if user has a 2 or more cancelled bookings, punish the user disabling the account
+// Endpoint: POST /api/userPunishmentCheck
+// Que hace: Examina si un usuario acumula 2 o mas cancelaciones de reserva; en caso afirmativo
+// y si no ha sido perdonado/rehabilitado por un administrador (`enabledByAdmin = 0`), inhabilita su cuenta (`isEnabled = 0`).
+// Por que: Mecanismo de proteccion contra fraudes, abusos de disponibilidad y cancelaciones reiteradas.
 expressRouter.post("/userPunishmentCheck", (req, res) => {
     let userID = req.body.userID;
     try {
@@ -3165,45 +3248,40 @@ function generateUniquePromoCode() {
 // Booking functions
 async function createOrSelectGuests(guests, connection) {
     try {
-        const existingGuests = guests.filter((guest) => guest.id !== null);
+        if (!guests || !Array.isArray(guests) || guests.length === 0) {
+            return [];
+        }
+        const existingGuests = guests.filter((guest) => guest.id !== null && guest.id !== undefined);
         const existingGuestIds = existingGuests.map((guest) => guest.id);
 
         const [guestIdMap, guestsToInsert] = await Promise.all([
             selectGuestIds(existingGuestIds, connection),
             insertGuests(
-                guests.filter((guest) => guest.id === null),
+                guests.filter((guest) => guest.id === null || guest.id === undefined),
                 connection,
             ),
         ]);
 
-        // Use a Set to ensure unique values
-        const guestIdSet = new Set(
-            existingGuests
-                .map((guest) => guest.id)
-                .concat(guestIdMap)
-                .concat(guestsToInsert),
-        );
-
-        // Convert the Set back to an array
-        const uniqueGuestIds = Array.from(guestIdSet);
-
+        const uniqueGuestIds = Array.from(new Set(guestIdMap.concat(guestsToInsert)));
         return uniqueGuestIds;
     } catch (error) {
-        throw error; // Optionally, rethrow the error for further handling
+        console.error("Error in createOrSelectGuests:", error);
+        throw error;
     }
 }
 
 function selectGuestIds(existingGuestIds, connection) {
     return new Promise((resolve, reject) => {
         try {
-            if (existingGuestIds.length === 0) {
+            if (!existingGuestIds || existingGuestIds.length === 0) {
                 resolve([]);
                 return;
             }
             const query = "SELECT id FROM guest WHERE id IN (?)";
             connection.query(query, [existingGuestIds], (err, results) => {
                 if (err) {
-                    reject("Error selecting guests");
+                    console.error("Error selecting guests:", err);
+                    reject(`Error selecting guests: ${err.message || err}`);
                 } else {
                     resolve(results.map((result) => result.id));
                 }
@@ -3217,35 +3295,35 @@ function selectGuestIds(existingGuestIds, connection) {
 function insertGuests(guestsToInsert, connection) {
     return new Promise((resolve, reject) => {
         try {
-            if (guestsToInsert.length === 0) {
+            if (!guestsToInsert || guestsToInsert.length === 0) {
                 resolve([]);
                 return;
             }
 
             const values = guestsToInsert.map((guest) => [
-                guest.id,
-                guest.name,
-                guest.surnames,
-                guest.email,
-                guest.isAdult,
-                guest.isSystemUser,
+                guest.id || null,
+                guest.name || "",
+                guest.surnames || "",
+                guest.email || null,
+                guest.isAdult ? "1" : "0",
+                guest.isSystemUser ? "1" : "0",
             ]);
             const query =
                 "INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?";
             connection.query(query, [values], (err, result) => {
                 if (err) {
-                    reject("Error creating guests");
+                    console.error("Error creating guests:", err);
+                    reject(`Error creating guests: ${err.message || err}`);
                 } else {
-                    const insertedIds = Array(guestsToInsert.length).fill(
-                        result.insertId,
-                    );
+                    const count = guestsToInsert.length;
+                    const firstId = result.insertId;
+                    const insertedIds = Array.from({ length: count }, (_, i) => firstId + i);
                     resolve(insertedIds);
                 }
             });
         } catch (error) {
-            return res
-                .status(500)
-                .send({ status: "error", message: "Internal server error" });
+            console.error("Catch in insertGuests:", error);
+            reject(error);
         }
     });
 }
@@ -3282,21 +3360,28 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
 
                     const bookingId = result.insertId;
 
-                    await insertBookingServices(
-                        connection,
-                        bookingId,
-                        servicesIDs,
-                    );
-                    await insertBookingGuests(connection, bookingId, guestIds);
+                    try {
+                        await insertBookingServices(
+                            connection,
+                            bookingId,
+                            servicesIDs,
+                        );
+                        await insertBookingGuests(connection, bookingId, guestIds);
 
-                    connection.commit((err) => {
-                        if (err) {
-                            connection.rollback(() =>
-                                reject("Transaction commit error"),
-                            );
-                        }
-                        resolve(bookingId);
-                    });
+                        connection.commit((commitErr) => {
+                            if (commitErr) {
+                                connection.rollback(() =>
+                                    reject("Transaction commit error"),
+                                );
+                                return;
+                            }
+                            resolve(bookingId);
+                        });
+                    } catch (subErr) {
+                        connection.rollback(() =>
+                            reject(`Error inserting related booking details: ${subErr}`),
+                        );
+                    }
                 });
             });
         } catch (error) {
@@ -3307,30 +3392,31 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
 
 function insertBookingServices(connection, bookingId, servicesIDs) {
     try {
+        if (!servicesIDs || !Array.isArray(servicesIDs) || servicesIDs.length === 0) {
+            return Promise.resolve();
+        }
         const query =
             "INSERT INTO booking_service (booking_id, service_id) VALUES ?";
         const values = servicesIDs.map((serviceID) => [bookingId, serviceID]);
         return connection.query(query, [values]);
     } catch (error) {
-        // Handle the error or log it
         console.error("Error in insertBookingServices:", error);
-        throw error; // Optionally, rethrow the error for further handling
+        throw error;
     }
 }
 
 function insertBookingGuests(connection, bookingId, guestIds) {
     try {
-        if (guestIds.length === 0) {
-            return;
+        if (!guestIds || !Array.isArray(guestIds) || guestIds.length === 0) {
+            return Promise.resolve();
         }
         const query =
             "INSERT INTO booking_guest (booking_id, guest_id) VALUES ?";
         const values = guestIds.map((guestId) => [bookingId, guestId]);
         return connection.query(query, [values]);
     } catch (error) {
-        // Handle the error or log it
         console.error("Error in insertBookingGuests:", error);
-        throw error; // Optionally, rethrow the error for further handling
+        throw error;
     }
 }
 
@@ -3387,7 +3473,13 @@ expressRouter.get("/bookingsByUser", verifyUser, (req, res) => {
     }
 });
 
-// PAYMENT
+// ==============================================================================
+// MODULO DE PAGOS Y TRANSACCIONES FINANCIERAS (STRIPE)
+// ==============================================================================
+
+// Endpoint: POST /api/payment
+// Que hace: Registra el abono formal de una reserva vinculando usuario, reserva, monto y fecha.
+// Por que: Permite auditoria y liquidacion interna de la reserva dentro del sistema.
 expressRouter.post("/payment", (req, res) => {
     try {
         const data = req.body;
@@ -3425,6 +3517,9 @@ expressRouter.post("/payment", (req, res) => {
     }
 });
 
+// Endpoint: POST /api/paymentTransaction
+// Que hace: Almacena la asociacion entre el id de pago interno y el id de transaccion de pasarela.
+// Por que: Garantiza la trazabilidad contable con la plataforma de pagos externa.
 expressRouter.post("/paymentTransaction", (req, res) => {
     try {
         const data = req.body;
@@ -3452,7 +3547,9 @@ expressRouter.post("/paymentTransaction", (req, res) => {
     }
 });
 
-// Stripe
+// Endpoint: POST /api/purchase (Stripe PaymentIntent)
+// Que hace: Crea una intencion de pago en Stripe (PaymentIntent) en centimos y devuelve el client_secret.
+// Por que: Permite al cliente frontend inicializar de forma segura Stripe Elements sin manipular claves secretas.
 expressRouter.post("/purchase", async (req, res) => {
     try {
         const { data } = req.body;
@@ -3482,6 +3579,10 @@ expressRouter.post("/purchase", async (req, res) => {
         req.dbConnectionPool.release();
     }
 });
+
+// Endpoint: POST /api/cancel-payment
+// Que hace: Cancela una intencion de pago no completada en Stripe a traves de su client_secret.
+// Por que: Libera autorizaciones bancarias pendientes si el usuario cancela el checkout en el modal.
 expressRouter.post("/cancel-payment", async (req, res) => {
     try {
         const { client_secret } = req.body;
@@ -3875,15 +3976,47 @@ expressRouter.get("/weather", (req, res) => {
 });
 
 // PROMOTIONS
-// Get promos
+// Get promos: soporta ?visible=true para seccion publica web
 expressRouter.get("/promotions", (req, res) => {
-    req.dbConnectionPool.query("SELECT * FROM promotion", (err, results) => {
+    const onlyVisible = req.query.visible === "true" || req.query.visible === "1";
+    let sql = "SELECT * FROM promotion WHERE (is_active IS NULL OR is_active = 1)";
+    if (onlyVisible) {
+        sql += " AND (is_visible IS NULL OR is_visible = 1)";
+    }
+    sql += " AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY discount_price DESC";
+
+    req.dbConnectionPool.query(sql, (err, results) => {
         if (err) {
-            return res
-                .status(500)
-                .send({ status: "error", message: "Internal server error" });
+            req.dbConnectionPool.query("SELECT * FROM promotion", (fallbackErr, fallbackResults) => {
+                if (fallbackErr) {
+                    return res
+                        .status(500)
+                        .send({ status: "error", message: "Internal server error" });
+                }
+                return res.status(200).send({ status: "success", data: fallbackResults });
+            });
+            return;
         }
         return res.status(200).send({ status: "success", data: results });
+    });
+});
+
+// Endpoint para validar cualquier cupon activo (visible o privado de palabra)
+expressRouter.post("/checkPromoCode", (req, res) => {
+    const code = req.body && req.body.code ? String(req.body.code).trim() : "";
+    if (!code) {
+        return res.status(400).json({ status: "error", message: "El código de promoción es requerido" });
+    }
+    const sql = "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (end_date IS NULL OR end_date >= CURDATE())";
+    req.dbConnectionPool.query(sql, [code], (err, results) => {
+        if (err) {
+            console.error("Error verificando cupon:", err);
+            return res.status(500).json({ status: "error", message: "Error en base de datos" });
+        }
+        if (results && results.length > 0) {
+            return res.status(200).json({ status: "success", valid: true, promotion: results[0] });
+        }
+        return res.status(200).json({ status: "success", valid: false, message: "Cupón no encontrado, expirado o inactivo" });
     });
 });
 expressRouter.get("/get-promo-discount/:id", (req, res) => {

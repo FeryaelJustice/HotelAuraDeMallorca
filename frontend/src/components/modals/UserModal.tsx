@@ -26,6 +26,12 @@ interface UserModalProps {
     onClose: () => void;
 }
 
+/**
+ * Pantallas del modal de usuario (UserModalScreens)
+ * Que hace: Alterna entre vistas de login, registro con QR, edicion de perfil,
+ * cambio de contrasena y solicitud de recuperacion de cuenta.
+ * Por que: Centraliza toda la logica de gestion de cuentas en un unico contenedor modal desacoplado.
+ */
 enum UserModalScreens {
     ScreenLogin,
     ScreenRegister,
@@ -34,6 +40,12 @@ enum UserModalScreens {
     ScreenRecoverAccount,
 }
 
+/**
+ * Componente: UserModal
+ * Que hace: Modal interactivo para autenticacion (JWT + cookies), registro con Google reCAPTCHA,
+ * escaneo/generacion de QR, gestion de perfil y recuperacion de contrasena con alertas SweetAlert2.
+ * Por que: Ofrece una experiencia de usuario fluida y reactiva para el acceso seguro al sistema.
+ */
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const { t } = useTranslation();
