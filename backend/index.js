@@ -3698,7 +3698,9 @@ expressRouter.post("/purchase", async (req, res) => {
             amount: data.amount,
             currency: data.currency,
             description: "Hotel booking",
-            payment_method_types: ["card"],
+            automatic_payment_methods: {
+                enabled: true,
+            },
         });
 
         const { client_secret } = paymentIntent;
@@ -3709,10 +3711,10 @@ expressRouter.post("/purchase", async (req, res) => {
             client_secret: client_secret,
         });
     } catch (error) {
-        return res.status(200).json({
+        console.error("Error creating payment intent:", error);
+        return res.status(500).json({
             status: "error",
-            message: "stripe",
-            message: error,
+            message: error.message || "Error al procesar el pago con Stripe",
             client_secret: null,
         });
     } finally {
