@@ -37,7 +37,33 @@ enum UserModalScreens {
 const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const { t } = useTranslation();
-    const MySwal = withReactContent(Swal)
+    const MySwal = withReactContent(Swal);
+
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        }
+    });
+
+    const getCleanErrorMessage = (err: any, fallback: string = 'Ha ocurrido un error inesperado'): string => {
+        if (!err) return fallback;
+        const msg = err.response?.data?.message ?? err.message;
+        if (typeof msg === 'string' && msg.trim().length > 0) return msg;
+        if (typeof msg === 'object' && msg !== null) {
+            try {
+                return JSON.stringify(msg);
+            } catch {
+                return fallback;
+            }
+        }
+        return fallback;
+    };
 
     const handleClose = () => {
         // De cualquier forma cuando lo cierre, vaciar el modal de data
@@ -100,15 +126,24 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 // Check if user has a promo code present for 5 bookings
                 serverAPI.post('/userPresentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
                     if (res.data.promotion) {
-                        alert("A unique promotion has been generated for you! You can see the code in 'Edit Profile' section.")
+                        Toast.fire({
+                            icon: 'info',
+                            title: '¡Se ha generado una promoción exclusiva para ti! Puedes ver el código en la sección de Editar Perfil.'
+                        });
                     }
                 })
 
                 // Check if user is disabled for cancelling 2 bookings, a punishment
                 serverAPI.post('/userPunishmentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
                     if (res.data.disabled) {
-                        alert("Your account is disabled for cancelling 2 or more bookings, contact the administrator")
-                        logout();
+                        MySwal.fire({
+                            icon: 'error',
+                            title: 'Cuenta desactivada',
+                            text: 'Tu cuenta ha sido suspendida temporalmente por cancelar 2 o más reservas. Por favor, contacta con el administrador.',
+                            confirmButtonText: 'Entendido'
+                        }).then(() => {
+                            logout();
+                        });
                     }
                 });
 
@@ -226,20 +261,33 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     resetUserModal();
                     onClose();
                     removeCookie('token');
-                    alert('User has no access token, contact the administrator')
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'No se pudo obtener el token de acceso. Contacte al administrador.'
+                    });
                 } else {
                     if (cookies.cookieConsent) {
-                        setCookie('token', res.data.cookieJWT)
+                        setCookie('token', res.data.cookieJWT);
+                        Toast.fire({
+                            icon: 'success',
+                            title: '¡Sesión iniciada con éxito! Bienvenido.'
+                        });
+                        onClose();
                     } else {
-                        alert("You didn't consent to use cookies, couldn't login")
+                        Toast.fire({
+                            icon: 'warning',
+                            title: 'No aceptó las cookies, no se pudo mantener la sesión iniciada.'
+                        });
                     }
                 }
             }).catch(err => {
-                console.log(err)
-                if (err.response.data && err.response.data.message) {
-                    alert(err.response.data.message)
-                }
-            })
+                console.error("Login error:", err);
+                const errorMessage = getCleanErrorMessage(err, 'No se pudo iniciar sesión. Verifique sus credenciales.');
+                Toast.fire({
+                    icon: 'error',
+                    title: errorMessage
+                });
+            });
         }
     }
 

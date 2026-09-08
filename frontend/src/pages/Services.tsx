@@ -64,30 +64,40 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
     const categories = [
         { id: 'all', label: 'Todos los servicios' },
         { id: 'bienestar', label: 'Bienestar & Spa' },
-        { id: 'gastronomia', label: 'Gastronomía' },
-        { id: 'ocio', label: 'Ocio & Excursiones' },
-        { id: 'vip', label: 'Exclusivo VIP' }
+        { id: 'fitness', label: 'Fitness & Deporte' },
+        { id: 'exteriores', label: 'Jardines & Piscina' },
+        { id: 'confort', label: 'Confort & Tecnología' }
     ];
+
+    const isServiceInCategory = (service: Service, categoryId: string) => {
+        const text = `${service.name || ''} ${service.description || ''}`.toLowerCase();
+        if (categoryId === 'bienestar') {
+            return text.includes('spa') || text.includes('wellness') || text.includes('thermal') || text.includes('sauna') || text.includes('masaje') || text.includes('relax');
+        }
+        if (categoryId === 'fitness') {
+            return text.includes('gym') || text.includes('fitness') || text.includes('entren') || text.includes('trainer') || text.includes('sport') || text.includes('deporte');
+        }
+        if (categoryId === 'exteriores') {
+            return text.includes('garden') || text.includes('jardín') || text.includes('jardin') || text.includes('pool') || text.includes('piscina') || text.includes('cabana');
+        }
+        if (categoryId === 'confort') {
+            return text.includes('wi-fi') || text.includes('wifi') || text.includes('internet') || text.includes('fiber') || text.includes('fibra') || text.includes('tecnolog') || text.includes('confort');
+        }
+        return false;
+    };
+
+    const categoryCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: services.length };
+        categories.forEach(cat => {
+            if (cat.id === 'all') return;
+            counts[cat.id] = services.filter(service => isServiceInCategory(service, cat.id)).length;
+        });
+        return counts;
+    }, [services]);
 
     const filteredServices = useMemo(() => {
         if (selectedCategory === 'all') return services;
-
-        return services.filter((service) => {
-            const text = `${service.name || ''} ${service.description || ''}`.toLowerCase();
-            if (selectedCategory === 'bienestar') {
-                return text.includes('spa') || text.includes('masaje') || text.includes('relax') || text.includes('wellness') || text.includes('sauna');
-            }
-            if (selectedCategory === 'gastronomia') {
-                return text.includes('desayuno') || text.includes('cena') || text.includes('comida') || text.includes('restaurante') || text.includes('vino') || text.includes('buffet');
-            }
-            if (selectedCategory === 'ocio') {
-                return text.includes('barco') || text.includes('playa') || text.includes('tour') || text.includes('excurs') || text.includes('deporte') || text.includes('calas');
-            }
-            if (selectedCategory === 'vip') {
-                return text.includes('vip') || text.includes('suite') || text.includes('chofer') || text.includes('privad') || text.includes('premium') || (service.price && service.price > 100);
-            }
-            return true;
-        });
+        return services.filter((service) => isServiceInCategory(service, selectedCategory));
     }, [services, selectedCategory]);
 
     return (
@@ -136,7 +146,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                                         boxShadow: isSelected ? '0 0 12px rgba(15, 255, 240, 0.35)' : 'none'
                                     }}
                                 >
-                                    {cat.label}
+                                    {cat.label} <span style={{ opacity: 0.8, fontSize: '0.85rem' }}>({categoryCounts[cat.id] ?? 0})</span>
                                 </button>
                             );
                         })}

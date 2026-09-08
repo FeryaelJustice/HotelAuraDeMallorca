@@ -54,6 +54,29 @@
     outline: 2px solid #646cff;
 }
 
+.ambient-audio-btn-secondary {
+    background: none;
+    border: none;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    color: inherit;
+    opacity: 0.8;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.ambient-audio-btn-secondary:hover {
+    transform: rotate(-45deg) scale(1.1);
+    opacity: 1;
+}
+
+.ambient-audio-btn-secondary:focus-visible {
+    outline: 2px solid #646cff;
+}
+
 .ambient-equalizer {
     display: flex;
     align-items: flex-end;
@@ -114,6 +137,37 @@
     text-transform: none;
 }
 
+.ambient-progress-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 120px;
+    margin: 0 4px;
+}
+
+.ambient-time-slider {
+    width: 100%;
+    accent-color: #0ffff0;
+    cursor: pointer;
+    height: 4px;
+}
+
+.ambient-time-display {
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    line-height: 1;
+}
+
+.ambient-time-divider {
+    opacity: 0.5;
+}
+
 .ambient-volume-control {
     display: flex;
     align-items: center;
@@ -128,6 +182,12 @@
     height: 4px;
 }
 
+@media (max-width: 900px) {
+    .ambient-progress-control {
+        width: 85px;
+    }
+}
+
 @media (max-width: 768px) {
     .ambient-audio-container {
         bottom: 80px;
@@ -135,6 +195,7 @@
         padding: 6px 10px;
     }
     .ambient-audio-label,
+    .ambient-progress-control,
     .ambient-volume-control {
         display: none;
     }
