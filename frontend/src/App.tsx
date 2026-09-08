@@ -182,7 +182,6 @@ function App() {
                             <Route path="*" element={<NotFound />} />
                         </Routes>
 
-                        <Button variant="primary" id="bookBtnNoInHeader" onClick={openBookingModal}>{t("book")}</Button>
                         <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
                         <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
                         <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />

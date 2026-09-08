@@ -312,6 +312,16 @@ export const Header = ({ colorScheme, onToggleTheme, onOpenBookingModal, onOpenU
 
                         return classNames;
                     }} onClick={closeMenu}>{t("contact")}</NavLink>
+                    <button
+                        type="button"
+                        className="nav-menu-book-btn"
+                        onClick={() => {
+                            closeMenu();
+                            onOpenBookingModal();
+                        }}
+                    >
+                        {t("book")}
+                    </button>
                     {(cookies.token && userHasBookings) && (
                         <NavLink to="/user-bookings" className={({ isActive }) => {
                             let classNames = '';

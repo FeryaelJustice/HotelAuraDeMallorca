@@ -134,17 +134,48 @@ nav a:hover::after {
   background-color: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   z-index: 10;
+  margin-top: 4px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-#nav-menu a {
+#nav-menu a,
+#nav-menu .nav-menu-book-btn {
   display: block;
+  width: 100%;
   padding: 16px;
   color: #000000;
   text-decoration: none;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  transition: all 0.25s ease;
 }
 
-#nav-menu a:hover {
+#nav-menu a:hover,
+#nav-menu .nav-menu-book-btn:hover {
   background-color: #f0f0f0;
+}
+
+[data-bs-theme="dark"] #nav-menu {
+  background-color: #1a1a24;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] #nav-menu a,
+[data-bs-theme="dark"] #nav-menu .nav-menu-book-btn {
+  color: #ffffff;
+}
+
+[data-bs-theme="dark"] #nav-menu a:hover,
+[data-bs-theme="dark"] #nav-menu .nav-menu-book-btn:hover {
+  color: rgb(224, 228, 0);
+  background-color: #282834;
 }
 
 #nav-actions {
@@ -174,18 +205,6 @@ nav a:hover::after {
 #nav-menu .is-active-light {
   color: #8f94f5;
   font-weight: bold;
-}
-
-#nav-menu a:hover {
-  color: rgb(224, 228, 0);
-  background-color: #383838;
-  font-weight: bold;
-  transition: 0.6s;
-}
-
-#nav-menu {
-  margin-top: 4px;
-  border-radius: 12px;
 }
 
 #user-icon {
@@ -347,25 +366,7 @@ nav a:hover::after {
   margin-top: 3.7%;
 }
 
-#bookBtn:hover {
-  background-color: #005757;
-  transition: 0.5s;
-}
 
-#bookBtnNoInHeader {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  margin: 30px;
-  font-weight: bold;
-  font-size: 1.2em;
-}
-
-#bookBtnNoInHeader:hover {
-  background-color: #005757;
-  transition: 0.5s;
-}
 
 /* Styles for Footer are modularly defined in Footer.css */
 
@@ -689,10 +690,6 @@ textarea:focus-visible {
   }
 
   .menu-toggle:hover #nav-menu {
-    display: block;
-  }
-
-  #bookBtnNoInHeader {
     display: block;
   }
 
