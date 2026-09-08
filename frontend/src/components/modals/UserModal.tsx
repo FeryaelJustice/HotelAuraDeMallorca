@@ -85,6 +85,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
     const resetUserModal = () => {
         setUserLogin({ email: "", password: "" })
+        setLoginPasswordVisible(false)
         setUserRegister({ email: "", dni: "", name: "", surnames: "", password: "", repeatpassword: "", roleID: 1 })
         setUserRegisterPasswordsVisiblity({ passwordVisible: false, repeatPasswordVisible: false })
         setUserPasswordData({ password: "", repeatPassword: "" })
@@ -237,6 +238,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     // Form login
     const [loginValidated, setLoginValidated] = useState(false);
     const [userLogin, setUserLogin] = useState({ email: "", password: "" });
+    const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
     const [captchaLoginValid, setCaptchaLoginValid] = useState(false);
     const [captchaLoginError, setCaptchaLoginError] = useState(false);
 
@@ -606,7 +608,25 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
 
                         <Form.Group className="mb-3" controlId="formPassword">
                             <Form.Label>{t("modal_user_login_password_label")}</Form.Label>
-                            <Form.Control type="password" name='password' placeholder={t("modal_user_login_password_placeholder")} onChange={handleLoginChange} required />
+                            <InputGroup>
+                                <Form.Control
+                                    type={loginPasswordVisible ? 'text' : 'password'}
+                                    name='password'
+                                    placeholder={t("modal_user_login_password_placeholder")}
+                                    onChange={handleLoginChange}
+                                    value={userLogin.password}
+                                    required
+                                />
+                                <Button
+                                    variant="outline-secondary"
+                                    type="button"
+                                    onClick={() => setLoginPasswordVisible(!loginPasswordVisible)}
+                                    aria-label={loginPasswordVisible ? "Ocultar contraseña" : "Ver contraseña"}
+                                    tabIndex={-1}
+                                >
+                                    {loginPasswordVisible ? <FaEyeSlash /> : <FaEye />}
+                                </Button>
+                            </InputGroup>
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 

@@ -68,7 +68,7 @@
 
 .admin-container {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 2.5rem auto 0;
     padding: 0 1.5rem;
 }
 
@@ -76,9 +76,9 @@
 .admin-tabs {
     display: flex;
     gap: 12px;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
     border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    padding-bottom: 12px;
+    padding-bottom: 14px;
     overflow-x: auto;
 }
 
@@ -252,4 +252,142 @@
     font-size: 0.78rem;
     letter-spacing: 0.05em;
     opacity: 0.75;
+}
+
+/* ==========================================================================
+   REACT-CALENDAR HIGH CONTRAST & LEGIBILITY OVERRIDES IN ADMIN PANEL
+   ========================================================================== */
+.admin-page .react-calendar {
+    width: 100% !important;
+    max-width: 440px !important;
+    border-radius: 14px !important;
+    font-family: inherit !important;
+    padding: 14px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.25s ease !important;
+}
+
+.admin-page--light .react-calendar {
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+.admin-page--dark .react-calendar {
+    background: #1e293b !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.admin-page .react-calendar__navigation {
+    margin-bottom: 0.8rem !important;
+}
+
+.admin-page .react-calendar__navigation button {
+    font-weight: 800 !important;
+    font-size: 0.98rem !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+}
+
+.admin-page--light .react-calendar__navigation button {
+    color: #0f172a !important;
+}
+
+.admin-page--dark .react-calendar__navigation button {
+    color: #f8fafc !important;
+}
+
+.admin-page .react-calendar__navigation button:enabled:hover,
+.admin-page .react-calendar__navigation button:enabled:focus {
+    background: rgba(217, 119, 6, 0.15) !important;
+}
+
+.admin-page .react-calendar__month-view__weekdays {
+    text-transform: uppercase !important;
+    font-weight: 800 !important;
+    font-size: 0.76rem !important;
+    letter-spacing: 0.04em !important;
+    padding-bottom: 8px !important;
+}
+
+.admin-page--light .react-calendar__month-view__weekdays {
+    color: #475569 !important;
+}
+
+.admin-page--dark .react-calendar__month-view__weekdays {
+    color: #cbd5e1 !important;
+}
+
+.admin-page .react-calendar__month-view__weekdays__weekday abbr {
+    text-decoration: none !important;
+}
+
+.admin-page .react-calendar__month-view__days__day {
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+    padding: 10px 4px !important;
+    border-radius: 8px !important;
+}
+
+.admin-page--light .react-calendar__month-view__days__day {
+    color: #0f172a !important;
+}
+
+.admin-page--dark .react-calendar__month-view__days__day {
+    color: #f1f5f9 !important;
+}
+
+.admin-page .react-calendar__month-view__days__day--weekend {
+    color: #0284c7 !important;
+}
+
+.admin-page--dark .react-calendar__month-view__days__day--weekend {
+    color: #38bdf8 !important;
+}
+
+.admin-page .react-calendar__month-view__days__day--neighboringMonth {
+    opacity: 0.35 !important;
+    color: #94a3b8 !important;
+}
+
+.admin-page .react-calendar__tile--now {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #b45309 !important;
+    font-weight: 800 !important;
+}
+
+.admin-page--dark .react-calendar__tile--now {
+    background: rgba(245, 158, 11, 0.3) !important;
+    color: #fbbf24 !important;
+}
+
+.admin-page .react-calendar__tile--active,
+.admin-page .react-calendar__tile--active:enabled:hover,
+.admin-page .react-calendar__tile--active:enabled:focus {
+    background: #0d6efd !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4) !important;
+}
+
+/* Room Preview Badge in Edit Tab */
+.admin-room-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 10px;
+    background: rgba(217, 119, 6, 0.08);
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.admin-room-preview-thumb {
+    width: 110px;
+    height: 75px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

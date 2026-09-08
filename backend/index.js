@@ -1942,7 +1942,7 @@ const getUserRoleById = (connection, userId) => {
 expressRouter.get("/usersID", verifyAdmin, (req, res) => {
     try {
         req.dbConnectionPool.query(
-            "SELECT id FROM app_user",
+            "SELECT id, user_name, user_surnames, user_email, user_dni FROM app_user ORDER BY id ASC",
             (error, results) => {
                 if (error) {
                     console.error(error);
@@ -3566,7 +3566,32 @@ function insertBookingGuests(connection, bookingId, guestIds) {
 
 expressRouter.get("/bookings", verifyAdmin, (req, res) => {
     try {
-        req.dbConnectionPool.query("SELECT * FROM booking", (err, results) => {
+        const sql = `
+            SELECT 
+                b.id,
+                b.user_id,
+                b.plan_id,
+                b.room_id,
+                b.booking_start_date,
+                b.booking_end_date,
+                b.cancellation_deadline,
+                b.is_cancelled,
+                b.created_at,
+                u.user_name,
+                u.user_surnames,
+                u.user_email,
+                u.user_dni,
+                r.room_name,
+                r.room_price,
+                p.plan_name,
+                p.plan_price
+            FROM booking b
+            LEFT JOIN app_user u ON u.id = b.user_id
+            LEFT JOIN room r ON r.id = b.room_id
+            LEFT JOIN plan p ON p.id = b.plan_id
+            ORDER BY b.id DESC
+        `;
+        req.dbConnectionPool.query(sql, (err, results) => {
             if (err) {
                 console.error(err);
                 return res.status(500).send({
