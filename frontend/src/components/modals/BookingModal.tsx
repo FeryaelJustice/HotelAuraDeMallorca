@@ -2343,7 +2343,6 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                             value={`AURA-BK-${createdBookingId || selectedRoomID || '101'}`}
                                             size={135}
                                             level="H"
-                                            includeMargin={true}
                                         />
                                         <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#334155', fontWeight: 800, marginTop: '4px' }}>
                                             AURA-BK-{createdBookingId || selectedRoomID || '101'}
