@@ -8,7 +8,7 @@ export const TermsOfUse = () => {
         {
             icon: "🛎️",
             title: "Reservas Garantizadas",
-            description: "Condiciones de reserva transparentes, disponibilidad en tiempo real y plazo de cancelación de 24 horas."
+            description: "Condiciones de reserva transparentes, disponibilidad en tiempo real y plazo de cancelación de hasta 3 días antes de la estancia."
         },
         {
             icon: "🎁",

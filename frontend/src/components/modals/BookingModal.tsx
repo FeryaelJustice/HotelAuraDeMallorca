@@ -1588,6 +1588,16 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                         <div>
                             <h2>{t("modal_booking_personaldata_title")}</h2>
 
+                            <div className="booking-cancellation-notice">
+                                <span style={{ fontSize: '1.4rem' }}>🛎️</span>
+                                <div>
+                                    <strong>Política de Cancelación Flexible:</strong>
+                                    <div style={{ fontSize: '0.84rem', opacity: 0.9 }}>
+                                        Vas a poder cancelar la reserva hasta 3 días antes del inicio de la estancia sin penalización.
+                                    </div>
+                                </div>
+                            </div>
+
                             <Form id='personalDataForm' noValidate onSubmit={handlePersonalDataSubmit}>
                                 <Form.Group className="mb-3" controlId="formName">
                                     <Form.Label>{t("modal_booking_personaldata_name_label")}</Form.Label>
@@ -1684,6 +1694,16 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                             <p style={{ opacity: 0.85, fontSize: '0.92rem', marginBottom: '16px' }}>
                                 Escoge la experiencia que mejor se adapte a tu estancia en Aura de Mallorca.
                             </p>
+
+                            <div className="booking-cancellation-notice">
+                                <span style={{ fontSize: '1.4rem' }}>🛎️</span>
+                                <div>
+                                    <strong>Política de Cancelación Flexible:</strong>
+                                    <div style={{ fontSize: '0.84rem', opacity: 0.9 }}>
+                                        Vas a poder cancelar la reserva hasta 3 días antes del inicio de la estancia sin penalización.
+                                    </div>
+                                </div>
+                            </div>
                             <div className="cards-plan" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                                 {plans && plans.length > 0 ? (
                                     plans.map((plan) => {

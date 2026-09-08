@@ -275,6 +275,13 @@ pool.query(
     },
 );
 
+// Desactivar trigger legado que forzaba plazo de 24h desde la creacion
+pool.query("DROP TRIGGER IF EXISTS before_booking_insert", (err) => {
+    if (err) {
+        console.warn("[DB INIT] Advertencia eliminando trigger antes_booking_insert:", err.message);
+    }
+});
+
 pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
     if (!err && rows && rows.length === 0) {
         pool.query(
@@ -2903,10 +2910,10 @@ expressRouter.post("/duplicateBooking", verifyUser, (req, res) => {
                     });
                 }
                 const sql =
-                    "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, cancellation_deadline = DATE_ADD(CURDATE(), INTERVAL 1 DAY),is_cancelled = 0 WHERE id = ?";
+                    "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, cancellation_deadline = DATE_SUB(?, INTERVAL 3 DAY), is_cancelled = 0 WHERE id = ?";
                 req.dbConnectionPool.query(
                     sql,
-                    [startDate, endDate, booking.id],
+                    [startDate, endDate, startDate, booking.id],
                     (err) => {
                         if (err) {
                             req.dbConnectionPool.rollback();
@@ -3308,13 +3315,14 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
             const startDate = moment(booking.startDate).format(dateFormat);
             const endDate = moment(booking.endDate).format(dateFormat);
             const query =
-                "INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date) VALUES (?, ?, ?, ?, ?)";
+                "INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date, cancellation_deadline) VALUES (?, ?, ?, ?, ?, DATE_SUB(?, INTERVAL 3 DAY))";
             const values = [
                 booking.userID,
                 booking.planID,
                 booking.roomID,
                 startDate,
                 endDate,
+                startDate,
             ];
             connection.beginTransaction(async (err) => {
                 if (err) {
