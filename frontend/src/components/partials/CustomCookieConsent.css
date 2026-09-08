@@ -1,0 +1,148 @@
+.cookie-card-container {
+    position: fixed !important;
+    bottom: 24px !important;
+    left: 24px !important;
+    z-index: 1001 !important;
+    max-width: 420px !important;
+    width: calc(100% - 48px) !important;
+    border-radius: 16px !important;
+    padding: 18px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+    animation: cookieCardSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+.cookie-card-dark {
+    background-color: rgba(20, 20, 26, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: #f1f5f9 !important;
+}
+
+.cookie-card-light {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    color: #0f172a !important;
+}
+
+.cookie-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.cookie-card-header span[role="img"] {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.cookie-card-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: none !important;
+}
+
+.cookie-card-text {
+    font-size: 0.84rem;
+    line-height: 1.45;
+    opacity: 0.9;
+    margin: 0 0 6px 0;
+    word-break: normal;
+}
+
+.cookie-card-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: underline;
+    color: #0d6efd !important;
+    display: inline-block;
+    transition: opacity 0.2s ease;
+}
+
+.cookie-card-link:hover {
+    opacity: 0.8;
+}
+
+.cookie-card-actions {
+    display: flex !important;
+    gap: 10px !important;
+    margin-top: 6px !important;
+    width: 100% !important;
+}
+
+.cookie-btn {
+    flex: 1 !important;
+    padding: 8px 14px !important;
+    border-radius: 10px !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-align: center !important;
+}
+
+.cookie-btn-accept {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+    border: 1px solid #0d6efd !important;
+}
+
+.cookie-btn-accept:hover {
+    background-color: #0b5ed7 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35) !important;
+}
+
+.cookie-card-dark .cookie-btn-decline {
+    background-color: transparent !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.cookie-card-dark .cookie-btn-decline:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.cookie-card-light .cookie-btn-decline {
+    background-color: transparent !important;
+    color: #475569 !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+.cookie-card-light .cookie-btn-decline:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    color: #0f172a !important;
+}
+
+@keyframes cookieCardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .cookie-card-container {
+        bottom: 16px !important;
+        left: 16px !important;
+        right: 16px !important;
+        width: auto !important;
+        max-width: calc(100% - 32px) !important;
+        padding: 14px 16px !important;
+    }
+    .cookie-card-text {
+        font-size: 0.8rem;
+    }
+}

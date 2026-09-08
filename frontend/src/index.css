@@ -22,7 +22,18 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
+}
+
+[data-bs-theme="light"] body,
+[data-bs-theme="light"] #root {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+[data-bs-theme="dark"] body,
+[data-bs-theme="dark"] #root {
   background-color: #000000;
+  color: #ffffff;
 }
 
 #root {
@@ -30,67 +41,75 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: #000000;
 }
 
-/* Scroll to top btn */
-.top-to-btm {
-  position: relative;
-}
 
-.icon-position {
+/* Modern Luxury Hotel Scroll to top button */
+.scroll-to-top-btn {
   position: fixed;
-  bottom: 80px;
-  right: 25px;
-  z-index: 20;
-}
-
-.icon-style {
-  background-color: #000000;
-  border: 2px solid #fff;
+  bottom: 84px;
+  right: 24px;
+  z-index: 998;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  height: 50px;
-  width: 50px;
-  color: #fff;
-  cursor: pointer;
-  animation: movebtn 3s ease-in-out infinite;
-  transition: all 0.5s ease-in-out;
-}
-
-.icon-style:hover {
-  animation: none;
-  background: #fff;
-  color: #551b54;
-  border: 2px solid #551b54;
-}
-
-.vertical-align {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.25s ease,
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
 }
 
-@keyframes movebtn {
-  0% {
-    transform: translateY(0px);
-  }
-
-  25% {
-    transform: translateY(20px);
-  }
-
-  50% {
-    transform: translateY(0px);
-  }
-
-  75% {
-    transform: translateY(-20px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
+.scroll-to-top-btn.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.85);
 }
 
+.scroll-to-top-btn.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.scroll-to-top-dark {
+  background-color: rgba(24, 24, 32, 0.88);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+}
+
+.scroll-to-top-light {
+  background-color: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+.scroll-to-top-btn:hover {
+  transform: translateY(-3px) scale(1.08);
+  border-color: #0d6efd;
+  color: #0d6efd;
+  box-shadow: 0 6px 22px rgba(13, 110, 253, 0.3);
+}
+
+@media (max-width: 768px) {
+  .scroll-to-top-btn {
+    bottom: 140px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+  }
+}
 /* End scroll to top btn */
 
 @media (prefers-color-scheme: light) {

@@ -21,9 +21,11 @@ import BookingModal from './components/modals/BookingModal';
 import UserModal from './components/modals/UserModal';
 import ViewImageModal from './components/modals/ViewImageModal';
 import DuplicateBookingModal from './components/modals/DuplicateBookingModal';
+import TechStackModal from './components/modals/TechStackModal';
+import AmbientAudioPlayer from './components/partials/AmbientAudioPlayer';
 import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
-import CookieConsent from "react-cookie-consent";
+import CustomCookieConsent from './components/partials/CustomCookieConsent';
 import { useCookies } from 'react-cookie';
 import serverAPI from './services/serverAPI';
 import { UserRoles } from "./constants";
@@ -47,10 +49,23 @@ function App() {
     // User has bookings
     const [userHasBookings, setUserHasBookings] = useState(false);
 
-    // Color scheme
-    const [colorScheme, setColorScheme] = useState(
-        typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    );
+    // Color scheme: persistent in localStorage, defaults to 'light'
+    const [colorScheme, setColorScheme] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem('aura_theme');
+            if (saved === 'dark' || saved === 'light') return saved;
+        }
+        return 'light'; // Por defecto es claro
+    });
+
+    const toggleColorScheme = () => {
+        const nextTheme = colorScheme === 'dark' ? 'light' : 'dark';
+        setColorScheme(nextTheme);
+        if (typeof window !== "undefined") {
+            localStorage.setItem('aura_theme', nextTheme);
+        }
+        document.documentElement.setAttribute('data-bs-theme', nextTheme);
+    };
 
     // Translations
     const { t } = useTranslation();
@@ -61,60 +76,27 @@ function App() {
     // Logged user role
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
 
-    // Audio player
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+    // Tech Stack modal
+    const [isTechModalOpen, setIsTechModalOpen] = useState(false);
 
-    const toggleAudio = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.volume = 0.25;
-                audioRef.current.play();
-            }
-            setIsPlaying(!isPlaying);
-        }
-    };
+    // Audio player is managed by AmbientAudioPlayer component
 
     useEffect(() => {
-        document.documentElement.setAttribute('data-bs-theme', colorScheme)
-
-        // background music
-        if (audioRef.current) {
-            audioRef.current.loop = true;
+        document.documentElement.setAttribute('data-bs-theme', colorScheme);
+        if (typeof window !== "undefined") {
+            localStorage.setItem('aura_theme', colorScheme);
         }
-
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-        }
-    }, [])
+    }, [colorScheme]);
 
     useEffect(() => {
         if (cookies.token) {
             // Verificamos en el verify user del backend la base de datos con el access token
-            getAllLoggedUserData()
+            getAllLoggedUserData();
             serverAPI.get('/bookingsByUser', { headers: { 'Authorization': cookies.token } }).then(res => {
-                setUserHasBookings(res.data.data.length > 0)
-            }).catch(err => console.log(err))
+                setUserHasBookings(res.data.data.length > 0);
+            }).catch(err => console.log(err));
         }
-    }, [cookies])
-
-    // Color theme listener with proper cleanup to prevent memory leaks
-    useEffect(() => {
-        if (typeof window === "undefined" || !window.matchMedia) return;
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = (event: MediaQueryListEvent) => {
-            const newColorScheme = event.matches ? "dark" : "light";
-            document.documentElement.setAttribute('data-bs-theme', newColorScheme);
-            setColorScheme(newColorScheme);
-        };
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+    }, [cookies]);
 
     // Book modal
     const openBookingModal = () => {
@@ -183,8 +165,8 @@ function App() {
             <Router>
                 <div className='app'>
 
-                    <ScrollToTop />
-                    <Header colorScheme={colorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} currentUserRole={currentUserRole} userHasBookings={userHasBookings} />
+                    <ScrollToTop colorScheme={colorScheme} />
+                    <Header colorScheme={colorScheme} onToggleTheme={toggleColorScheme} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} currentUserRole={currentUserRole} userHasBookings={userHasBookings} />
                     <main id='main' className='main'>
                         <Routes>
                             <Route path="/" element={<Home colorScheme={colorScheme} />} />
@@ -206,15 +188,11 @@ function App() {
                         <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />
                         <DuplicateBookingModal show={isDuplicateBookingModalOpen} onClose={closeDuplicateBookingModal} colorScheme={colorScheme} bookingData={duplicateBookingData} />
 
-                        <CookieConsent location='bottom' buttonText='Sure, I accept!' cookieName='cookieConsent' enableDeclineButton style={{ background: "#2B373B" }} buttonStyle={{ color: "#4e503b", fontSize: "13px" }} expires={150}>
-                            {t("app_name")} uses cookies to its basic funcionality and to enhance the user experience.
-                        </CookieConsent>
-                        <div>
-                            <button onClick={toggleAudio}>{isPlaying ? 'Pause Audio' : 'Play Audio'}</button>
-                            <audio ref={audioRef} src={summerParty} />
-                        </div>
+                        <CustomCookieConsent colorScheme={colorScheme} />
+                        <AmbientAudioPlayer colorScheme={colorScheme} audioSrc={summerParty} />
+                        <TechStackModal show={isTechModalOpen} onClose={() => setIsTechModalOpen(false)} colorScheme={colorScheme} />
                     </main>
-                    <Footer colorScheme={colorScheme} />
+                    <Footer colorScheme={colorScheme} onOpenTechModal={() => setIsTechModalOpen(true)} />
                 </div>
             </Router>
         </Suspense>

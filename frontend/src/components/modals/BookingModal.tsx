@@ -16,6 +16,7 @@ import { API_URL_BASE } from './../../services/consts';
 import { WeatherStates } from './../../constants';
 import serverAPI from './../../services/serverAPI';
 import weatherAPI from "./../../services/weatherAPI";
+import { QRCodeSVG } from 'qrcode.react';
 
 import { useTranslation } from "react-i18next";
 
@@ -987,9 +988,38 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }, [show])
 
+    const stepsConfig = [
+        { step: BookingSteps.StepPersonalData, title: 'Datos' },
+        { step: BookingSteps.StepPlan, title: 'Plan' },
+        { step: BookingSteps.StepChooseRoom, title: 'Habitación' },
+        { step: BookingSteps.StepChooseServices, title: 'Servicios' },
+        { step: BookingSteps.StepFillGuests, title: 'Huéspedes' },
+        { step: BookingSteps.StepPromoCode, title: 'Cupón' },
+        { step: BookingSteps.StepPaymentMethod, title: 'Pago' },
+        { step: BookingSteps.StepConfirmation, title: 'Confirmado' }
+    ];
+
     return (
         <BaseModal title={t("book")} show={show} onClose={handleClose}>
             <div>
+                {/* Visual Stepper */}
+                <div className="booking-stepper" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={8}>
+                    {stepsConfig.map((item, idx) => {
+                        const isActive = currentStep === item.step;
+                        const isCompleted = currentStep > item.step;
+                        return (
+                            <div
+                                key={item.step}
+                                className={`booking-stepper-item ${isActive ? 'is-active' : ''} ${isCompleted ? 'is-completed' : ''}`}
+                            >
+                                <div className="booking-stepper-circle">
+                                    {isCompleted ? '✓' : idx + 1}
+                                </div>
+                                <span className="booking-stepper-title">{item.title}</span>
+                            </div>
+                        );
+                    })}
+                </div>
 
                 {currentStep === BookingSteps.StepPersonalData && (
                     <div>
@@ -1104,6 +1134,15 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                                 <Row className="mt-12">
                                     <Col>
                                         <h2>{t("modal_booking_rooms_title")}</h2>
+                                        <div className="booking-weather-card">
+                                            <span style={{ fontSize: '1.4rem' }}>☀️</span>
+                                            <div>
+                                                <strong>Garantía Meteorológica Aura:</strong>
+                                                <div style={{ fontSize: '0.82rem', opacity: 0.9 }}>
+                                                    Verificamos el clima en tiempo real de Mallorca. Si llueve en tu fecha de llegada, podrás reprogramar o cambiar de fecha sin penalización.
+                                                </div>
+                                            </div>
+                                        </div>
                                     </Col>
                                 </Row>
                                 <br />
@@ -1453,14 +1492,64 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                         <div>
                             <h2>{t("modal_booking_completed_title")}</h2>
                             <p>{bookingFinalMessage}</p>
+
+                            <div className="booking-digital-pass">
+                                <h4 style={{ margin: 0, fontWeight: 700, letterSpacing: '1px' }}>HOTEL AURA DE MALLORCA</h4>
+                                <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', opacity: 0.8 }}>Pase de Check-in Digital</span>
+
+                                <div className="booking-qr-wrapper">
+                                    <QRCodeSVG
+                                        value={`AURA-MALLORCA-BK-${selectedRoomID || 'RES'}-${Date.now()}`}
+                                        size={140}
+                                        level="H"
+                                    />
+                                </div>
+
+                                <div className="booking-pass-details">
+                                    <div className="booking-pass-field">
+                                        <span className="booking-pass-field-label">Titular</span>
+                                        <span className="booking-pass-field-value">{userPersonalData.name || 'Huésped'} {userPersonalData.surnames}</span>
+                                    </div>
+                                    <div className="booking-pass-field">
+                                        <span className="booking-pass-field-label">Plan</span>
+                                        <span className="booking-pass-field-value">{checkedPlan === 2 ? 'VIP Luxury' : 'Básico'}</span>
+                                    </div>
+                                    <div className="booking-pass-field">
+                                        <span className="booking-pass-field-label">Check-in</span>
+                                        <span className="booking-pass-field-value">{startDate ? new Date(startDate as any).toLocaleDateString('es-ES') : '-'}</span>
+                                    </div>
+                                    <div className="booking-pass-field">
+                                        <span className="booking-pass-field-label">Check-out</span>
+                                        <span className="booking-pass-field-value">{endDate ? new Date(endDate as any).toLocaleDateString('es-ES') : '-'}</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '16px' }}>
+                                    <Button variant="outline-primary" size="sm" onClick={() => window.print()} style={{ marginRight: '8px' }}>
+                                        🖨️ Imprimir Pase
+                                    </Button>
+                                </div>
+                            </div>
+
                             <Button variant='primary' onClick={goToNextStep}>{t("modal_booking_completed_close")}</Button>
                         </div>
                     )
                 }
 
                 {(currentStep !== BookingSteps.StepPersonalData && currentStep !== BookingSteps.StepConfirmation) && (
-                    // Show the current price to pay in all steps
-                    <p>{t("priceToPay")} {totalPriceToPay}</p>
+                    <div className="booking-price-breakdown">
+                        <div>
+                            <span>Total estimado de la estancia</span>
+                            {appliedPromoDiscount > 0 && (
+                                <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: '#198754', fontWeight: 600 }}>
+                                    ({appliedPromoDiscount}% dto. cupón)
+                                </span>
+                            )}
+                        </div>
+                        <div className="booking-price-breakdown-total">
+                            {Number(totalPriceToPay).toFixed(2)} €
+                        </div>
+                    </div>
                 )}
             </div>
         </BaseModal >

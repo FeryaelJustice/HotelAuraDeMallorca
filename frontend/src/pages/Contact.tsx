@@ -81,7 +81,8 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             <div className='contactPageBg' style={{ backgroundImage: `url(${BackgroundImage})` }} />
             <div className='contactPageContent'>
                 <Form id='contactForm' className='contactForm' onSubmit={handleSubmit}>
-                    <h1 style={{ color: colorScheme == 'dark' ? '#FFFFFF' : '#B3B3FF'}}>{t("contact_title")}</h1>
+                    <h1 style={{ color: colorScheme === 'dark' ? '#FFFFFF' : '#0d6efd', marginBottom: '20px', fontSize: '2.2rem' }}>{t("contact_title")}</h1>
+
                     <Form.Group className="mb-3" controlId="email">
                         <Form.Label>{t("contact_email_label")}</Form.Label>
                         <Form.Control type="email" name='email' disabled={cookies.token} placeholder={t("contact_email_placeholder")} className='input' onChange={(event) => setEmail(event.target.value)} value={email} />

@@ -1,16 +1,38 @@
 import { useTranslation } from "react-i18next";
+import { LegalPageLayout } from "../components/partials/LegalPageLayout";
 
 export const CookiePolicy = () => {
-    // Dependencies
     const { t } = useTranslation();
-    const cookiePolicyHtml = { __html: t("cookiePolicy") };
 
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-    });
-    
+    const highlights = [
+        {
+            icon: "🍪",
+            title: "Cookies Esenciales",
+            description: "Garantizan la correcta navegación, seguridad de sesión y gestión de tus reservas hoteleras."
+        },
+        {
+            icon: "⚙️",
+            title: "Control Personalizado",
+            description: "Puedes configurar tus preferencias o revocar el consentimiento cuando desees desde tu navegador o nuestro panel."
+        },
+        {
+            icon: "📊",
+            title: "Rendimiento y Experiencia",
+            description: "Nos ayudan a mejorar la velocidad y la ergonomía del portal para que tu experiencia sea fluida."
+        }
+    ];
+
     return (
-        <div dangerouslySetInnerHTML={cookiePolicyHtml} style={{ padding:'20px' }}/>
+        <LegalPageLayout
+            badge="Hotel Aura de Mallorca - Transparencia Digital"
+            badgeIcon="🍪"
+            variant="cookies"
+            title={t("cookiePolicy_title") || "Política de Cookies"}
+            subtitle="Información detallada sobre las tecnologías de rastreo y almacenamiento empleadas en nuestro portal."
+            highlights={highlights}
+            htmlContent={t("cookiePolicy")}
+            contactEmail="nano9gs@hotmail.es"
+        />
     );
 };
+

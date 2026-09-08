@@ -1,15 +1,118 @@
-#home {
+#home,
+.home-section {
     height: 100vh;
+    position: relative;
 }
 
-#home .text-content {
+#home .text-content,
+.home-section .text-content {
     position: absolute;
     top: 50%;
     left: 50%;
-    padding: 5px 15px;
+    padding: 10px 24px;
     transform: translate(-50%, -50%);
     color: #ffffff;
     font-size: 3em;
     font-weight: bolder;
-    text-shadow: 2px 2px 2px #000000;
+    text-shadow: 2px 2px 4px #000000;
+    text-align: center;
+    border-radius: 8px;
+    animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    width: 90%;
+    max-width: 950px;
+    word-break: normal;
+}
+
+.home-scroll-indicator {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    padding: 8px;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    z-index: 2;
+}
+
+.home-scroll-indicator:hover {
+    opacity: 0.8;
+}
+
+.home-scroll-indicator-pill {
+    width: 22px;
+    height: 36px;
+    border: 2px solid #ffffff;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    padding-top: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.home-scroll-indicator-dot {
+    width: 4px;
+    height: 8px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    animation: scrollBounce 1.8s infinite;
+}
+
+.home-scroll-indicator-text {
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+@keyframes scrollBounce {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(10px);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -42%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@media (max-width: 768px) {
+    #home .text-content,
+    .home-section .text-content {
+        font-size: 1.9em;
+        padding: 8px 14px;
+    }
+    .home-scroll-indicator {
+        bottom: 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-scroll-indicator-dot,
+    #home .text-content,
+    .home-section .text-content {
+        animation: none !important;
+    }
 }
