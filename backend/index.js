@@ -1778,7 +1778,8 @@ expressRouter.post("/sendContactForm", async (req, res) => {
         } catch (e) {
             receivers = [
                 process.env.MAIL_CONTACT_RECEIVERS ||
-                    "hotelaurademallorca@hotmail.com",
+                    process.env.MAIL_SENDER_EMAIL ||
+                    "contact@feryaeljustice.dev",
             ];
         }
 

@@ -23,8 +23,9 @@ Este documento recopila la configuracion ambiental, topologia de red y el proces
 | `BREVO_API_KEY` | Clave de API oficial de Brevo (v3) | `xkeysib-...` |
 | `MAIL_HOST` | Host del servidor SMTP | `smtp-relay.brevo.com` |
 | `MAIL_PORT` | Puerto de escucha del servidor SMTP | `587` |
-| `MAIL_USERNAME` | Cuenta SMTP remitente de correos | `hotelaurademallorca@hotmail.com` |
+| `MAIL_USERNAME` | Cuenta SMTP / usuario de Brevo | `nano9gs@hotmail.es` |
 | `MAIL_PASSWORD` | Credencial de autenticacion SMTP | `...` |
+| `MAIL_SENDER_EMAIL` | Remitente verificado en Brevo | `contact@feryaeljustice.dev` |
 | `MAIL_CONTACT_RECEIVERS` | Lista de destinatarios del formulario | Array JSON con direcciones |
 | `APP_NAME` | Nombre visible en cabeceras de correos | `Hotel Aura de Mallorca` |
 
