@@ -135,9 +135,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     if (res.data.disabled) {
                         MySwal.fire({
                             icon: 'error',
-                            title: 'Cuenta desactivada',
-                            text: 'Tu cuenta ha sido suspendida temporalmente por cancelar 2 o más reservas. Por favor, contacta con el administrador.',
-                            confirmButtonText: 'Entendido'
+                            title: 'Cuenta inhabilitada',
+                            text: 'Tu cuenta está inhabilitada por un castigo. Por favor, ponte en contacto con nosotros para reactivarla.',
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#c5a059'
                         }).then(() => {
                             logout();
                         });
@@ -289,6 +290,17 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 }
             }).catch(err => {
                 console.error("Login error:", err);
+                if (err.response?.data?.code === 'ACCOUNT_DISABLED' || err.response?.status === 403) {
+                    const disabledMsg = err.response?.data?.message || 'Tu cuenta está inhabilitada por un castigo. Por favor, ponte en contacto con nosotros para reactivarla.';
+                    MySwal.fire({
+                        icon: 'error',
+                        title: 'Cuenta inhabilitada',
+                        text: disabledMsg,
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#c5a059',
+                    });
+                    return;
+                }
                 const errorMessage = getCleanErrorMessage(err, 'No se pudo iniciar sesión. Verifique sus credenciales.');
                 Toast.fire({
                     icon: 'error',

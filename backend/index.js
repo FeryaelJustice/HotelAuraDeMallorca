@@ -857,7 +857,7 @@ expressRouter.post("/login", authLimiter, (req, res) => {
             });
         }
         const sql =
-            "SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1";
+            "SELECT * FROM app_user WHERE user_email = ?";
         req.dbConnectionPool.query(sql, [email], (error, results) => {
             if (error) {
                 console.error("Login DB query error:", error);
@@ -879,6 +879,15 @@ expressRouter.post("/login", authLimiter, (req, res) => {
                     return res.status(401).json({
                         status: "error",
                         message: "Invalid email or password",
+                    });
+                }
+
+                if (user.isEnabled !== 1) {
+                    return res.status(403).json({
+                        status: "error",
+                        code: "ACCOUNT_DISABLED",
+                        message:
+                            "Tu cuenta está inhabilitada por un castigo. Por favor, ponte en contacto con nosotros para reactivarla.",
                     });
                 }
 
@@ -3227,6 +3236,22 @@ expressRouter.post("/createBooking", async (req, res) => {
     try {
         const data = req.body;
         const { booking, selectedServicesIDs, guests } = data;
+
+        // Si la reserva está vinculada a un usuario, comprobar que esté activo y habilitado
+        if (booking && booking.userID) {
+            const [userRows] = await req.dbConnectionPool.query(
+                "SELECT isEnabled FROM app_user WHERE id = ?",
+                [booking.userID]
+            );
+            if (userRows && userRows.length > 0 && userRows[0].isEnabled !== 1) {
+                return res.status(403).json({
+                    status: "error",
+                    code: "ACCOUNT_DISABLED",
+                    message: "Tu cuenta está inhabilitada por un castigo. Por favor, ponte en contacto con nosotros para reactivarla.",
+                });
+            }
+        }
+
         // Filtrar services por los que estan a true solo
         const servicesIDs = Object.keys(selectedServicesIDs)
             .filter((key) => selectedServicesIDs[key])
@@ -3433,7 +3458,7 @@ expressRouter.post("/userPunishmentCheck", (req, res) => {
                     // Punishment to the user if the case
                     if (bookingCount >= 2) {
                         req.dbConnectionPool.query(
-                            "SELECT enabledByAdmin FROM app_user WHERE id = ?",
+                            "SELECT user_name, user_email, enabledByAdmin, isEnabled FROM app_user WHERE id = ?",
                             [userID],
                             (err, results) => {
                                 if (err) {
@@ -3443,14 +3468,24 @@ expressRouter.post("/userPunishmentCheck", (req, res) => {
                                     });
                                 }
 
-                                const enabledByAdmin =
-                                    results[0].enabledByAdmin;
+                                if (!results || results.length === 0) {
+                                    req.dbConnectionPool.rollback();
+                                    return res.status(404).json({
+                                        status: "error",
+                                        message: "User not found",
+                                    });
+                                }
+
+                                const userData = results[0];
+                                const enabledByAdmin = userData.enabledByAdmin;
+
                                 if (!enabledByAdmin) {
+                                    const wasAlreadyDisabled = userData.isEnabled === 0;
                                     req.dbConnectionPool.query(
                                         "UPDATE app_user SET isEnabled = 0 WHERE id = ?",
                                         [userID],
-                                        async (err) => {
-                                            if (err) {
+                                        async (updateErr) => {
+                                            if (updateErr) {
                                                 await req.dbConnectionPool.rollback();
                                                 return res.status(500).json({
                                                     status: "Internal Server Error",
@@ -3458,6 +3493,34 @@ expressRouter.post("/userPunishmentCheck", (req, res) => {
                                             }
 
                                             await req.dbConnectionPool.commit();
+
+                                            // Si la cuenta no estaba ya desactivada, enviar correo informativo
+                                            if (!wasAlreadyDisabled && userData.user_email) {
+                                                try {
+                                                    const recipientName = userData.user_name || "Estimado/a cliente";
+                                                    await sendEmailNotification({
+                                                        to: userData.user_email,
+                                                        subject: "Aviso importante: Tu cuenta ha sido inhabilitada - Hotel Aura de Mallorca",
+                                                        html: `
+                                                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                                                <h2 style="color: #c5a059; margin-top: 0;">Hotel Aura de Mallorca</h2>
+                                                                <p>Hola <strong>${recipientName}</strong>,</p>
+                                                                <p>Te informamos de que tu cuenta ha sido inhabilitada temporalmente debido a que se han detectado 2 o más cancelaciones de reserva consecutivas.</p>
+                                                                <div style="background-color: #fcf8e3; border-left: 4px solid #f0ad4e; padding: 12px 15px; margin: 15px 0;">
+                                                                    <p style="margin: 0; color: #8a6d3b; font-size: 14px;">
+                                                                        <strong>Estado actual:</strong> Inhabilitada por política de cancelaciones reiteradas.
+                                                                    </p>
+                                                                </div>
+                                                                <p>Para reactivar tu cuenta y volver a disfrutar de nuestros servicios, por favor ponte en contacto con nosotros respondiendo a este mensaje o escribiendo a nuestro equipo de soporte.</p>
+                                                                <p style="margin-top: 25px; color: #777; font-size: 13px;">Atentamente,<br>El equipo de Hotel Aura de Mallorca</p>
+                                                            </div>
+                                                        `,
+                                                        text: `Hola ${recipientName},\n\nTe informamos de que tu cuenta ha sido inhabilitada temporalmente debido a que se han detectado 2 o más cancelaciones de reserva consecutivas.\n\nPara reactivar tu cuenta, por favor ponte en contacto con nosotros.\n\nAtentamente,\nHotel Aura de Mallorca`,
+                                                    });
+                                                } catch (mailErr) {
+                                                    console.error("Error enviando email de inhabilitacion:", mailErr);
+                                                }
+                                            }
 
                                             return res.status(200).json({
                                                 status: "success",
