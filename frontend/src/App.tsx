@@ -180,7 +180,7 @@ function App() {
                     <main id='main' className='main'>
                         <Routes>
                             <Route path="/" element={<Home colorScheme={colorScheme} />} />
-                            <Route path="/services" element={<Services colorScheme={colorScheme} openImagePreviewModal={openImagePreviewModal} />} />
+                            <Route path="/services" element={<Services colorScheme={colorScheme} openImagePreviewModal={openImagePreviewModal} onOpenBookingModal={openBookingModal} />} />
                             <Route path="/cupones" element={<Coupons colorScheme={colorScheme} onOpenBookingModal={openBookingModal} />} />
                             <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
                             <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />

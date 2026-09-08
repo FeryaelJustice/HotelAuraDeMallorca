@@ -47,7 +47,9 @@ CREATE TABLE guest (
     isAdult CHAR(1) NOT NULL,
     isSystemUser CHAR(1) NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_guest_email (guest_email),
+    INDEX idx_guest_name_surnames (guest_name, guest_surnames)
 );
 
 -- Tabla: role

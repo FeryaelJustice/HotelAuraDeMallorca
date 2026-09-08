@@ -279,7 +279,10 @@ pool.query(
 // Desactivar trigger legado que forzaba plazo de 24h desde la creacion
 pool.query("DROP TRIGGER IF EXISTS before_booking_insert", (err) => {
     if (err) {
-        console.warn("[DB INIT] Advertencia eliminando trigger antes_booking_insert:", err.message);
+        console.warn(
+            "[DB INIT] Advertencia eliminando trigger antes_booking_insert:",
+            err.message,
+        );
     }
 });
 
@@ -316,10 +319,13 @@ function syncExpiredPromotions(targetPool) {
         "UPDATE promotion SET is_active = 0, is_visible = 0 WHERE end_date IS NOT NULL AND end_date < CURDATE() AND (is_active = 1 OR is_visible = 1)";
     activePool.query(sql, (err, result) => {
         if (err) {
-            console.warn("[PROMO AUTO-EXPIRE] Advertencia comprobando caducidad de cupones:", err.message);
+            console.warn(
+                "[PROMO AUTO-EXPIRE] Advertencia comprobando caducidad de cupones:",
+                err.message,
+            );
         } else if (result && result.affectedRows > 0) {
             console.log(
-                `[PROMO AUTO-EXPIRE] Se han desactivado y ocultado automaticamente ${result.affectedRows} promociones vencidas.`
+                `[PROMO AUTO-EXPIRE] Se han desactivado y ocultado automaticamente ${result.affectedRows} promociones vencidas.`,
             );
         }
     });
@@ -946,43 +952,47 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
 
             const sql =
                 "SELECT id, user_name, user_email, user_dni, user_verified, refresh_token FROM app_user WHERE id = ? AND access_token = ? AND access_token IS NOT NULL AND access_token != '' AND isEnabled = 1";
-            req.dbConnectionPool.query(sql, [decoded.userID, token], (error, results) => {
-                if (error) {
-                    console.error("Login by token DB error:", error);
-                    return res.status(500).json({
-                        status: "error",
-                        message: "Internal server error",
-                    });
-                }
-                if (results && results.length > 0) {
-                    const user = results[0];
-                    if (user.user_verified === 1) {
-                        return res.status(200).json({
-                            status: "success",
-                            message: "Token valid",
-                            cookieJWT: token,
-                            token: token,
-                            refreshToken: user.refresh_token,
-                            result: {
-                                id: user.id,
-                                name: user.user_name,
-                                email: user.user_email,
-                                dni: user.user_dni,
-                            },
-                        });
-                    } else {
-                        return res.status(403).json({
+            req.dbConnectionPool.query(
+                sql,
+                [decoded.userID, token],
+                (error, results) => {
+                    if (error) {
+                        console.error("Login by token DB error:", error);
+                        return res.status(500).json({
                             status: "error",
-                            message: "User not verified",
+                            message: "Internal server error",
                         });
                     }
-                } else {
-                    return res.status(401).json({
-                        status: "error",
-                        message: "Session expired or invalid",
-                    });
-                }
-            });
+                    if (results && results.length > 0) {
+                        const user = results[0];
+                        if (user.user_verified === 1) {
+                            return res.status(200).json({
+                                status: "success",
+                                message: "Token valid",
+                                cookieJWT: token,
+                                token: token,
+                                refreshToken: user.refresh_token,
+                                result: {
+                                    id: user.id,
+                                    name: user.user_name,
+                                    email: user.user_email,
+                                    dni: user.user_dni,
+                                },
+                            });
+                        } else {
+                            return res.status(403).json({
+                                status: "error",
+                                message: "User not verified",
+                            });
+                        }
+                    } else {
+                        return res.status(401).json({
+                            status: "error",
+                            message: "Session expired or invalid",
+                        });
+                    }
+                },
+            );
         });
     } catch (error) {
         return res
@@ -1005,7 +1015,9 @@ expressRouter.post("/refreshToken", authLimiter, (req, res) => {
             refreshToken = req.cookies.refreshToken;
         } else if (req.headers && req.headers.authorization) {
             const header = req.headers.authorization;
-            refreshToken = header.startsWith("Bearer ") ? header.slice(7) : header;
+            refreshToken = header.startsWith("Bearer ")
+                ? header.slice(7)
+                : header;
         }
 
         const cleanRefreshToken =
@@ -1017,16 +1029,25 @@ expressRouter.post("/refreshToken", authLimiter, (req, res) => {
             });
         }
 
-        jwt.verify(cleanRefreshToken, jwtRefreshSecretKey, (jwtErr, decoded) => {
-            if (jwtErr || !decoded || decoded.type !== "refresh" || !decoded.userID) {
-                return res.status(401).json({
-                    status: "error",
-                    message: "Refresh token is invalid or expired. Please log in again.",
-                });
-            }
+        jwt.verify(
+            cleanRefreshToken,
+            jwtRefreshSecretKey,
+            (jwtErr, decoded) => {
+                if (
+                    jwtErr ||
+                    !decoded ||
+                    decoded.type !== "refresh" ||
+                    !decoded.userID
+                ) {
+                    return res.status(401).json({
+                        status: "error",
+                        message:
+                            "Refresh token is invalid or expired. Please log in again.",
+                    });
+                }
 
-            const userID = decoded.userID;
-            const sql = `
+                const userID = decoded.userID;
+                const sql = `
                 SELECT id, user_name, user_email, user_dni, user_verified, isEnabled,
                        (refresh_token_expiry >= NOW()) AS is_not_expired
                 FROM app_user
@@ -1037,43 +1058,46 @@ expressRouter.post("/refreshToken", authLimiter, (req, res) => {
                   AND isEnabled = 1
             `;
 
-            req.dbConnectionPool.query(
-                sql,
-                [userID, cleanRefreshToken],
-                (dbErr, results) => {
-                    if (dbErr) {
-                        console.error("Refresh token DB error:", dbErr);
-                        return res.status(500).json({
-                            status: "error",
-                            message: "Database error verifying refresh token.",
-                        });
-                    }
+                req.dbConnectionPool.query(
+                    sql,
+                    [userID, cleanRefreshToken],
+                    (dbErr, results) => {
+                        if (dbErr) {
+                            console.error("Refresh token DB error:", dbErr);
+                            return res.status(500).json({
+                                status: "error",
+                                message:
+                                    "Database error verifying refresh token.",
+                            });
+                        }
 
-                    if (!results || results.length === 0) {
-                        return res.status(401).json({
-                            status: "error",
-                            message: "Session revoked or invalid refresh token.",
-                        });
-                    }
+                        if (!results || results.length === 0) {
+                            return res.status(401).json({
+                                status: "error",
+                                message:
+                                    "Session revoked or invalid refresh token.",
+                            });
+                        }
 
-                    const user = results[0];
-                    if (user.user_verified !== 1) {
-                        return res.status(403).json({
-                            status: "error",
-                            message: "User account is not verified.",
-                        });
-                    }
+                        const user = results[0];
+                        if (user.user_verified !== 1) {
+                            return res.status(403).json({
+                                status: "error",
+                                message: "User account is not verified.",
+                            });
+                        }
 
-                    if (!user.is_not_expired) {
-                        return res.status(401).json({
-                            status: "error",
-                            message: "Refresh token has expired. Please log in again.",
-                        });
-                    }
+                        if (!user.is_not_expired) {
+                            return res.status(401).json({
+                                status: "error",
+                                message:
+                                    "Refresh token has expired. Please log in again.",
+                            });
+                        }
 
-                    // Rotacion segura de par de tokens: nuevo Access Token (1d) y nuevo Refresh Token (7d)
-                    const tokens = generateTokens(user.id);
-                    const updateSql = `
+                        // Rotacion segura de par de tokens: nuevo Access Token (1d) y nuevo Refresh Token (7d)
+                        const tokens = generateTokens(user.id);
+                        const updateSql = `
                         UPDATE app_user 
                         SET access_token = ?, 
                             refresh_token = ?, 
@@ -1081,36 +1105,41 @@ expressRouter.post("/refreshToken", authLimiter, (req, res) => {
                         WHERE id = ?
                     `;
 
-                    req.dbConnectionPool.query(
-                        updateSql,
-                        [tokens.accessToken, tokens.refreshToken, user.id],
-                        (updateErr) => {
-                            if (updateErr) {
-                                console.error("Error updating rotated tokens:", updateErr);
-                                return res.status(500).json({
-                                    status: "error",
-                                    message: "Error updating session tokens.",
-                                });
-                            }
+                        req.dbConnectionPool.query(
+                            updateSql,
+                            [tokens.accessToken, tokens.refreshToken, user.id],
+                            (updateErr) => {
+                                if (updateErr) {
+                                    console.error(
+                                        "Error updating rotated tokens:",
+                                        updateErr,
+                                    );
+                                    return res.status(500).json({
+                                        status: "error",
+                                        message:
+                                            "Error updating session tokens.",
+                                    });
+                                }
 
-                            return res.status(200).json({
-                                status: "success",
-                                message: "Tokens refreshed successfully",
-                                cookieJWT: tokens.accessToken,
-                                token: tokens.accessToken,
-                                refreshToken: tokens.refreshToken,
-                                result: {
-                                    id: user.id,
-                                    name: user.user_name,
-                                    email: user.user_email,
-                                    dni: user.user_dni,
-                                },
-                            });
-                        },
-                    );
-                },
-            );
-        });
+                                return res.status(200).json({
+                                    status: "success",
+                                    message: "Tokens refreshed successfully",
+                                    cookieJWT: tokens.accessToken,
+                                    token: tokens.accessToken,
+                                    refreshToken: tokens.refreshToken,
+                                    result: {
+                                        id: user.id,
+                                        name: user.user_name,
+                                        email: user.user_email,
+                                        dni: user.user_dni,
+                                    },
+                                });
+                            },
+                        );
+                    },
+                );
+            },
+        );
     } catch (error) {
         console.error("Refresh token endpoint error:", error);
         return res.status(500).json({
@@ -1169,7 +1198,10 @@ expressRouter.post("/logout", (req, res) => {
                 [token || "", refreshToken || ""],
                 (err) => {
                     if (err) {
-                        console.error("Error clearing tokens on logout by token:", err);
+                        console.error(
+                            "Error clearing tokens on logout by token:",
+                            err,
+                        );
                     }
                     return res.status(200).json({
                         status: "success",
@@ -1372,10 +1404,7 @@ expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
                         });
                     }
 
-                    const encryptedPassword = await bcrypt.hash(
-                        password,
-                        salt,
-                    );
+                    const encryptedPassword = await bcrypt.hash(password, salt);
                     req.dbConnectionPool.query(
                         "UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL, access_token = NULL, refresh_token = NULL, refresh_token_expiry = NULL WHERE id = ?",
                         [encryptedPassword, user.id],
@@ -1771,11 +1800,7 @@ async function sendConfirmationEmail(connection, userId) {
         const confirmationToken = generateRandomToken();
 
         // Update the user record with the confirmation token and 1-hour expiry (via MySQL DATE_ADD)
-        await updateUserVerificationData(
-            connection,
-            userId,
-            confirmationToken,
-        );
+        await updateUserVerificationData(connection, userId, confirmationToken);
 
         // Form the verification URL
         const verificationUrl = `${process.env.FRONT_URL}/userVerification/${confirmationToken}`;
@@ -1845,26 +1870,18 @@ function generateRandomToken() {
 }
 
 // Function to update user verification data with 1-hour expiry using MySQL DATE_ADD
-const updateUserVerificationData = (
-    connection,
-    userId,
-    verificationToken,
-) => {
+const updateUserVerificationData = (connection, userId, verificationToken) => {
     return new Promise((resolve, reject) => {
         try {
             const query =
                 "UPDATE app_user SET verification_token = ?, verification_token_expiry = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?";
-            connection.query(
-                query,
-                [verificationToken, userId],
-                (error) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                },
-            );
+            connection.query(query, [verificationToken, userId], (error) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
         } catch (error) {
             reject(error);
         }
@@ -3315,7 +3332,7 @@ expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
 
                                 // Insert the new promotion into the promotion table
                                 req.dbConnectionPool.query(
-                                    "INSERT INTO promotion (code, discount_price, name, description, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)",
+                                    "INSERT INTO promotion (code, discount_price, name, description, start_date, end_date, is_active, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                     [
                                         promoCode,
                                         discountPrice,
@@ -3323,6 +3340,8 @@ expressRouter.post("/userPresentCheck", verifyUser, (req, res) => {
                                         promoDescription,
                                         startDate,
                                         endDate,
+                                        1,
+                                        0,
                                     ],
                                     (error, result) => {
                                         if (error) {
@@ -3491,87 +3510,149 @@ async function createOrSelectGuests(guests, connection) {
         if (!guests || !Array.isArray(guests) || guests.length === 0) {
             return [];
         }
-        const existingGuests = guests.filter(
-            (guest) => guest.id !== null && guest.id !== undefined,
-        );
-        const existingGuestIds = existingGuests.map((guest) => guest.id);
 
-        const [guestIdMap, guestsToInsert] = await Promise.all([
-            selectGuestIds(existingGuestIds, connection),
-            insertGuests(
-                guests.filter(
-                    (guest) => guest.id === null || guest.id === undefined,
-                ),
+        const resolvedGuestIds = [];
+        // Cache en memoria para deduplicar dentro del mismo lote de la peticion
+        const inMemoryGuests = new Map();
+
+        for (const guest of guests) {
+            const guestId = await resolveOrCreateGuest(
+                guest,
                 connection,
-            ),
-        ]);
+                inMemoryGuests,
+            );
+            if (guestId) {
+                resolvedGuestIds.push(guestId);
+            }
+        }
 
-        const uniqueGuestIds = Array.from(
-            new Set(guestIdMap.concat(guestsToInsert)),
-        );
-        return uniqueGuestIds;
+        // Devolver array sin duplicados para asociar en booking_guest
+        return Array.from(new Set(resolvedGuestIds));
     } catch (error) {
         console.error("Error in createOrSelectGuests:", error);
         throw error;
     }
 }
 
-function selectGuestIds(existingGuestIds, connection) {
+function resolveOrCreateGuest(guest, connection, inMemoryGuests) {
     return new Promise((resolve, reject) => {
         try {
-            if (!existingGuestIds || existingGuestIds.length === 0) {
-                resolve([]);
-                return;
-            }
-            const query = "SELECT id FROM guest WHERE id IN (?)";
-            connection.query(query, [existingGuestIds], (err, results) => {
-                if (err) {
-                    console.error("Error selecting guests:", err);
-                    reject(`Error selecting guests: ${err.message || err}`);
-                } else {
-                    resolve(results.map((result) => result.id));
-                }
-            });
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-function insertGuests(guestsToInsert, connection) {
-    return new Promise((resolve, reject) => {
-        try {
-            if (!guestsToInsert || guestsToInsert.length === 0) {
-                resolve([]);
-                return;
+            if (!guest) {
+                return resolve(null);
             }
 
-            const values = guestsToInsert.map((guest) => [
-                guest.id || null,
-                guest.name || "",
-                guest.surnames || "",
-                guest.email || null,
-                guest.isAdult ? "1" : "0",
-                guest.isSystemUser ? "1" : "0",
-            ]);
-            const query =
-                "INSERT INTO guest (id, guest_name, guest_surnames, guest_email, isAdult, isSystemUser) VALUES ?";
-            connection.query(query, [values], (err, result) => {
-                if (err) {
-                    console.error("Error creating guests:", err);
-                    reject(`Error creating guests: ${err.message || err}`);
-                } else {
-                    const count = guestsToInsert.length;
-                    const firstId = result.insertId;
-                    const insertedIds = Array.from(
-                        { length: count },
-                        (_, i) => firstId + i,
-                    );
-                    resolve(insertedIds);
+            // 1. Si el objeto ya trae un ID explicito y valido, verificar existencia
+            if (guest.id !== null && guest.id !== undefined && Number(guest.id) > 0) {
+                const query = "SELECT id FROM guest WHERE id = ? LIMIT 1";
+                return connection.query(query, [guest.id], (err, results) => {
+                    if (err) {
+                        return reject(`Error validando guest por ID: ${err.message || err}`);
+                    }
+                    if (results && results.length > 0) {
+                        return resolve(results[0].id);
+                    }
+                    // Si no existe con ese ID, pasar a buscar por deduplicacion normal
+                    proceedWithDeduplication();
+                });
+            }
+
+            proceedWithDeduplication();
+
+            function proceedWithDeduplication() {
+                const cleanName = guest.name ? String(guest.name).trim() : "";
+                const cleanSurnames = guest.surnames ? String(guest.surnames).trim() : "";
+                const cleanEmail = guest.email ? String(guest.email).trim().toLowerCase() : "";
+
+                // Claves normalizadas para comprobacion rapida en memoria
+                const emailKey = cleanEmail ? `email:${cleanEmail}` : null;
+                const nameKey = cleanName && cleanSurnames ? `name:${cleanName.toLowerCase()}|${cleanSurnames.toLowerCase()}` : null;
+
+                if (emailKey && inMemoryGuests.has(emailKey)) {
+                    return resolve(inMemoryGuests.get(emailKey));
                 }
-            });
+                if (nameKey && inMemoryGuests.has(nameKey)) {
+                    return resolve(inMemoryGuests.get(nameKey));
+                }
+
+                // 2. Comprobar en base de datos si ya existe un huesped:
+                // Condicion A: Mismo email (si no esta vacio)
+                // Condicion B: Combinacion exacta de mismo nombre Y mismos apellidos
+                let checkQuery = "";
+                const checkParams = [];
+
+                if (cleanEmail && cleanName && cleanSurnames) {
+                    checkQuery = `
+                        SELECT id FROM guest 
+                        WHERE (guest_email IS NOT NULL AND TRIM(guest_email) != '' AND LOWER(TRIM(guest_email)) = LOWER(TRIM(?)))
+                           OR (LOWER(TRIM(guest_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(guest_surnames)) = LOWER(TRIM(?)))
+                        LIMIT 1
+                    `;
+                    checkParams.push(cleanEmail, cleanName, cleanSurnames);
+                } else if (cleanEmail) {
+                    checkQuery = `
+                        SELECT id FROM guest 
+                        WHERE guest_email IS NOT NULL AND TRIM(guest_email) != '' AND LOWER(TRIM(guest_email)) = LOWER(TRIM(?))
+                        LIMIT 1
+                    `;
+                    checkParams.push(cleanEmail);
+                } else if (cleanName && cleanSurnames) {
+                    checkQuery = `
+                        SELECT id FROM guest 
+                        WHERE LOWER(TRIM(guest_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(guest_surnames)) = LOWER(TRIM(?))
+                        LIMIT 1
+                    `;
+                    checkParams.push(cleanName, cleanSurnames);
+                }
+
+                if (checkQuery) {
+                    connection.query(checkQuery, checkParams, (err, results) => {
+                        if (err) {
+                            console.error("Error buscando duplicados de huesped:", err);
+                            return reject(`Error buscando huesped duplicado: ${err.message || err}`);
+                        }
+
+                        if (results && results.length > 0) {
+                            const existingId = results[0].id;
+                            if (emailKey) inMemoryGuests.set(emailKey, existingId);
+                            if (nameKey) inMemoryGuests.set(nameKey, existingId);
+                            return resolve(existingId);
+                        }
+
+                        // No existe duplicado previo: procedemos a insertar
+                        createNewGuestRecord();
+                    });
+                } else {
+                    createNewGuestRecord();
+                }
+
+                function createNewGuestRecord() {
+                    const insertQuery = `
+                        INSERT INTO guest (guest_name, guest_surnames, guest_email, isAdult, isSystemUser)
+                        VALUES (?, ?, ?, ?, ?)
+                    `;
+                    const values = [
+                        cleanName || "",
+                        cleanSurnames || "",
+                        cleanEmail || null,
+                        guest.isAdult ? "1" : "0",
+                        guest.isSystemUser ? "1" : "0",
+                    ];
+
+                    connection.query(insertQuery, values, (insertErr, insertRes) => {
+                        if (insertErr) {
+                            console.error("Error creando nuevo huesped:", insertErr);
+                            return reject(`Error creando nuevo huesped: ${insertErr.message || insertErr}`);
+                        }
+
+                        const newId = insertRes.insertId;
+                        if (emailKey) inMemoryGuests.set(emailKey, newId);
+                        if (nameKey) inMemoryGuests.set(nameKey, newId);
+                        return resolve(newId);
+                    });
+                }
+            }
         } catch (error) {
-            console.error("Catch in insertGuests:", error);
+            console.error("Error en resolveOrCreateGuest:", error);
             reject(error);
         }
     });
@@ -4401,25 +4482,54 @@ expressRouter.get("/weather", (req, res) => {
 });
 
 // PROMOTIONS
-// Get promos: soporta ?visible=true para seccion publica web
+// Get promos: soporta ?visible=true y ?userID=... para incluir exclusivas no visibles asignadas al usuario
 expressRouter.get("/promotions", (req, res) => {
     // Sincronizar cupones caducados de inmediato antes de responder
     syncExpiredPromotions(req.dbConnectionPool);
 
     const onlyVisible =
         req.query.visible === "true" || req.query.visible === "1";
-    let sql =
-        "SELECT * FROM promotion WHERE (is_active IS NULL OR is_active = 1)";
-    if (onlyVisible) {
-        sql += " AND (is_visible IS NULL OR is_visible = 1)";
-    }
-    sql +=
-        " AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY discount_price DESC";
+    const userID = req.query.userID ? Number(req.query.userID) : null;
 
-    req.dbConnectionPool.query(sql, (err, results) => {
+    let sql = `
+        SELECT 
+            p.id,
+            p.code,
+            p.discount_price,
+            p.name,
+            p.description,
+            p.start_date,
+            p.end_date,
+            p.is_active,
+            p.is_visible,
+            (CASE WHEN up.user_id IS NOT NULL THEN 1 ELSE 0 END) AS is_user_exclusive
+        FROM promotion p
+        LEFT JOIN user_promotion up 
+            ON up.promotion_id = p.id 
+           AND up.user_id = ? 
+           AND up.isUsed = 0
+        WHERE (p.is_active IS NULL OR p.is_active = 1)
+          AND (p.end_date IS NULL OR p.end_date >= CURDATE())
+    `;
+
+    const params = [userID || -1];
+
+    if (onlyVisible) {
+        if (userID) {
+            // Visible al publico general O asignado en exclusiva al usuario actual
+            sql += " AND ((p.is_visible IS NULL OR p.is_visible = 1) OR (up.user_id IS NOT NULL AND up.isUsed = 0))";
+        } else {
+            sql += " AND (p.is_visible IS NULL OR p.is_visible = 1)";
+        }
+    }
+
+    sql += " ORDER BY is_user_exclusive DESC, p.discount_price DESC";
+
+    req.dbConnectionPool.query(sql, params, (err, results) => {
         if (err) {
+            console.error("Error obteniendo promociones:", err);
             req.dbConnectionPool.query(
-                "SELECT * FROM promotion",
+                "SELECT *, 0 AS is_user_exclusive FROM promotion",
                 (fallbackErr, fallbackResults) => {
                     if (fallbackErr) {
                         return res.status(500).send({
@@ -4438,9 +4548,11 @@ expressRouter.get("/promotions", (req, res) => {
     });
 });
 
-// Endpoint para validar cualquier cupon activo (visible o privado de palabra)
+// Endpoint para validar cualquier cupon activo (visible, privado o asignado al usuario)
 expressRouter.post("/checkPromoCode", (req, res) => {
     const code = req.body && req.body.code ? String(req.body.code).trim() : "";
+    const userID = req.body && req.body.userID ? Number(req.body.userID) : null;
+
     if (!code) {
         return res.status(400).json({
             status: "error",
@@ -4451,9 +4563,23 @@ expressRouter.post("/checkPromoCode", (req, res) => {
     // Sincronizar cupones caducados de inmediato antes de comprobar
     syncExpiredPromotions(req.dbConnectionPool);
 
-    const sql =
-        "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (start_date IS NULL OR start_date <= CURDATE()) AND (end_date IS NULL OR end_date >= CURDATE())";
-    req.dbConnectionPool.query(sql, [code], (err, results) => {
+    const sql = `
+        SELECT 
+            p.*,
+            (CASE WHEN up.user_id IS NOT NULL THEN 1 ELSE 0 END) AS is_user_exclusive
+        FROM promotion p
+        LEFT JOIN user_promotion up 
+            ON up.promotion_id = p.id 
+           AND up.user_id = ? 
+           AND up.isUsed = 0
+        WHERE UPPER(TRIM(p.code)) = UPPER(?)
+          AND (p.is_active IS NULL OR p.is_active = 1)
+          AND (p.start_date IS NULL OR p.start_date <= CURDATE())
+          AND (p.end_date IS NULL OR p.end_date >= CURDATE())
+        LIMIT 1
+    `;
+
+    req.dbConnectionPool.query(sql, [userID || -1, code], (err, results) => {
         if (err) {
             console.error("Error verificando cupon:", err);
             return res
@@ -4461,10 +4587,15 @@ expressRouter.post("/checkPromoCode", (req, res) => {
                 .json({ status: "error", message: "Error en base de datos" });
         }
         if (results && results.length > 0) {
+            const promo = results[0];
+
+            // Si la promocion es invisible (privada/exclusiva), requerir que pertenezca al usuario si es de asignacion
+            // Si no tiene asignacion requerida, sigue siendo valida de palabra
             return res.status(200).json({
                 status: "success",
                 valid: true,
-                promotion: results[0],
+                promotion: promo,
+                is_user_exclusive: Boolean(promo.is_user_exclusive),
             });
         }
         return res.status(200).json({

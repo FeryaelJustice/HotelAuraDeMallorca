@@ -172,6 +172,32 @@
   letter-spacing: -0.02em;
 }
 
+.coupon-card--exclusive {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.coupons-page--dark .coupon-card--exclusive {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, #131b2e 100%) !important;
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.12) !important;
+}
+
+.coupons-page--light .coupon-card--exclusive {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, #ffffff 100%) !important;
+  box-shadow: 0 10px 30px rgba(217, 119, 6, 0.08) !important;
+}
+
+.coupon-card__exclusive-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  letter-spacing: 0.02em;
+}
+
 .coupon-card__status-pill {
   font-size: 0.75rem;
   font-weight: 700;

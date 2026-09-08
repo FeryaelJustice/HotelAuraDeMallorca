@@ -1007,10 +1007,41 @@
     box-shadow: 0 0 0 1px #d97706, 0 8px 25px rgba(217, 119, 6, 0.14) !important;
 }
 
-.promo-luxury-badge {
+.promo-luxury-card--exclusive {
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .promo-luxury-card--exclusive {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, #131b2e 100%) !important;
+}
+
+[data-bs-theme="light"] .promo-luxury-card--exclusive {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, #ffffff 100%) !important;
+}
+
+.promo-luxury-badges-group {
     position: absolute;
     top: 14px;
     right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.promo-luxury-exclusive-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.promo-luxury-badge {
     font-size: 0.85rem;
     font-weight: 800;
     padding: 3px 9px;

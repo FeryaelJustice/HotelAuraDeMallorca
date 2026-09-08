@@ -1,27 +1,70 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Service } from '../models';
+import { Service, Promotion } from '../models';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
+import Button from 'react-bootstrap/Button';
 import { API_URL_BASE } from './../services/consts';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
+import { useCookies } from 'react-cookie';
 import BackgroundImage from './../assets/images/services.webp';
 
 interface ServicesProps {
     colorScheme: string;
     openImagePreviewModal: (imageSrc: string, title: string, description: string) => void;
+    onOpenBookingModal?: (promoCode?: string) => void;
 }
 
 // In-memory cache for services page
 let cachedServicesWithImages: Service[] | null = null;
 
-export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) => {
+export const Services = ({ colorScheme, openImagePreviewModal, onOpenBookingModal }: ServicesProps) => {
     // Dependencies
     const { t } = useTranslation();
+    const [cookies] = useCookies(['token']);
     const [services, setServices] = useState<Service[]>(() => cachedServicesWithImages || []);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [userExclusivePromo, setUserExclusivePromo] = useState<Promotion | null>(null);
+
+    // Consulta de cupón exclusivo del usuario logueado
+    useEffect(() => {
+        if (!cookies.token) {
+            setUserExclusivePromo(null);
+            return;
+        }
+
+        serverAPI.post('/getLoggedUserID', { token: cookies.token })
+            .then(userRes => {
+                const uid = userRes?.data?.userID;
+                if (!uid) return;
+                return serverAPI.get(`/promotions?visible=true&userID=${uid}`);
+            })
+            .then(promoRes => {
+                if (promoRes?.data?.data) {
+                    const promos = promoRes.data.data;
+                    const exclusive = promos.find((p: any) => p.is_user_exclusive === 1 || p.is_user_exclusive === true);
+                    if (exclusive) {
+                        setUserExclusivePromo(new Promotion({
+                            id: exclusive.id,
+                            code: exclusive.code,
+                            discount_price: exclusive.discount_price,
+                            name: exclusive.name,
+                            description: exclusive.description,
+                            start_date: exclusive.start_date,
+                            end_date: exclusive.end_date,
+                            is_active: exclusive.is_active,
+                            is_visible: exclusive.is_visible,
+                            is_user_exclusive: true,
+                        }));
+                    }
+                }
+            })
+            .catch(err => {
+                console.log('Error checking user exclusive promotions in Services:', err);
+            });
+    }, [cookies.token]);
 
     useEffect(() => {
         window.scrollTo({
@@ -120,6 +163,84 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                             <h1 className='servicesPageTitle' style={{ backgroundColor: colorScheme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)', border: '1px groove #0ffff0', padding: '10px', color: colorScheme === 'dark' ? '#ffffff' : '#000000' }}>{t("services_title")}</h1>
                         </Col>
                     </Row>
+
+                    {/* Banner promocional exclusivo: Solo visible para usuario con cupon activo asignado */}
+                    {userExclusivePromo && (
+                        <div
+                            style={{
+                                margin: '20px 0 10px 0',
+                                padding: '18px 22px',
+                                borderRadius: '16px',
+                                background: colorScheme === 'dark'
+                                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(19, 27, 46, 0.95) 100%)'
+                                    : 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, #ffffff 100%)',
+                                border: '1.5px solid #f59e0b',
+                                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.2)',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '16px',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                <div style={{ fontSize: '2rem' }}>🎁</div>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                        <span
+                                            style={{
+                                                fontSize: '0.72rem',
+                                                fontWeight: 800,
+                                                padding: '3px 9px',
+                                                borderRadius: '9999px',
+                                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                color: '#ffffff',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.04em',
+                                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)',
+                                            }}
+                                        >
+                                            ⭐ Solo para ti
+                                        </span>
+                                        <span
+                                            style={{
+                                                fontSize: '0.8rem',
+                                                fontWeight: 700,
+                                                color: '#f59e0b',
+                                            }}
+                                        >
+                                            -{userExclusivePromo.discount_price}% de Descuento
+                                        </span>
+                                    </div>
+                                    <h3 style={{ margin: '0 0 2px 0', fontSize: '1.15rem', fontWeight: 800, color: colorScheme === 'dark' ? '#f8fafc' : '#0f172a' }}>
+                                        {userExclusivePromo.name || 'Promoción Personal Exclusiva'}
+                                    </h3>
+                                    <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.85, color: colorScheme === 'dark' ? '#cbd5e1' : '#475569' }}>
+                                        {userExclusivePromo.description || `Aprovecha tu código exclusivo ${userExclusivePromo.code} al reservar tu próxima estancia.`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {onOpenBookingModal && (
+                                <Button
+                                    variant="primary"
+                                    onClick={() => onOpenBookingModal(userExclusivePromo.code || '')}
+                                    style={{
+                                        fontWeight: 700,
+                                        padding: '10px 22px',
+                                        borderRadius: '10px',
+                                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                        border: 'none',
+                                        color: '#ffffff',
+                                        boxShadow: '0 4px 14px rgba(217, 119, 6, 0.35)',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Reservar con mi Cupón ({userExclusivePromo.code}) →
+                                </Button>
+                            )}
+                        </div>
+                    )}
 
                     {/* Category Filter Pills */}
                     <div

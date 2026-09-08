@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Promotion } from '../models';
 import serverAPI from '../services/serverAPI';
 import { useTranslation } from 'react-i18next';
+import { useCookies } from 'react-cookie';
 import './Coupons.css';
 
 interface CouponsProps {
@@ -11,6 +12,7 @@ interface CouponsProps {
 
 export const Coupons = ({ colorScheme, onOpenBookingModal }: CouponsProps) => {
     const { t } = useTranslation();
+    const [cookies] = useCookies(['token']);
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -18,8 +20,21 @@ export const Coupons = ({ colorScheme, onOpenBookingModal }: CouponsProps) => {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        serverAPI.get('/promotions?visible=true')
-            .then((res) => {
+        const fetchPromotions = async () => {
+            let uidParam = '';
+            if (cookies.token) {
+                try {
+                    const loggedRes = await serverAPI.post('/getLoggedUserID', { token: cookies.token });
+                    if (loggedRes?.data?.userID) {
+                        uidParam = `&userID=${loggedRes.data.userID}`;
+                    }
+                } catch (e) {
+                    console.log('Error verifying session in coupons page:', e);
+                }
+            }
+
+            try {
+                const res = await serverAPI.get(`/promotions?visible=true${uidParam}`);
                 const promos = res.data.data || [];
                 const parsedPromos = promos.map((p: any) => new Promotion({
                     id: p.id,
@@ -31,16 +46,18 @@ export const Coupons = ({ colorScheme, onOpenBookingModal }: CouponsProps) => {
                     end_date: p.end_date,
                     is_active: p.is_active,
                     is_visible: p.is_visible,
+                    is_user_exclusive: Boolean(p.is_user_exclusive),
                 }));
                 setPromotions(parsedPromos);
-            })
-            .catch((err) => {
+            } catch (err) {
                 console.error('Error fetching visible promotions:', err);
-            })
-            .finally(() => {
+            } finally {
                 setLoading(false);
-            });
-    }, []);
+            }
+        };
+
+        fetchPromotions();
+    }, [cookies.token]);
 
     const handleCopy = (code: string) => {
         if (!code) return;
@@ -137,15 +154,22 @@ export const Coupons = ({ colorScheme, onOpenBookingModal }: CouponsProps) => {
                             : 'Descuento Especial';
 
                         return (
-                            <article key={promo.id || promo.code} className="coupon-card">
+                            <article key={promo.id || promo.code} className={`coupon-card ${promo.is_user_exclusive ? 'coupon-card--exclusive' : ''}`}>
                                 <div>
                                     <div className="coupon-card__header">
                                         <span className="coupon-card__discount-tag">
                                             {discountDisplay}
                                         </span>
-                                        <span className="coupon-card__status-pill">
-                                            Vigente
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            {promo.is_user_exclusive && (
+                                                <span className="coupon-card__exclusive-pill">
+                                                    ⭐ Solo para ti
+                                                </span>
+                                            )}
+                                            <span className="coupon-card__status-pill">
+                                                Vigente
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <h2 className="coupon-card__title">

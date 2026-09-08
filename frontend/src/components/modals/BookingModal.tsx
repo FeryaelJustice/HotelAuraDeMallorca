@@ -260,7 +260,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             const cleanCode = initialPromoCode.trim();
             setUserSelectedPromoCode(cleanCode);
             // Auto check promo
-            serverAPI.post('/checkPromoCode', { code: cleanCode })
+            serverAPI.post('/checkPromoCode', { code: cleanCode, userID: userAllData?.id })
                 .then(res => {
                     if (res.data && res.data.valid && res.data.promotion) {
                         setPromoValidationStatus({
@@ -271,11 +271,12 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                         });
                         setAppliedPromoDiscount(Number(res.data.promotion.discount_price));
                         setUserSelectedPromoID(res.data.promotion.id);
+                        setUserSelectedPromoIsAssociatedWithUser(Boolean(res.data.is_user_exclusive));
                     }
                 })
                 .catch(() => {});
         }
-    }, [initialPromoCode, show]);
+    }, [initialPromoCode, show, userAllData?.id]);
 
     // Fetch calendar occupancy from backend
     const fetchOccupancy = async () => {
@@ -291,7 +292,8 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
 
     const fetchPublicPromotions = async () => {
         try {
-            const res = await serverAPI.get('/promotions?visible=true');
+            const uid = userAllData?.id ? `&userID=${userAllData.id}` : '';
+            const res = await serverAPI.get(`/promotions?visible=true${uid}`);
             if (res.data && res.data.data) {
                 const promos = res.data.data.map((p: any) => new Promotion({
                     id: p.id,
@@ -303,6 +305,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                     end_date: p.end_date,
                     is_active: p.is_active,
                     is_visible: p.is_visible,
+                    is_user_exclusive: Boolean(p.is_user_exclusive),
                 }));
                 setPublicPromotions(promos);
             }
@@ -879,12 +882,13 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
         }
 
         try {
-            const res = await serverAPI.post('/checkPromoCode', { code });
+            const res = await serverAPI.post('/checkPromoCode', { code, userID: userAllData?.id });
             if (res.data && res.data.valid && res.data.promotion) {
                 const promo = res.data.promotion;
                 setUserSelectedPromoCode(promo.code);
                 setUserSelectedPromoID(promo.id);
                 setAppliedPromoDiscount(Number(promo.discount_price));
+                setUserSelectedPromoIsAssociatedWithUser(Boolean(res.data.is_user_exclusive));
                 setPromoValidationStatus({
                     checked: true,
                     valid: true,
@@ -899,6 +903,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                 });
                 setAppliedPromoDiscount(0);
                 setUserSelectedPromoID(-1);
+                setUserSelectedPromoIsAssociatedWithUser(false);
             }
         } catch (err) {
             setPromoValidationStatus({
@@ -1020,12 +1025,12 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             case BookingSteps.StepPromoCode:
                 if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '') {
                     try {
-                        const checkRes = await serverAPI.post('/checkPromoCode', { code: userSelectedPromoCode.trim() });
+                        const checkRes = await serverAPI.post('/checkPromoCode', { code: userSelectedPromoCode.trim(), userID: userAllData?.id });
                         if (checkRes.data && checkRes.data.valid && checkRes.data.promotion) {
                             const promo = checkRes.data.promotion;
                             setAppliedPromoDiscount(Number(promo.discount_price));
                             setUserSelectedPromoID(promo.id);
-                            setUserSelectedPromoIsAssociatedWithUser(false);
+                            setUserSelectedPromoIsAssociatedWithUser(Boolean(checkRes.data.is_user_exclusive));
                             setCurrentStep(BookingSteps.StepPaymentMethod);
                         } else {
                             alert(checkRes.data?.message || 'El cupón introducido no es válido o ha expirado.');
@@ -1102,7 +1107,8 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '' && userSelectedPromoID > 0) {
                 try {
                     const promoCheckRes = await serverAPI.post('/checkPromoCode', {
-                        code: userSelectedPromoCode.trim()
+                        code: userSelectedPromoCode.trim(),
+                        userID: userAllData?.id,
                     });
 
                     // Si el cupon ha caducado, esta inactivo o no es valido
@@ -2199,7 +2205,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                             return (
                                                 <div
                                                     key={promo.id}
-                                                    className={`promo-luxury-card ${isSelected ? 'is-selected' : ''}`}
+                                                    className={`promo-luxury-card ${isSelected ? 'is-selected' : ''} ${promo.is_user_exclusive ? 'promo-luxury-card--exclusive' : ''}`}
                                                     onClick={() => {
                                                         if (isSelected) {
                                                             setUserSelectedPromoCode('');
@@ -2214,9 +2220,16 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                                     role="button"
                                                     tabIndex={0}
                                                 >
-                                                    <span className="promo-luxury-badge">
-                                                        -{promo.discount_price}%
-                                                    </span>
+                                                    <div className="promo-luxury-badges-group">
+                                                        {promo.is_user_exclusive && (
+                                                            <span className="promo-luxury-exclusive-tag">
+                                                                ⭐ Solo para ti
+                                                            </span>
+                                                        )}
+                                                        <span className="promo-luxury-badge">
+                                                            -{promo.discount_price}%
+                                                        </span>
+                                                    </div>
 
                                                     <div className="promo-luxury-header">
                                                         <span className="promo-luxury-name">
