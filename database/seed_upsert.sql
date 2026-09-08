@@ -171,7 +171,7 @@ VALUES (
     'Hotel Aura de Mallorca',
     'admin@hotelaurademallorca.com',
     '00000000A',
-    '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
+    '$2b$10$jENBkLrmGXlThHQ77MMHQey9fQNBdCm3JjUfuJv.jTjWFzYrc0dt6',
     TRUE,
     TRUE,
     TRUE
@@ -179,6 +179,7 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     user_name = VALUES(user_name),
     user_email = VALUES(user_email),
+    user_password = VALUES(user_password),
     user_verified = TRUE,
     isEnabled = TRUE,
     updated_at = CURRENT_TIMESTAMP;
