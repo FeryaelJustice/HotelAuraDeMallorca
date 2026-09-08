@@ -86,7 +86,7 @@
     "modal_booking_personaldata_email_label": "Email",
     "modal_booking_personaldata_email_placeholder": "Enter your email",
     "modal_booking_personaldata_email_description": "We'll never share your email with anyone else.",
-    "modal_booking_personaldata_infodefaultaccount": "*If you do a booking without signin in, your default password will be: 1234.",
+    "modal_booking_personaldata_infodefaultaccount": "*If you do a booking without signin in, your default password will be: AuraHotel2026!.",
     "modal_booking_personaldata_infodefaultaccount_important": "Please change it inmediatly when you finish by logging in and going to edit profile. You can only use this QR by uploading it in this form.",
     "modal_booking_personaldata_dni_label": "DNI",
     "modal_booking_personaldata_dni_placeholder": "Enter your DNI",

@@ -89,7 +89,7 @@
     "modal_booking_personaldata_dni_label": "DNI",
     "modal_booking_personaldata_dni_placeholder": "Geben Sie Ihre ID ein",
     "modal_booking_personaldata_dni_description": "Wir werden Ihre ID niemals an Dritte weitergeben.",
-    "modal_booking_personaldata_infodefaultaccount": "*Wenn Sie eine Buchung ohne Anmeldung vornehmen, ist Ihr Standardpasswort: 1234.",
+    "modal_booking_personaldata_infodefaultaccount": "*Wenn Sie eine Buchung ohne Anmeldung vornehmen, ist Ihr Standardpasswort: AuraHotel2026!.",
     "modal_booking_personaldata_infodefaultaccount_important": "Ändern Sie es bitte sofort nach Abschluss, indem Sie sich einloggen und Ihr Profil bearbeiten.",
     "modal_booking_plans_title": "Wählen Sie Ihren Plan",
     "modal_booking_plans_card_title": "Plan: {{name}}",

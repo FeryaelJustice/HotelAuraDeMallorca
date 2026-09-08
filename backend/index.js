@@ -2347,6 +2347,41 @@ expressRouter.get("/paymentmethods", (req, res) => {
     }
 });
 
+expressRouter.get("/bookingOccupancy", (req, res) => {
+    try {
+        const sql = `
+            SELECT b.id, b.room_id, r.room_name, 
+                   DATE_FORMAT(b.booking_start_date, '%Y-%m-%d') as booking_start_date, 
+                   DATE_FORMAT(b.booking_end_date, '%Y-%m-%d') as booking_end_date
+            FROM booking b
+            JOIN room r ON r.id = b.room_id
+            WHERE b.is_cancelled = 0
+              AND b.booking_end_date >= CURDATE()
+            ORDER BY b.booking_start_date ASC
+        `;
+        req.dbConnectionPool.query(sql, [], (err, results) => {
+            if (err) {
+                console.error("Error fetching booking occupancy:", err);
+                return res.status(500).json({
+                    status: "error",
+                    message: "Database error fetching occupancy",
+                });
+            }
+            return res.status(200).json({
+                status: "success",
+                data: results || [],
+            });
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error",
+        });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+});
+
 expressRouter.post("/checkBookingAvailability", (req, res) => {
     try {
         const { start_date, end_date } = req.body;

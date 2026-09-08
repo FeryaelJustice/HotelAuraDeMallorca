@@ -160,25 +160,55 @@ async function fetchFromOpenWeatherMap(lat, lon) {
     };
 }
 
+// In-memory cache for forecast with 30-minute TTL
+let cachedForecast = null;
+let cachedForecastTimestamp = 0;
+let pendingForecastPromise = null;
+const FORECAST_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
 /**
  * Primary forecast function: attempts AccuWeather first, falls back to OpenWeatherMap.
- * @param {{ lat?: number, lon?: number }} [params]
+ * Uses in-memory cache (30 min) and promise deduplication to prevent repeated calls.
+ * @param {{ lat?: number, lon?: number, forceRefresh?: boolean }} [params]
  * @returns {Promise<{ data: { list: Array }, provider: string }>}
  */
 export async function getFiveDayForecast(params = {}) {
     const lat = params.lat ?? 39.58130105;
     const lon = params.lon ?? 2.709183392285786;
+    const now = Date.now();
 
-    try {
-        const result = await fetchFromAccuWeather(lat, lon);
-        return result;
-    } catch (accuError) {
-        console.warn(
-            "[weatherAPI] AccuWeather request failed, falling back to OpenWeatherMap:",
-            accuError?.message || accuError
-        );
-        return await fetchFromOpenWeatherMap(lat, lon);
+    // 1. Return cached forecast if valid and not force-refreshed
+    if (!params.forceRefresh && cachedForecast && (now - cachedForecastTimestamp < FORECAST_CACHE_TTL_MS)) {
+        return cachedForecast;
     }
+
+    // 2. Return in-flight request if already pending (deduplication)
+    if (pendingForecastPromise) {
+        return pendingForecastPromise;
+    }
+
+    // 3. Initiate request with deduplication wrapper
+    pendingForecastPromise = (async () => {
+        try {
+            const result = await fetchFromAccuWeather(lat, lon);
+            cachedForecast = result;
+            cachedForecastTimestamp = Date.now();
+            return result;
+        } catch (accuError) {
+            console.warn(
+                "[weatherAPI] AccuWeather request failed, falling back to OpenWeatherMap:",
+                accuError?.message || accuError
+            );
+            const fallbackResult = await fetchFromOpenWeatherMap(lat, lon);
+            cachedForecast = fallbackResult;
+            cachedForecastTimestamp = Date.now();
+            return fallbackResult;
+        } finally {
+            pendingForecastPromise = null;
+        }
+    })();
+
+    return pendingForecastPromise;
 }
 
 export const getForecast = getFiveDayForecast;

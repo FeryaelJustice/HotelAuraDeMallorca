@@ -89,7 +89,7 @@
     "modal_booking_personaldata_dni_label": "DNI",
     "modal_booking_personaldata_dni_placeholder": "Introduïu el vostre DNI",
     "modal_booking_personaldata_dni_description": "No compartirem mai el vostre DNI amb ningú més.",
-    "modal_booking_personaldata_infodefaultaccount": "*Si fas una reserva sense iniciar sessió, la teva contrasenya per defecte serà: 1234.",
+    "modal_booking_personaldata_infodefaultaccount": "*Si fas una reserva sense iniciar sessió, la teva contrasenya per defecte serà: AuraHotel2026!.",
     "modal_booking_personaldata_infodefaultaccount_important": "Canvia-la immediatament després de finalitzar, iniciant sessió i anant a editar el teu perfil.",
     "modal_booking_plans_title": "Tria el teu pla",
     "modal_booking_plans_card_title": "Pla: {{name}}",

@@ -1,6 +1,6 @@
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect, useRef, Suspense, lazy } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 import { Header, Footer } from './components/partials';
@@ -17,13 +17,12 @@ const TermsOfUse = lazy(() => import('./pages/TermsOfUse').then(m => ({ default:
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 import ScrollToTop from './ScrollToTop';
-import BookingModal from './components/modals/BookingModal';
-import UserModal from './components/modals/UserModal';
-import ViewImageModal from './components/modals/ViewImageModal';
-import DuplicateBookingModal from './components/modals/DuplicateBookingModal';
-import TechStackModal from './components/modals/TechStackModal';
+const BookingModal = lazy(() => import('./components/modals/BookingModal'));
+const UserModal = lazy(() => import('./components/modals/UserModal'));
+const ViewImageModal = lazy(() => import('./components/modals/ViewImageModal'));
+const DuplicateBookingModal = lazy(() => import('./components/modals/DuplicateBookingModal'));
+const TechStackModal = lazy(() => import('./components/modals/TechStackModal'));
 import AmbientAudioPlayer from './components/partials/AmbientAudioPlayer';
-import Button from 'react-bootstrap/Button';
 import { useTranslation } from "react-i18next";
 import CustomCookieConsent from './components/partials/CustomCookieConsent';
 import { useCookies } from 'react-cookie';
@@ -182,14 +181,35 @@ function App() {
                             <Route path="*" element={<NotFound />} />
                         </Routes>
 
-                        <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
-                        <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
-                        <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />
-                        <DuplicateBookingModal show={isDuplicateBookingModalOpen} onClose={closeDuplicateBookingModal} colorScheme={colorScheme} bookingData={duplicateBookingData} />
+                        {isBookingModalOpen && (
+                            <Suspense fallback={null}>
+                                <BookingModal show={isBookingModalOpen} onClose={closeBookingModal} colorScheme={colorScheme} />
+                            </Suspense>
+                        )}
+                        {isUserModalOpen && (
+                            <Suspense fallback={null}>
+                                <UserModal show={isUserModalOpen} onClose={closeUserModal} colorScheme={colorScheme} />
+                            </Suspense>
+                        )}
+                        {isImageViewModalOpen && (
+                            <Suspense fallback={null}>
+                                <ViewImageModal show={isImageViewModalOpen} onClose={closeImageViewModal} colorScheme={colorScheme} imagePreviewData={imagePreviewData} />
+                            </Suspense>
+                        )}
+                        {isDuplicateBookingModalOpen && (
+                            <Suspense fallback={null}>
+                                <DuplicateBookingModal show={isDuplicateBookingModalOpen} onClose={closeDuplicateBookingModal} colorScheme={colorScheme} bookingData={duplicateBookingData} />
+                            </Suspense>
+                        )}
 
                         <CustomCookieConsent colorScheme={colorScheme} />
                         <AmbientAudioPlayer colorScheme={colorScheme} audioSrc={summerParty} />
-                        <TechStackModal show={isTechModalOpen} onClose={() => setIsTechModalOpen(false)} colorScheme={colorScheme} />
+
+                        {isTechModalOpen && (
+                            <Suspense fallback={null}>
+                                <TechStackModal show={isTechModalOpen} onClose={() => setIsTechModalOpen(false)} colorScheme={colorScheme} />
+                            </Suspense>
+                        )}
                     </main>
                     <Footer colorScheme={colorScheme} onOpenTechModal={() => setIsTechModalOpen(true)} />
                 </div>

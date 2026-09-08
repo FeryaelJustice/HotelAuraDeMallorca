@@ -31,21 +31,27 @@ export const Header = ({ colorScheme, onToggleTheme, onOpenBookingModal, onOpenU
     const { i18n, t } = useTranslation();
     const [selectedLanguage, setSelectedLanguage] = useState(i18n.language)
 
-    EventEmitter.subscribe(Events.CHANGE_PROFILE_PIC, (_) => {
-        if (cookies.token) {
-            // retrieve profile pic and put each 20 seconds
-            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                let picURL = '';
-                if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                    const rawUrl = res.data.fileURL.url;
-                    picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
-                        ? rawUrl
-                        : API_URL_BASE + "/" + rawUrl;
-                }
-                setUserPhotoURL(picURL);
-            })
-        }
-    })
+    useEffect(() => {
+        const handleProfilePicChange = () => {
+            if (cookies.token) {
+                serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
+                    let picURL = '';
+                    if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
+                        const rawUrl = res.data.fileURL.url;
+                        picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+                            ? rawUrl
+                            : API_URL_BASE + "/" + rawUrl;
+                    }
+                    setUserPhotoURL(picURL);
+                }).catch((err: any) => console.log(err));
+            }
+        };
+
+        EventEmitter.subscribe(Events.CHANGE_PROFILE_PIC, handleProfilePicChange);
+        return () => {
+            EventEmitter.unsubscribe(Events.CHANGE_PROFILE_PIC);
+        };
+    }, [cookies.token]);
 
     const onChangeLang = (code: string) => {
         const lang_code = code.toLowerCase();

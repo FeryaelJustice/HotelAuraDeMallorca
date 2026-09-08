@@ -99,28 +99,14 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     // const [showQRCameraReader, setShowQRCameraReader] = useState<boolean>(false)
 
     useEffect(() => {
-        if (cookies.token) {
-            // retrieve profile pic and put
-            serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
-                let picURL = '';
-                if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
-                    const rawUrl = res.data.fileURL.url;
-                    picURL = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
-                        ? rawUrl
-                        : API_URL_BASE + "/" + rawUrl;
-                }
-                setImagePicPreview(picURL);
-            })
-        }
-    }, [])
+        if (!show) return;
 
-    useEffect(() => {
         if (cookies.token) {
-            setCurrentScreen(UserModalScreens.ScreenEditProfile)
+            setCurrentScreen(UserModalScreens.ScreenEditProfile);
             getAllLoggedUserData().then(res => {
                 const userData = res.data;
-                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: '', verified: userData.user_verified, enabled: userData.isEnabled })
-                setCurrentUser(modelUserData)
+                const modelUserData = new User({ id: userData.id, name: userData.user_name, surnames: userData.user_surnames, email: userData.user_email, dni: userData.user_dni, password: '', verified: userData.user_verified, enabled: userData.isEnabled });
+                setCurrentUser(modelUserData);
                 setUserEdit({ name: modelUserData.name ? modelUserData.name : '', surnames: modelUserData.surnames ? modelUserData.surnames : '', token: cookies.token });
 
                 // Check if user has a promo code present for 5 bookings
@@ -131,7 +117,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             title: '¡Se ha generado una promoción exclusiva para ti! Puedes ver el código en la sección de Editar Perfil.'
                         });
                     }
-                })
+                }).catch(err => console.log(err));
 
                 // Check if user is disabled for cancelling 2 bookings, a punishment
                 serverAPI.post('/userPunishmentCheck', { userID: modelUserData.id }, { headers: { 'Authorization': cookies.token } }).then(res => {
@@ -145,7 +131,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             logout();
                         });
                     }
-                });
+                }).catch(err => console.log(err));
 
                 // Get user promo code
                 serverAPI.post('/getUserAssociatedPromoCode', { userID: modelUserData.id }).then(res => {
@@ -154,9 +140,10 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                     } else {
                         setUserPromoCode(null);
                     }
-                }).catch(err => { console.log(err) })
-            }).catch(err => console.log(err))
-            // retrieve profile pic and put
+                }).catch(err => { console.log(err); });
+            }).catch(err => console.log(err));
+
+            // retrieve profile pic
             serverAPI.post('/getUserImgByToken', { token: cookies.token }).then(res => {
                 let picURL = '';
                 if (res && res.data && res.data.fileURL && res.data.fileURL.url) {
@@ -166,11 +153,11 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                         : API_URL_BASE + "/" + rawUrl;
                 }
                 setImagePicPreview(picURL);
-            })
+            }).catch(err => console.log(err));
         } else {
-            setCurrentScreen(UserModalScreens.ScreenLogin)
+            setCurrentScreen(UserModalScreens.ScreenLogin);
         }
-    }, [cookies])
+    }, [cookies, show]);
 
     const goToRegisterScreen = async () => {
         setCurrentScreen(UserModalScreens.ScreenRegister)

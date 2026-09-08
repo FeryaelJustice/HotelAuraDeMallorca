@@ -14,10 +14,13 @@ interface ServicesProps {
     openImagePreviewModal: (imageSrc: string, title: string, description: string) => void;
 }
 
+// In-memory cache for services page
+let cachedServicesWithImages: Service[] | null = null;
+
 export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) => {
     // Dependencies
     const { t } = useTranslation();
-    const [services, setServices] = useState<Service[]>([]);
+    const [services, setServices] = useState<Service[]>(() => cachedServicesWithImages || []);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     useEffect(() => {
@@ -25,6 +28,11 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
             top: 0,
             behavior: 'smooth',
         });
+
+        if (cachedServicesWithImages && cachedServicesWithImages.length > 0) {
+            setServices(cachedServicesWithImages);
+            return;
+        }
 
         serverAPI.get('/services').then(res => {
             const servicess = res.data.data;
@@ -47,7 +55,7 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                 const responseData = resImg.data.data;
 
                 setServices((prevServices) => {
-                    return prevServices.map((service) => {
+                    const withImages = prevServices.map((service) => {
                         const matchingData = responseData.find((data: any) => data.serviceID === service.id);
                         if (matchingData) {
                             const media = matchingData.mediaURL || "";
@@ -56,6 +64,8 @@ export const Services = ({ colorScheme, openImagePreviewModal }: ServicesProps) 
                         }
                         return service;
                     });
+                    cachedServicesWithImages = withImages;
+                    return withImages;
                 });
             }).catch(err => { console.log(err); });
         }).catch(err => console.log(err));
