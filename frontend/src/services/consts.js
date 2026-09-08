@@ -1,5 +1,5 @@
 const rawApiUrl = (process.env.API_URL || 'https://hotel-aura-de-mallorca-backend-qkh3.onrender.com').replace(/\/+$/, '');
-export const API_URL_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : rawApiUrl;
+export const API_URL_BASE = rawApiUrl;
 export const API_URL = API_URL_BASE + '/api';
 
 export const OPENWEATHERMAP_API_KEY = process.env.OPENWEATHERMAP_API_KEY ? process.env.OPENWEATHERMAP_API_KEY : '';
