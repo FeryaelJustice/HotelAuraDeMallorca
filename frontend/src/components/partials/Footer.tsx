@@ -113,6 +113,12 @@ export const Footer = ({ colorScheme, onOpenTechModal }: FooterProps) => {
                                 </NavLink>
                             </li>
                             <li>
+                                <NavLink to="/user-bookings" className="site-footer__nav-link">
+                                    <span className="site-footer__link-bullet" aria-hidden="true">→</span>
+                                    <span>{t("bookings")}</span>
+                                </NavLink>
+                            </li>
+                            <li>
                                 <NavLink to="/contact" className="site-footer__nav-link">
                                     <span className="site-footer__link-bullet" aria-hidden="true">→</span>
                                     <span>{t("contact")}</span>

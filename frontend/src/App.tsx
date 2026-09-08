@@ -182,7 +182,7 @@ function App() {
                             <Route path="/cupones" element={<Coupons colorScheme={colorScheme} onOpenBookingModal={openBookingModal} />} />
                             <Route path="/contact" element={<Contact colorScheme={colorScheme} />} />
                             <Route path="/userVerification/:token" element={<UserVerify colorScheme={colorScheme} />} />
-                            <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} openDuplicateBookingModal={openDuplicateBookingModal} />} />
+                            <Route path="/user-bookings" element={<UserBookings colorScheme={colorScheme} userHasBookings={userHasBookings} openDuplicateBookingModal={openDuplicateBookingModal} onOpenBookingModal={openBookingModal} onOpenUserModal={openUserModal} />} />
                             <Route path="/admin" element={<Admin colorScheme={colorScheme} />} />
                             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                             <Route path="/legal-notice" element={<LegalNotice />} />
