@@ -1,9 +1,18 @@
--- Create the database
+-- ==============================================================================
+-- Hotel Aura de Mallorca - Definicion de Base de Datos y Esquema Relacional
+-- Proposito: Gestion integral de usuarios, reservas, habitaciones, servicios,
+-- pasarelas de pago, estados meteorologicos y roles de seguridad.
+-- ==============================================================================
+
+-- Creacion y seleccion de la base de datos principal
 CREATE DATABASE IF NOT EXISTS hotelaurademallorca;
 
 USE hotelaurademallorca;
 
--- Create the table app_user
+-- Tabla: app_user
+-- Que hace: Almacena las cuentas de usuario registradas en la plataforma.
+-- Por que: Gestiona credenciales (bcrypt), tokens de sesion/verificacion/recuperacion,
+-- y estados de activacion/bloqueo (por sanciones del sistema o intervencion admin).
 CREATE TABLE app_user (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_name VARCHAR(255),
@@ -24,7 +33,10 @@ CREATE TABLE app_user (
     CONSTRAINT unique_user UNIQUE (user_email, user_dni)
 );
 
--- Create the table app_user
+-- Tabla: guest
+-- Que hace: Registra huespedes individuales vinculados a una estancia.
+-- Por que: Permite distinguir entre adultos y menores, y desacopla los ocupantes
+-- fisicos de la habitacion respecto a si poseen o no cuenta de usuario en el sistema.
 CREATE TABLE guest (
     id INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
     guest_name VARCHAR(255),
@@ -36,7 +48,9 @@ CREATE TABLE guest (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table role
+-- Tabla: role
+-- Que hace: Catalogo de roles de autorizacion disponibles en la aplicacion.
+-- Por que: Aplica control de acceso basado en roles (RBAC: CLIENT, ADMIN, EMPLOYEE).
 CREATE TABLE role (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     name ENUM('CLIENT', 'ADMIN', 'EMPLOYEE') NOT NULL,
@@ -44,7 +58,9 @@ CREATE TABLE role (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table user_role
+-- Tabla: user_role
+-- Que hace: Tabla intermedia de relacion muchos a muchos entre usuarios y roles.
+-- Por que: Permite asignar uno o multiples permisos de acceso a cada usuario del sistema.
 CREATE TABLE user_role (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
@@ -58,7 +74,9 @@ CREATE TABLE user_role (
         CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
 );
 
--- Create the table plan
+-- Tabla: plan
+-- Que hace: Define los regimenes de alojamiento (ej. Solo Alojamiento, Todo Incluido / VIP).
+-- Por que: Establece la tarifa base complementaria segun la experiencia seleccionada.
 CREATE TABLE plan (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     plan_name VARCHAR(255),
@@ -68,7 +86,9 @@ CREATE TABLE plan (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table room
+-- Tabla: room
+-- Que hace: Catalogo de habitaciones fisicas del complejo hotelero.
+-- Por que: Registra tarifas por noche, descripcion y rango de fechas de operatividad.
 CREATE TABLE room (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     room_name VARCHAR(255),
@@ -80,7 +100,9 @@ CREATE TABLE room (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table service
+-- Tabla: service
+-- Que hace: Servicios adicionales contratables (Spa, Gimnasio, Piscina Climatizada, etc.).
+-- Por que: Permite personalizar la estancia anadiendo extras tasados por reserva.
 CREATE TABLE service (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     serv_name VARCHAR(255),
@@ -92,7 +114,10 @@ CREATE TABLE service (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table booking
+-- Tabla: booking
+-- Que hace: Entidad central que formaliza una reserva de habitacion y plan.
+-- Por que: Gestiona el periodo de estancia, limites de cancelacion gratuita,
+-- estado de cancelacion (`is_cancelled`) y validaciones de rango temporal.
 CREATE TABLE booking (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
@@ -117,7 +142,9 @@ CREATE TABLE booking (
         CONSTRAINT valid_cancellation CHECK (cancellation_deadline < booking_start_date)
 );
 
--- Create the table booking_service
+-- Tabla: booking_service
+-- Que hace: Relacion muchos a muchos entre reservas y servicios adicionales contratados.
+-- Por que: Permite asociar multiples amenidades a una misma reserva.
 CREATE TABLE booking_service (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
@@ -130,7 +157,9 @@ CREATE TABLE booking_service (
         NULL
 );
 
--- Create the table booking_guests
+-- Tabla: booking_guest
+-- Que hace: Vincula los huespedes alojados a una reserva especifica.
+-- Por que: Permite auditoria de ocupantes por habitacion para recepcion y seguridad.
 CREATE TABLE booking_guest (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
@@ -143,7 +172,9 @@ CREATE TABLE booking_guest (
         NULL
 );
 
--- Create the table promotions
+-- Tabla: promotion
+-- Que hace: Cupones y codigos de descuento temporales.
+-- Por que: Permite aplicar rebajas promocionales en el calculo de precio final.
 CREATE TABLE promotion (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     code VARCHAR(255) UNIQUE NOT NULL,
@@ -154,7 +185,9 @@ CREATE TABLE promotion (
     end_date DATE
 );
 
--- Create the table booking_promotion
+-- -- Tabla: booking_promotion
+-- Que hace: Asocia descuentos aplicados a una reserva concreta.
+-- Por que: Preserva la trazabilidad de la promocion disfrutada en la transaccion.
 CREATE TABLE booking_promotion (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     booking_id INT,
@@ -165,7 +198,9 @@ CREATE TABLE booking_promotion (
         NULL
 );
 
--- Create the table user_booking_count
+-- Tabla: user_booking_count
+-- Que hace: Contador acumulado de reservas finalizadas por usuario.
+-- Por que: Facilita estadisticas de fidelizacion y politicas de trato preferente.
 CREATE TABLE user_booking_count (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
@@ -174,7 +209,9 @@ CREATE TABLE user_booking_count (
     FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
 );
 
--- Create the table user_promotion (link user to promotions to check validity only for that user)
+-- Tabla: user_promotion
+-- Que hace: Control de asignacion y canje de promociones por usuario individual.
+-- Por que: Evita que un mismo usuario canjee cupones de un solo uso en reiteradas ocasiones.
 CREATE TABLE user_promotion (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
@@ -186,7 +223,9 @@ CREATE TABLE user_promotion (
         NULL
 );
 
--- Create the table weather
+-- Tabla: weather
+-- Que hace: Historico y predicciones meteorologicas de Mallorca.
+-- Por que: Permite enriquecer la experiencia de usuario y coordinar servicios exteriores.
 CREATE TABLE weather (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     weather_date DATE,
@@ -195,7 +234,9 @@ CREATE TABLE weather (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table payment method
+-- Tabla: payment_method
+-- Que hace: Catalogo de metodos de pago aceptados (Tarjeta / Stripe, Efectivo, etc.).
+-- Por que: Clasifica la modalidad financiera utilizada en la liquidacion de la reserva.
 CREATE TABLE payment_method (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     payment_method_name VARCHAR(255),
@@ -203,7 +244,9 @@ CREATE TABLE payment_method (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create the table payment (transaction)
+-- Tabla: payment
+-- Que hace: Registro financiero del pago asociado a una reserva y usuario.
+-- Por que: Permite conciliacion contable de importes cobrados y fechas de liquidacion.
 CREATE TABLE payment (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT,
@@ -224,14 +267,18 @@ CREATE TABLE payment (
         NULL
 );
 
--- Create the table payment_transaction (link payments to real transactions from payment platforms)
+-- Tabla: payment_transaction
+-- Que hace: Vincula un pago interno con el identificador unico de pasarela externa (ej. Stripe PaymentIntent).
+-- Por que: Garantiza auditoria de transacciones bancarias y gestion de reembolsos/disputas.
 CREATE TABLE payment_transaction (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     payment_id INT DEFAULT NULL,
     transaction_id VARCHAR(255) DEFAULT NULL
 );
 
--- MEDIAS
+-- MEDIAS (Tablas de gestion de archivos multimedia: imagenes y videos de entidades)
+-- Que hace: Cataloga URLs y metadatos de recursos visuales del hotel.
+-- Por que: Desacopla la persistencia de medios de las entidades de negocio.
 CREATE TABLE media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     type ENUM ('image', 'video') DEFAULT 'image' NOT NULL,
@@ -240,6 +287,7 @@ CREATE TABLE media (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Relacion: Imagenes de perfil de usuario
 CREATE TABLE user_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
@@ -250,6 +298,7 @@ CREATE TABLE user_media (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
+-- Relacion: Imagenes ilustrativas de servicios
 CREATE TABLE service_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     service_id INT NOT NULL,
@@ -260,6 +309,7 @@ CREATE TABLE service_media (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
+-- Relacion: Imagenes ilustrativas de habitaciones
 CREATE TABLE room_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     room_id INT NOT NULL,
@@ -270,6 +320,7 @@ CREATE TABLE room_media (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
+-- Relacion: Imagenes ilustrativas de planes
 CREATE TABLE plan_media (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     plan_id INT NOT NULL,

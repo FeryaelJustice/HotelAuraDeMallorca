@@ -1,12 +1,16 @@
 -- ==============================================================================
--- Hotel Aura de Mallorca - Idempotent Seed & Upsert Script
--- Run this script safely at any time to insert or update catalog records
--- without duplicating data or breaking existing references.
+-- Hotel Aura de Mallorca - Script Idempotente de Sembrado y Actualizacion (Seed/Upsert)
+-- Proposito: Carga y actualizacion garantizada de datos maestros (roles, planes,
+-- habitaciones, servicios, imagenes y metodos de pago) sin duplicar registros.
+-- Por que: Permite ejecutar el despliegue de base de datos repetidamente en entornos
+-- de desarrollo, pruebas o produccion manteniendo la consistencia de IDs foraneos.
 -- ==============================================================================
 
 USE hotelaurademallorca;
 
 -- 1. ROLES
+-- Que hace: Inserta los tres roles de acceso del sistema (CLIENT, ADMIN, EMPLOYEE).
+-- Por que: Requeridos para la asignacion de permisos en la autenticacion JWT.
 INSERT INTO role (id, name)
 VALUES 
     (1, 'CLIENT'),
@@ -17,6 +21,8 @@ ON DUPLICATE KEY UPDATE
     updated_at = CURRENT_TIMESTAMP;
 
 -- 2. PLANS
+-- Que hace: Registra los planes de contratacion (Basic y VIP).
+-- Por que: Proveen tarifas base complementarias a la reserva.
 INSERT INTO plan (id, plan_name, plan_description, plan_price)
 VALUES
     (1, 'Basic', 'Basic plan without extra services', 50.00),

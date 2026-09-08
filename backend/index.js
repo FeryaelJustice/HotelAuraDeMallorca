@@ -1,4 +1,9 @@
-// DEPENDENCIES
+// ==============================================================================
+// DEPENDENCIES & RUNTIME CONFIGURATION
+// Proposito: Servidor API REST principal para Hotel Aura de Mallorca.
+// Gestiona autenticacion JWT, reservas, transacciones con Stripe, notificaciones
+// por email (Brevo/SMTP), meteorologia y subida de archivos multimedia.
+// ==============================================================================
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -25,7 +30,9 @@ import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
 
-// CLOUDINARY CONFIGURATION
+// CONFIGURACION CLOUDINARY
+// Que hace: Inicializa el cliente para almacenamiento de archivos en la nube.
+// Por que: Permite persistir avatares y multimedia en entornos efimeros (ej. Vercel, Docker).
 if (process.env.CLOUDINARY_URL) {
     cloudinary.config();
 } else if (process.env.CLOUDINARY_CLOUD_NAME) {
@@ -40,17 +47,20 @@ if (process.env.CLOUDINARY_URL) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Enrutador modular para prefijo /api
 const expressRouter = express.Router();
 moment.tz.setDefault("Europe/Madrid");
 const dateFormat = "YYYY-MM-DD";
 const fileExtensionRegex = /\.[^.]+$/;
 
-// Media paths
+// Rutas estaticas de almacenamiento local de multimedia
 const rutaMedia = "media/";
 const rutaImgs = rutaMedia + "img/";
 const rutaProfilePics = rutaImgs + "users/profilepics/";
 
-// Secure Multer storage for user profile pictures (Fallback disk storage)
+// Almacenamiento Multer en disco (modo fallback / desarrollo local)
+// Que hace: Guarda fisicamente la imagen en disco saneando el nombre con DNI.
+// Por que: Evita vulnerabilidades de Path Traversal y asegura nombres deterministas.
 const multerStorageForUserPic = multer.diskStorage({
     destination: function (req, file, cb) {
         const pathDest = path.join(__dirname, "public", rutaProfilePics);
@@ -58,13 +68,13 @@ const multerStorageForUserPic = multer.diskStorage({
         return cb(null, pathDest);
     },
     filename: function (req, file, cb) {
-        // Sanitize file base name to avoid directory traversal
         const rawName = (req && req.dni ? req.dni : file.originalname.replace(fileExtensionRegex, "")) || "user";
         const sanitized = rawName.replace(/[^a-zA-Z0-9_-]/g, "");
         return cb(null, `${sanitized || "profile"}.webp`);
     },
 });
 
+// Filtro de tipos de imagen autorizados para Multer
 const multerImageFileFilter = function (req, file, cb) {
     const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -90,7 +100,9 @@ const uploadWithMulterMemory = multer({
     fileFilter: multerImageFileFilter,
 });
 
-// Dynamic multer middleware: Cloudinary if NEEDS_CLOUDINARY_FOR_MEDIA == "1", otherwise fallback to local disk
+// Middleware dinamico de subida de avatar
+// Que hace: Enruta a Cloudinary (memoria) o disco segun NEEDS_CLOUDINARY_FOR_MEDIA.
+// Por que: Permite cambiar de almacenamiento sin modificar controladores de ruta.
 const uploadUserPicMiddleware = (req, res, next) => {
     if (process.env.NEEDS_CLOUDINARY_FOR_MEDIA === "1") {
         return uploadWithMulterMemory.single("image")(req, res, next);
@@ -98,7 +110,9 @@ const uploadUserPicMiddleware = (req, res, next) => {
     return uploadWithMulterDisk.single("image")(req, res, next);
 };
 
-// Cloudinary upload stream helper
+// Helper para streaming de buffer a Cloudinary
+// Que hace: Sube un buffer binario a Cloudinary y devuelve una promesa.
+// Por que: Facilita conversion automatica a WebP y control de sobreescritura.
 const uploadBufferToCloudinary = (buffer, publicId) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -119,19 +133,20 @@ const uploadBufferToCloudinary = (buffer, publicId) => {
         stream.end(buffer);
     });
 };
+
+// Instancia de pasarela de pago Stripe
 const stripe = new Stripe(process.env.STRIPE_PRIVATE_KEY);
-// const os = require('os');
 
-// Check OS (if db connector changed or other uses)
-// const isWindows = os.platform() === 'win32';
-
+// Middleware decodeBase64Image
+// Que hace: Decodifica cadenas Base64 de imagenes QR utilizando Jimp.
+// Por que: Permite extraer dimensiones y mapa de bits para lectura de datos QR.
 const decodeBase64Image = async (req, res, next) => {
     if (req.body && req.body.imagePicQR) {
         const base64ImageString = req.body.imagePicQR;
         const buffer = Buffer.from(base64ImageString.substring(22), "base64");
 
         const decodedImage = await Jimp.read(buffer);
-        // Get the image dimensions and pixel data
+        // Obtener dimensiones y datos de pixeles para escaneo
         const width = decodedImage.getWidth();
         const height = decodedImage.getHeight();
         const pixelData = decodedImage.bitmap.data;
@@ -150,40 +165,47 @@ const decodeBase64Image = async (req, res, next) => {
 const app = express();
 app.set("trust proxy", 1);
 
-// SECURITY HEADERS (Helmet)
+// SEGURIDAD HTTP (Helmet)
+// Que hace: Agrega encabezados HTTP seguros (X-Content-Type-Options, Frameguard, etc.).
+// Por que: Mitiga ataques XSS, clickjacking y MIME sniffing sin bloquear CDNs externos.
 app.use(
     helmet({
-        contentSecurityPolicy: false, // Avoid breaking external CDNs, Stripe and Recaptcha
-        crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow serving media to frontend
+        contentSecurityPolicy: false, // Evita romper CDNs externos, Stripe y Google reCAPTCHA
+        crossOriginResourcePolicy: { policy: "cross-origin" }, // Permite servir multimedia al frontend
     })
 );
 
-// CONFIGS
-// JSON enable
+// PARSEO DE PETICIONES HTTP
+// Que hace: Procesa cuerpos de peticion JSON y URL-encoded con limite de 10MB.
+// Por que: Requerido para procesar datos de reservas y cargas en base64 de codigos QR.
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 app.use(bodyParser.json({ limit: "10mb" }));
 
-// RATE LIMITING
+// LIMITADORES DE TASA (Rate Limiting)
+// Que hace: Control de frecuencia de peticiones para prevenir ataques DDoS y fuerza bruta.
+// Por que: Protege la disponibilidad del servidor y la seguridad de cuentas de usuario.
 const generalLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 180, // 180 requests per minute
+    windowMs: 1 * 60 * 1000, // 1 minuto
+    max: 180, // Limite de 180 peticiones por minuto por IP
     standardHeaders: true,
     legacyHeaders: false,
 });
 app.use(generalLimiter);
 
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // 20 attempts per 15 minutes
+    windowMs: 15 * 60 * 1000, // Ventana de 15 minutos
+    max: 20, // Maximo 20 intentos de autenticacion cada 15 minutos
     standardHeaders: true,
     legacyHeaders: false,
     message: {
         status: "error",
-        message: "Too many authentication attempts. Please try again in 15 minutes.",
+        message: "Demasiados intentos de autenticacion. Por favor, reintente en 15 minutos.",
     },
 });
 
-// CORS
+// CONTROL DE ACCESO CORS
+// Que hace: Valida el origen de las peticiones entrantes contra una lista blanca.
+// Por que: Garantiza que solo aplicaciones autorizadas (SPA de produccion/desarrollo) accedan al API.
 const allowedOrigins = [
     process.env.FRONT_URL,
     process.env.CORS_ORIGIN_FRONT_URL ? `https://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
@@ -215,14 +237,16 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Cookies and compression
+// Compresion Gzip y parseo de cookies de sesion
 app.use(cookieParser());
 app.use(compression());
 
-// Serve public media
+// Servir archivos estaticos de multimedia publica
 app.use(express.static(path.join(__dirname, "public")));
 
-// DATABASE
+// CONFIGURACION Y POOL DE BASE DE DATOS (MySQL2)
+// Que hace: Mantiene un grupo de hasta 100 conexiones reciclables con la base de datos.
+// Por que: Optimiza el rendimiento evitando el coste de establecer un handshake TCP en cada peticion.
 const dbConfig = {
     host: process.env.DB_URL || "127.0.0.1",
     user: process.env.DB_USER || "root",
@@ -239,13 +263,15 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
-// JWT SECRET
+// Clave secreta para firma y verificacion de JSON Web Tokens (JWT)
 const jwtSecretKey = process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
 if (!process.env.JWT_SECRET) {
     console.warn("[SECURITY WARNING] JWT_SECRET is not configured in .env. Using fallback.");
 }
 
-// Token extraction helper
+// Helper: Extraccion de token JWT
+// Que hace: Inspecciona cabecera Authorization (Bearer), cookies HTTP o cuerpo de la peticion.
+// Por que: Provee flexibilidad para clientes que usan almacenamiento en cookies o estado en memoria.
 const extractTokenFromReq = (req) => {
     let token = "";
     if (req.headers && req.headers.authorization) {
@@ -259,7 +285,9 @@ const extractTokenFromReq = (req) => {
     return token ? token.trim() : "";
 };
 
-// Verify user JWT and identity
+// Middleware: verifyUser
+// Que hace: Valida la firma del token JWT y comprueba en base de datos si el usuario esta verificado y activo.
+// Por que: Bloquea accesos no autorizados, sesiones caducadas o cuentas inhabilitadas por penalizacion.
 const verifyUser = (req, res, next) => {
     const token = extractTokenFromReq(req);
     if (!token) {
@@ -277,7 +305,7 @@ const verifyUser = (req, res, next) => {
             });
         }
 
-        // Query user and their role in a single optimized query
+        // Consulta combinada de usuario y rol en una sola operacion
         const sql = `
             SELECT u.id, u.user_dni, u.user_verified, r.name as role_name 
             FROM app_user u 
@@ -316,7 +344,9 @@ const verifyUser = (req, res, next) => {
     });
 };
 
-// Verify Administrator or Employee privileges
+// Middleware: verifyAdmin
+// Que hace: Comprueba que el usuario autenticado posea rol 'ADMIN' o 'EMPLOYEE'.
+// Por que: Impide que clientes estandar accedan a cancelaciones directas, métricas o gestion de usuarios.
 const verifyAdmin = (req, res, next) => {
     verifyUser(req, res, () => {
         if (req.userRole === "ADMIN" || req.userRole === "EMPLOYEE") {
@@ -383,6 +413,9 @@ if (process.env.BREVO_API_KEY) {
     );
 }
 
+// SERVICIO DE NOTIFICACIONES POR CORREO (sendEmailNotification)
+// Que hace: Despacha correos transaccionales usando Brevo API v3 (prioritario) o SMTP Nodemailer (fallback).
+// Por que: Asegura alta entregabilidad de confirmaciones de reserva, verificacion y recuperacion de contrasena.
 async function sendEmailNotification({
     to,
     subject,
@@ -447,12 +480,13 @@ async function sendEmailNotification({
     }
 }
 
-// ROUTES (SERVER APP)
-// if we use on defining routes app. -> NO /api prefix, if we use expressRoute, we defined to use /api prefix
-// DONT USE IF WE SERVE IT IN PROXYPASS OF APACHE APPENDING /api to the IP of BACKEND
+// ENRUTAMIENTO PRINCIPAL
+// Asigna el enrutador modular a la raiz /api
 app.use("/api/", expressRouter);
 
-// MIDDLEWARE PARA PROPER CONNECTION HANDLING OF DB
+// MIDDLEWARE: GESTION DEL CICLO DE VIDA DE CONEXION A LA BASE DE DATOS
+// Que hace: Adquiere una conexion dedicada del pool por peticion y la envuelve en un Proxy.
+// Por que: Previene fugas de conexion (connection leaks) al garantizar su liberacion en 'finish' o 'close'.
 expressRouter.use((req, res, next) => {
     pool.getConnection((err, connection) => {
         if (err) {
@@ -527,7 +561,13 @@ expressRouter.use((req, res, next) => {
     });
 });
 
-// USER
+// ==============================================================================
+// MODULO DE GESTION DE USUARIOS Y AUTENTICACION
+// ==============================================================================
+
+// Endpoint: POST /api/checkUserExists
+// Que hace: Verifica de forma reactiva si un email o DNI ya figuran en la base de datos.
+// Por que: Permite validacion en tiempo real en el frontend antes de enviar el formulario de registro.
 expressRouter.post("/checkUserExists", (req, res) => {
     try {
         const { email, dni } = req.body;
@@ -561,6 +601,11 @@ expressRouter.post("/checkUserExists", (req, res) => {
         });
     }
 });
+
+// Endpoint: POST /api/register
+// Que hace: Registra un nuevo usuario con contrasena hasheada con bcrypt (cost 10),
+// asigna el rol CLIENT (id=1), emite un token JWT de 24 horas y despacha el correo de activacion.
+// Por que: Punto de entrada estandar para nuevos clientes del hotel con verificacion por doble opt-in.
 expressRouter.post("/register", authLimiter, (req, res) => {
     try {
         const data = req.body;
@@ -672,6 +717,10 @@ expressRouter.post("/register", authLimiter, (req, res) => {
     }
 });
 
+// Endpoint: POST /api/registerWithQR
+// Que hace: Procesa una imagen que contiene un codigo QR codificado en Base64, extrae los
+// datos del usuario via jsQR, realiza hash de contrasena y crea la cuenta en base de datos.
+// Por que: Provee registro de alta velocidad para eventos o mostradores fisicos de recepcion.
 expressRouter.post("/registerWithQR", decodeBase64Image, async (req, res) => {
     try {
         if (req.imageData && req.imageWidth && req.imageHeight) {
@@ -832,6 +881,10 @@ expressRouter.post("/registerWithQR", decodeBase64Image, async (req, res) => {
     }
 });
 
+// Endpoint: POST /api/login
+// Que hace: Autentica credenciales (email y password), verifica el hash bcrypt, comprueba
+// el estado activo (`isEnabled = 1`) y verificado (`user_verified = 1`), emitiendo un nuevo JWT.
+// Por que: Punto principal de inicio de sesion para clientes y administradores.
 expressRouter.post("/login", authLimiter, (req, res) => {
     try {
         const { email, password } = req.body;
@@ -873,7 +926,7 @@ expressRouter.post("/login", authLimiter, (req, res) => {
                     });
                 }
 
-                // Always issue a fresh, secure JWT token
+                // Emision de token JWT fresco de 24 horas
                 const userID = user.id;
                 const freshToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: "1d" });
 
@@ -906,6 +959,9 @@ expressRouter.post("/login", authLimiter, (req, res) => {
     }
 });
 
+// Endpoint: POST /api/loginByToken
+// Que hace: Restablece sesion automaticamente validando el token JWT recibido en cookies o headers.
+// Por que: Permite mantener la sesion abierta tras recargar la pagina en la aplicacion frontend.
 expressRouter.post("/loginByToken", authLimiter, (req, res) => {
     try {
         const token = extractTokenFromReq(req);
@@ -959,7 +1015,9 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
     }
 });
 
-// Edit by recieving cookie in body or authorization (NOT DIRECTLY WITH BROWSER COOKIES) with verifyUser
+// Endpoint: POST /api/edituser
+// Que hace: Modifica el nombre y apellidos de un usuario autenticado.
+// Por que: Permite al cliente mantener sus datos personales actualizados desde su perfil.
 expressRouter.post("/edituser", verifyUser, (req, res) => {
     try {
         let userID = req.id;
@@ -994,7 +1052,9 @@ expressRouter.post("/edituser", verifyUser, (req, res) => {
     }
 });
 
-// For security reasons, doing it in a separate endpoint
+// Endpoint: POST /api/editUserPassword
+// Que hace: Hashea con bcrypt y actualiza la contrasena del usuario autenticado.
+// Por que: Se aísla en un endpoint independiente por seguridad para exigir verificación explícita.
 expressRouter.post("/editUserPassword", verifyUser, async (req, res) => {
     try {
         const userID = req.id;
@@ -1019,7 +1079,9 @@ expressRouter.post("/editUserPassword", verifyUser, async (req, res) => {
     }
 });
 
-// Reset password sending temporal token of 10 minutes
+// Endpoint: POST /api/sendRecoverAccountMail
+// Que hace: Genera un token temporal de restablecimiento (valido 10 minutos) y lo envia por correo.
+// Por que: Proceso de autorrecuperacion de contrasena protegiendo la enumeracion de cuentas.
 expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
     try {
         const { email } = req.body;
@@ -1027,18 +1089,16 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
             return res.status(400).json({ status: "error", message: "Email is required." });
         }
 
-        // Find the user by email
+        // Busqueda de usuario sin filtrar respuesta para prevenir enumeracion
         findUserByEmail(req.dbConnectionPool, email)
             .then((user) => {
                 if (!user) {
-                    // Prevent user enumeration: always return standard success message
                     return res.status(200).json({
                         status: "success",
                         message: "If that email is registered, a password reset token has been sent.",
                     });
                 }
 
-                // Send the temporal token to reset the password
                 sendRecoverPasswordEmail(
                     req.dbConnectionPool,
                     user.id,
@@ -1074,6 +1134,9 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
     }
 });
 
+// Endpoint: POST /api/recoverAccount
+// Que hace: Valida el token de recuperacion contra su fecha de expiracion y establece la nueva contrasena.
+// Por que: Completa el ciclo seguro de recuperacion de clave olvidada.
 expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
     try {
         const { token, email, password } = req.body;
@@ -1336,6 +1399,10 @@ expressRouter.get("/checkUserIsVerified/:id", verifyUser, (req, res) => {
     }
 });
 
+// Endpoint: POST /api/uploadUserImg
+// Que hace: Procesa la foto de perfil subida por el usuario (mediante Cloudinary o disco local),
+// elimina referencias a imagenes anteriores en base de datos y crea un registro nuevo en media/user_media.
+// Por que: Permite personalizar la experiencia de usuario y persistir el avatar de forma segura.
 expressRouter.post(
     "/uploadUserImg",
     verifyUser,

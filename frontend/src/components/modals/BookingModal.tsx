@@ -177,7 +177,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
     // Booking Modal
     const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
-    const [currentStep, setCurrentStep] = useState(BookingSteps.StepPersonalData);
+    const [currentStep, setCurrentStep] = useState(cookies.token ? BookingSteps.StepPlan : BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>("");
@@ -519,11 +519,14 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
 
         // User data if logged in
         if (cookies.token) {
+            if (currentStep === BookingSteps.StepPersonalData) {
+                setCurrentStep(BookingSteps.StepPlan);
+            }
             if (!userAllData?.id) {
                 getAllLoggedUserData().then(resp => {
                     if (resp && resp.data) {
                         const res = resp.data;
-                        setUserAllData(new User({
+                        const loggedUser = new User({
                             id: res.id,
                             name: res.user_name,
                             surnames: res.user_surnames,
@@ -532,9 +535,23 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
                             password: res.user_password,
                             verified: res.user_verified,
                             enabled: res.user_enabled
-                        }));
+                        });
+                        setUserAllData(loggedUser);
+                        setUserPersonalData({
+                            name: res.user_name || '',
+                            surnames: res.user_surnames || '',
+                            email: res.user_email || '',
+                            dni: res.user_dni || ''
+                        });
                     }
                 }).catch(err => console.log(err));
+            } else if (!userPersonalData.email && userAllData.email) {
+                setUserPersonalData({
+                    name: userAllData.name || '',
+                    surnames: userAllData.surnames || '',
+                    email: userAllData.email || '',
+                    dni: userAllData.dni || ''
+                });
             }
         } else {
             setUserAllData(new User());
@@ -1293,7 +1310,7 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         }
     }, [show])
 
-    const stepsConfig = [
+    const allStepsConfig = [
         { step: BookingSteps.StepPersonalData, title: 'Datos' },
         { step: BookingSteps.StepPlan, title: 'Plan' },
         { step: BookingSteps.StepChooseRoom, title: 'Habitación' },
@@ -1304,12 +1321,16 @@ const BookingModal = ({ colorScheme, show, onClose }: BookingModalProps) => {
         { step: BookingSteps.StepConfirmation, title: 'Confirmado' }
     ];
 
+    const stepsConfig = cookies.token
+        ? allStepsConfig.filter(s => s.step !== BookingSteps.StepPersonalData)
+        : allStepsConfig;
+
     return (
         <BaseModal title={t("book")} show={show} onClose={handleClose}>
             <BookingErrorBoundary onReset={resetBookingModal}>
                 <div>
                     {/* Visual Stepper */}
-                    <div className="booking-stepper" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={8}>
+                    <div className="booking-stepper" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={stepsConfig.length}>
                         {stepsConfig.map((item, idx) => {
                             const isActive = currentStep === item.step;
                             const isCompleted = currentStep > item.step;
