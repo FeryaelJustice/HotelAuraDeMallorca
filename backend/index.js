@@ -12,7 +12,6 @@ import mysql from "mysql2";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import moment from "moment-timezone";
-import nodemailer from "nodemailer";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,11 +23,11 @@ import jsQR from "jsqr";
 import { Jimp } from "jimp";
 import axios from "axios";
 import jwt from "jsonwebtoken";
-import { BrevoClient } from "@getbrevo/brevo";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { v2 as cloudinary } from "cloudinary";
 import { ensureAdminUser } from "./services/adminSeedService.js";
+import { sendEmailNotification, verifyMailService } from "./services/mailService.js";
 
 dotenv.config();
 
@@ -445,126 +444,11 @@ const verifyAdmin = (req, res, next) => {
 // Hashing for passwords
 const salt = 10; // password hashing
 
-// MAILS
-const brevoClient = process.env.BREVO_API_KEY
-    ? new BrevoClient({ apiKey: process.env.BREVO_API_KEY })
-    : null;
-
-const mailHost = process.env.MAIL_HOST || "smtp.hostinger.com";
-const mailPort = Number(process.env.MAIL_PORT) || 465;
-const mailSecure =
-    process.env.MAIL_SECURE !== undefined
-        ? process.env.MAIL_SECURE === "true"
-        : mailPort === 465;
-
-const transporterConfig = {
-    host: mailHost,
-    port: mailPort,
-    secure: mailSecure,
-    auth: {
-        user: process.env.MAIL_USERNAME,
-        pass: process.env.MAIL_PASSWORD,
-    },
-};
-
-const transporter = nodemailer.createTransport(transporterConfig);
-
-if (process.env.BREVO_API_KEY) {
-    console.log(
-        "[MAIL] Servicio de correo activo con la libreria oficial de Brevo (@getbrevo/brevo).",
-    );
-} else if (
-    process.env.MAIL_USERNAME &&
-    process.env.MAIL_PASSWORD &&
-    process.env.MAIL_PASSWORD !== "jasxbcqMTcQxrBtpsY"
-) {
-    transporter.verify((error, success) => {
-        if (error) {
-            console.warn(
-                `[MAIL] Advertencia SMTP (${error.code || "AUTH"}): ${error.message}`,
-            );
-            console.warn(
-                "[MAIL] Verifique MAIL_USERNAME y MAIL_PASSWORD en backend/.env o en el panel de despliegue.",
-            );
-        } else {
-            console.log(
-                `[MAIL] Servidor SMTP listo y autenticado (${mailHost}:${mailPort} - ${success}).`,
-            );
-        }
-    });
-} else {
-    console.log(
-        "[MAIL] Configure MAIL_USERNAME y MAIL_PASSWORD en backend/.env o panel de despliegue para enviar correos por SMTP.",
-    );
-}
-
-// SERVICIO DE NOTIFICACIONES POR CORREO (sendEmailNotification)
-// Que hace: Despacha correos transaccionales usando Brevo API v3 (prioritario) o SMTP Nodemailer (fallback).
-// Por que: Asegura alta entregabilidad de confirmaciones de reserva, verificacion y recuperacion de contrasena.
-async function sendEmailNotification({
-    to,
-    subject,
-    html,
-    text,
-    fromName,
-    fromEmail,
-    replyTo,
-}) {
-    const senderEmail =
-        fromEmail ||
-        process.env.MAIL_SENDER_EMAIL ||
-        "contact@feryaeljustice.dev";
-    const senderName =
-        fromName || process.env.APP_NAME || "Hotel Aura de Mallorca";
-
-    if (brevoClient && process.env.BREVO_API_KEY) {
-        // Envio mediante API HTTP oficial de Brevo v3
-        const recipientList = (Array.isArray(to) ? to : [to]).map((dest) => {
-            if (typeof dest === "string") {
-                const match = dest.match(/<([^>]+)>/);
-                const emailClean = match
-                    ? match[1]
-                    : dest.replace(/['"]/g, "").trim();
-                return { email: emailClean };
-            }
-            return dest;
-        });
-
-        const brevoResponse =
-            await brevoClient.transactionalEmails.sendTransacEmail({
-                subject: subject,
-                htmlContent: html,
-                textContent: text || "",
-                sender: { name: senderName, email: senderEmail },
-                to: recipientList,
-                replyTo: replyTo
-                    ? typeof replyTo === "string"
-                        ? { email: replyTo }
-                        : replyTo
-                    : undefined,
-            });
-
-        const messageId =
-            brevoResponse?.messageId ||
-            brevoResponse?.body?.messageId ||
-            (typeof brevoResponse === "string" ? brevoResponse : null);
-
-        return {
-            ...brevoResponse,
-            messageId: messageId,
-        };
-    } else {
-        // Fallback a Nodemailer (SMTP)
-        return await transporter.sendMail({
-            from: `"${senderName}" <${senderEmail}>`,
-            to: Array.isArray(to) ? to.join(", ") : to,
-            subject: subject,
-            text: text,
-            html: html,
-            replyTo: replyTo,
-        });
-    }
-}
+// SERVICIO DE CORREO CENTRALIZADO
+// Verifica y registra el estado del proveedor de correo (Hostinger SMTP o Brevo API)
+verifyMailService().catch((err) => {
+    console.warn("[MAIL] Error inicializando verificación de correo:", err.message);
+});
 
 // ENRUTAMIENTO PRINCIPAL
 // Asigna el enrutador modular a la raiz /api
