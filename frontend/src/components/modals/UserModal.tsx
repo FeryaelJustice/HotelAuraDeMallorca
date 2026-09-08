@@ -100,7 +100,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const [currentScreen, setCurrentScreen] = useState(UserModalScreens.ScreenLogin);
-    const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token', 'refreshToken', 'cookieConsent']);
     const [currentUser, setCurrentUser] = useState(new User());
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
     const captchaKey =
@@ -179,7 +179,9 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     }
 
     const logout = () => {
-        removeCookie('token')
+        removeCookie('token', { path: '/' });
+        removeCookie('refreshToken', { path: '/' });
+        serverAPI.post('/logout').catch(() => {});
         window.location.reload();
     }
 
@@ -218,11 +220,13 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
             console.log(err)
-            removeCookie('token');
+            removeCookie('token', { path: '/' });
+            removeCookie('refreshToken', { path: '/' });
         });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
-                removeCookie('token')
+                removeCookie('token', { path: '/' });
+                removeCookie('refreshToken', { path: '/' });
                 console.log(err)
             });
             if (getLoggedUserData) {
@@ -259,14 +263,18 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 if (!res.data.cookieJWT) {
                     resetUserModal();
                     onClose();
-                    removeCookie('token');
+                    removeCookie('token', { path: '/' });
+                    removeCookie('refreshToken', { path: '/' });
                     Toast.fire({
                         icon: 'error',
                         title: 'No se pudo obtener el token de acceso. Contacte al administrador.'
                     });
                 } else {
                     if (cookies.cookieConsent) {
-                        setCookie('token', res.data.cookieJWT);
+                        setCookie('token', res.data.cookieJWT, { path: '/' });
+                        if (res.data.refreshToken) {
+                            setCookie('refreshToken', res.data.refreshToken, { path: '/' });
+                        }
                         Toast.fire({
                             icon: 'success',
                             title: '¡Sesión iniciada con éxito! Bienvenido.'

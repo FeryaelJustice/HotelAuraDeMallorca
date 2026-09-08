@@ -53,8 +53,10 @@ Los endpoints se montan bajo el enrutador de Express (`expressRouter`):
 - `POST /checkUserExists`: Comprueba disponibilidad de email o DNI antes del registro.
 - `POST /register`: Registro estandar con hash bcrypt, creacion de token de verificacion y envio de correo de bienvenida.
 - `POST /registerWithQR`: Registro automatico procesando datos embebidos en una imagen QR.
-- `POST /login`: Valida credenciales, comprueba estado activo y verificado, genera JWT y actualiza `access_token`.
+- `POST /login`: Valida credenciales, comprueba estado activo y verificado, genera par de JWT (access y refresh) y actualiza tokens en BD.
 - `POST /loginByToken`: Validacion automatica de sesion persistente.
+- `POST /refreshToken`: Renueva el par de tokens (access token 1d y refresh token 7d) usando un refresh token valido.
+- `POST /logout`: Invalida tokens de sesion (`access_token` y `refresh_token`) en base de datos.
 - `POST /edituser`: Actualizacion de nombre, apellidos y datos de perfil (requiere `verifyUser`).
 - `POST /editUserPassword`: Cambio de clave verificando el hash previo (requiere `verifyUser`).
 - `POST /sendRecoverAccountMail`: Envio de correo con token temporal para restablecer acceso.

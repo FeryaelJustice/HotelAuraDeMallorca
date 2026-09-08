@@ -11,7 +11,7 @@ export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
 
     // Dependencies
     const navigate = useNavigate();
-    const [cookies, setCookie, _] = useCookies(['token', 'cookieConsent']);
+    const [cookies, setCookie, _] = useCookies(['token', 'refreshToken', 'cookieConsent']);
 
     const { token } = useParams();
     const [verificationStatus, setVerificationStatus] = useState('');
@@ -27,7 +27,10 @@ export const UserVerify = ({ colorScheme }: UserVerifyProps) => {
                 .then(response => {
                     setVerificationStatus(response.data.status);
                     if (cookies.cookieConsent) {
-                        setCookie('token', response.data.jwt)
+                        setCookie('token', response.data.jwt, { path: '/' });
+                        if (response.data.refreshToken) {
+                            setCookie('refreshToken', response.data.refreshToken, { path: '/' });
+                        }
                         navigate("/")
                     } else {
                         alert("You didn't consent to use cookies, couldn't verify email")

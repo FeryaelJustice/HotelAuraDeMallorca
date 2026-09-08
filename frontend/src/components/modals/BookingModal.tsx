@@ -198,7 +198,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
     const [paymentTransactionID, setPaymentTransactionID] = useState<string>();
 
     // Booking Modal
-    const [cookies, setCookie, removeCookie] = useCookies(['token', 'cookieConsent']);
+    const [cookies, setCookie, removeCookie] = useCookies(['token', 'refreshToken', 'cookieConsent']);
     const [currentStep, setCurrentStep] = useState(cookies.token ? BookingSteps.StepPlan : BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
@@ -456,11 +456,13 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
     async function getAllLoggedUserData(): Promise<any> {
         const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
             console.log(err)
-            removeCookie('token');
+            removeCookie('token', { path: '/' });
+            removeCookie('refreshToken', { path: '/' });
         });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
-                removeCookie('token')
+                removeCookie('token', { path: '/' });
+                removeCookie('refreshToken', { path: '/' });
                 console.log(err)
             });
             if (getLoggedUserData) {
@@ -1264,7 +1266,10 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             const res = await serverAPI.post('/register', userToCreate);
 
             if (res.data && res.data.cookieJWT) {
-                setCookie('token', res.data.cookieJWT);
+                setCookie('token', res.data.cookieJWT, { path: '/' });
+                if (res.data.refreshToken) {
+                    setCookie('refreshToken', res.data.refreshToken, { path: '/' });
+                }
             }
 
             const newUserAllData: User = {

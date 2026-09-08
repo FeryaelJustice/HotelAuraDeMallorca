@@ -22,10 +22,12 @@ CREATE TABLE app_user (
     user_password VARCHAR(255),
     user_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(255),
-    verification_token_expiry TIMESTAMP,
-    access_token VARCHAR(255) DEFAULT NULL,
+    verification_token_expiry TIMESTAMP NULL DEFAULT NULL,
+    access_token VARCHAR(512) DEFAULT NULL,
+    refresh_token VARCHAR(512) DEFAULT NULL,
+    refresh_token_expiry TIMESTAMP NULL DEFAULT NULL,
     reset_token VARCHAR(255) DEFAULT NULL,
-    reset_token_expiry TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reset_token_expiry TIMESTAMP NULL DEFAULT NULL,
     isEnabled BOOLEAN DEFAULT TRUE,
     enabledByAdmin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -335,7 +337,8 @@ CREATE TABLE plan_media (
 
 -- PERFORMANCE INDEXES & CONSTRAINTS
 -- Optimize user lookups by auth tokens
-ALTER TABLE `app_user` ADD INDEX `idx_app_user_access_token` (`access_token`);
+ALTER TABLE `app_user` ADD INDEX `idx_app_user_access_token` (`access_token`(255));
+ALTER TABLE `app_user` ADD INDEX `idx_app_user_refresh_token` (`refresh_token`(255));
 ALTER TABLE `app_user` ADD INDEX `idx_app_user_reset_token` (`reset_token`);
 ALTER TABLE `app_user` ADD INDEX `idx_app_user_verification_token` (`verification_token`);
 

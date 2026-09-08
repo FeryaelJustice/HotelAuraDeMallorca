@@ -13,7 +13,7 @@ interface ContactProps {
 export const Contact = ({ colorScheme }: ContactProps) => {
     // Dependencies
     const { t } = useTranslation();
-    const [cookies, _, removeCookie] = useCookies(['token']);
+    const [cookies, _, removeCookie] = useCookies(['token', 'refreshToken']);
 
     window.scrollTo({
         top: 0,
@@ -23,14 +23,40 @@ export const Contact = ({ colorScheme }: ContactProps) => {
     const [email, setEmail] = useState('')
     const [subject, setSubject] = useState('')
     const [message, setMessage] = useState('')
+    const [sendSuccess, setSendSuccess] = useState<boolean>(false)
 
+    // Set logged user data for contact form
     useEffect(() => {
         if (cookies.token) {
-            getAllLoggedUserData().then((data) => {
-                setEmail(data.data.user_email)
-            }).catch((error) => { console.log(error); });
+            getAllLoggedUserData().then(res => {
+                if (res) {
+                    setEmail(res.user_email)
+                }
+            })
         }
-    }, []);
+    }, [cookies.token]);
+
+    const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setEmail(event.target.value);
+    };
+
+    const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSubject(event.target.value);
+    };
+
+    const handleMessageChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setMessage(event.target.value);
+    };
+
+    const isFormValid = () => {
+        return email !== '' && subject !== '' && message !== '';
+    };
+
+    const handleReset = () => {
+        setEmail('');
+        setSubject('');
+        setMessage('');
+    }
 
     const handleSubmit = (event: any) => {
         event.preventDefault();
@@ -63,11 +89,13 @@ export const Contact = ({ colorScheme }: ContactProps) => {
     async function getAllLoggedUserData(): Promise<any> {
         const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
             console.log(err)
-            removeCookie('token');
+            removeCookie('token', { path: '/' });
+            removeCookie('refreshToken', { path: '/' });
         });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
-                removeCookie('token')
+                removeCookie('token', { path: '/' });
+                removeCookie('refreshToken', { path: '/' });
                 console.log(err)
             });
             if (getLoggedUserData) {

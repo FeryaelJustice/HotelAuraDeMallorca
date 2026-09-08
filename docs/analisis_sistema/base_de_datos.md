@@ -43,8 +43,9 @@ erDiagram
   - `user_password`: Hash bcrypt de la contrasena.
   - `user_verified`: Booleano para confirmacion de email.
   - `verification_token`, `verification_token_expiry`: Token temporal de activacion.
-  - `access_token`: Token JWT activo para validacion cruzada.
-  - `reset_token`, `reset_token_expiry`: Gestion de recuperacion de clave.
+  - `access_token`: Token JWT activo (1 dia) para validacion cruzada.
+  - `refresh_token`, `refresh_token_expiry`: Token JWT de larga duracion (7 dias) para renovacion silenciosa de sesion.
+  - `reset_token`, `reset_token_expiry`: Gestion de recuperacion de clave (validez 10 minutos).
   - `isEnabled`: Flag de estado de cuenta. Se desactiva ante sanciones.
   - `enabledByAdmin`: Flag de doble aprobacion requerida para reactivacion tras suspension.
 - **`role`**:

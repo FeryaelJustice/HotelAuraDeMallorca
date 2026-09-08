@@ -71,7 +71,7 @@ function App() {
     const { t } = useTranslation();
 
     // Cookies
-    const [cookies, _, removeCookie] = useCookies(['token', 'cookieConsent']);
+    const [cookies, _, removeCookie] = useCookies(['token', 'refreshToken', 'cookieConsent']);
 
     // Logged user role
     const [currentUserRole, setCurrentUserRole] = useState<Role>({ id: null, name: UserRoles.CLIENT })
@@ -153,11 +153,13 @@ function App() {
     async function getAllLoggedUserData() {
         const loggedUserID = await serverAPI.post('/getLoggedUserID', { token: cookies.token }).catch(err => {
             console.log(err)
-            removeCookie('token');
+            removeCookie('token', { path: '/' });
+            removeCookie('refreshToken', { path: '/' });
         });
         if (loggedUserID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
-                removeCookie('token')
+                removeCookie('token', { path: '/' });
+                removeCookie('refreshToken', { path: '/' });
                 console.log(err)
             });
             if (getLoggedUserData) {

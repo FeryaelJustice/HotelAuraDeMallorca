@@ -16,6 +16,7 @@ import nodemailer from "nodemailer";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 import multer from "multer";
 import dotenv from "dotenv";
 import Stripe from "stripe";
@@ -335,7 +336,7 @@ ensureAdminUser(pool).catch((adminErr) => {
     );
 });
 
-// Clave secreta para firma y verificacion de JSON Web Tokens (JWT)
+// Claves secretas para firma y verificacion de JSON Web Tokens (JWT)
 const jwtSecretKey =
     process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
 if (!process.env.JWT_SECRET) {
@@ -343,6 +344,27 @@ if (!process.env.JWT_SECRET) {
         "[SECURITY WARNING] JWT_SECRET is not configured in .env. Using fallback.",
     );
 }
+
+const jwtRefreshSecretKey =
+    process.env.JWT_REFRESH_SECRET ||
+    (process.env.JWT_SECRET
+        ? process.env.JWT_SECRET + "_refresh"
+        : "hotel-aura-secure-jwt-refresh-secret-key");
+
+// Helper: Generador centralizado de par de tokens (Access Token 1d, Refresh Token 7d)
+const generateTokens = (userID) => {
+    const accessToken = jwt.sign({ userID }, jwtSecretKey, {
+        expiresIn: "1d",
+    });
+    const refreshToken = jwt.sign(
+        { userID, type: "refresh" },
+        jwtRefreshSecretKey,
+        {
+            expiresIn: "7d",
+        },
+    );
+    return { accessToken, refreshToken };
+};
 
 // Helper: Extraccion de token JWT
 // Que hace: Inspecciona cabecera Authorization (Bearer), cookies HTTP o cuerpo de la peticion.
@@ -357,7 +379,7 @@ const extractTokenFromReq = (req) => {
     } else if (req.body && req.body.token) {
         token = req.body.token;
     }
-    return token ? token.trim() : "";
+    return typeof token === "string" ? token.trim() : "";
 };
 
 // Middleware: verifyUser
@@ -365,7 +387,7 @@ const extractTokenFromReq = (req) => {
 // Por que: Bloquea accesos no autorizados, sesiones caducadas o cuentas inhabilitadas por penalizacion.
 const verifyUser = (req, res, next) => {
     const token = extractTokenFromReq(req);
-    if (!token) {
+    if (!token || token.length === 0) {
         return res.status(401).json({
             status: "error",
             message: "You are not authenticated, forbidden.",
@@ -373,24 +395,29 @@ const verifyUser = (req, res, next) => {
     }
 
     jwt.verify(token, jwtSecretKey, (err, decoded) => {
-        if (err) {
+        if (err || !decoded || !decoded.userID) {
             return res.status(401).json({
                 status: "error",
                 message: "Token is not valid or expired, forbidden.",
             });
         }
 
-        // Consulta combinada de usuario y rol en una sola operacion
+        // Validacion cruzada estricta: el usuario debe estar activo (isEnabled = 1),
+        // y su access_token persistido en BD debe coincidir exactamente con el presentado
         const sql = `
             SELECT u.id, u.user_dni, u.user_verified, r.name as role_name 
             FROM app_user u 
             LEFT JOIN user_role ur ON ur.user_id = u.id 
             LEFT JOIN role r ON r.id = ur.role_id 
-            WHERE (u.access_token = ? OR u.id = ?) AND u.isEnabled = 1
+            WHERE u.id = ? 
+              AND u.access_token = ? 
+              AND u.access_token IS NOT NULL 
+              AND u.access_token != '' 
+              AND u.isEnabled = 1
         `;
         req.dbConnectionPool.query(
             sql,
-            [token, decoded.userID || 0],
+            [decoded.userID, token],
             (queryErr, result) => {
                 if (queryErr) {
                     console.error("Token verification DB error:", queryErr);
@@ -748,9 +775,8 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                                 });
                             }
                             let userID = results.insertId;
-                            let jwtToken = jwt.sign({ userID }, jwtSecretKey, {
-                                expiresIn: "1d",
-                            });
+                            const { accessToken, refreshToken } =
+                                generateTokens(userID);
 
                             // Always assign CLIENT role (1) to prevent privilege escalation
                             req.dbConnectionPool.query(
@@ -767,8 +793,8 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                             );
 
                             req.dbConnectionPool.query(
-                                "UPDATE app_user SET access_token = ? WHERE id = ?",
-                                [jwtToken, userID],
+                                "UPDATE app_user SET access_token = ?, refresh_token = ?, refresh_token_expiry = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?",
+                                [accessToken, refreshToken, userID],
                                 (err) => {
                                     if (err) {
                                         console.error(err);
@@ -781,7 +807,9 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                                     return res.status(200).json({
                                         status: "success",
                                         message: json.message,
-                                        cookieJWT: jwtToken,
+                                        cookieJWT: accessToken,
+                                        token: accessToken,
+                                        refreshToken: refreshToken,
                                         insertId: userID,
                                     });
                                 })
@@ -789,7 +817,9 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                                     return res.status(201).json({
                                         status: "success",
                                         message: jsonError,
-                                        cookieJWT: jwtToken,
+                                        cookieJWT: accessToken,
+                                        token: accessToken,
+                                        refreshToken: refreshToken,
                                         insertId: userID,
                                     });
                                 });
@@ -854,26 +884,26 @@ expressRouter.post("/login", authLimiter, (req, res) => {
                     });
                 }
 
-                // Emision de token JWT fresco de 24 horas
+                // Emision de par de tokens: Access Token (1d) y Refresh Token (7d)
                 const userID = user.id;
-                const freshToken = jwt.sign({ userID }, jwtSecretKey, {
-                    expiresIn: "1d",
-                });
+                const { accessToken, refreshToken } = generateTokens(userID);
 
                 req.dbConnectionPool.query(
-                    "UPDATE app_user SET access_token = ? WHERE id = ?",
-                    [freshToken, userID],
+                    "UPDATE app_user SET access_token = ?, refresh_token = ?, refresh_token_expiry = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE id = ?",
+                    [accessToken, refreshToken, userID],
                     (updateErr) => {
                         if (updateErr) {
                             console.error(
-                                "Error updating user access token:",
+                                "Error updating user session tokens:",
                                 updateErr,
                             );
                         }
                         return res.status(200).json({
                             status: "success",
                             message: "Login successful",
-                            cookieJWT: freshToken,
+                            cookieJWT: accessToken,
+                            token: accessToken,
+                            refreshToken: refreshToken,
                             result: {
                                 id: user.id,
                                 name: user.user_name,
@@ -907,7 +937,7 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
         }
 
         jwt.verify(token, jwtSecretKey, (jwtErr, decoded) => {
-            if (jwtErr) {
+            if (jwtErr || !decoded || !decoded.userID) {
                 return res.status(401).json({
                     status: "error",
                     message: "Token expired or invalid",
@@ -915,8 +945,8 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
             }
 
             const sql =
-                "SELECT id, user_name, user_email, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1";
-            req.dbConnectionPool.query(sql, [token], (error, results) => {
+                "SELECT id, user_name, user_email, user_dni, user_verified, refresh_token FROM app_user WHERE id = ? AND access_token = ? AND access_token IS NOT NULL AND access_token != '' AND isEnabled = 1";
+            req.dbConnectionPool.query(sql, [decoded.userID, token], (error, results) => {
                 if (error) {
                     console.error("Login by token DB error:", error);
                     return res.status(500).json({
@@ -931,6 +961,8 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
                             status: "success",
                             message: "Token valid",
                             cookieJWT: token,
+                            token: token,
+                            refreshToken: user.refresh_token,
                             result: {
                                 id: user.id,
                                 name: user.user_name,
@@ -956,6 +988,207 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
         return res
             .status(500)
             .json({ status: "error", message: "Internal server error" });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+});
+
+// Endpoint: POST /api/refreshToken
+// Que hace: Renueva el Access Token activo a partir de un Refresh Token valido de 7 dias.
+// Por que: Permite sesiones prolongadas y seguras sin requerir que el usuario vuelva a autenticarse diariamente.
+expressRouter.post("/refreshToken", authLimiter, (req, res) => {
+    try {
+        let refreshToken = "";
+        if (req.body && req.body.refreshToken) {
+            refreshToken = req.body.refreshToken;
+        } else if (req.cookies && req.cookies.refreshToken) {
+            refreshToken = req.cookies.refreshToken;
+        } else if (req.headers && req.headers.authorization) {
+            const header = req.headers.authorization;
+            refreshToken = header.startsWith("Bearer ") ? header.slice(7) : header;
+        }
+
+        const cleanRefreshToken =
+            typeof refreshToken === "string" ? refreshToken.trim() : "";
+        if (!cleanRefreshToken) {
+            return res.status(401).json({
+                status: "error",
+                message: "Refresh token is required.",
+            });
+        }
+
+        jwt.verify(cleanRefreshToken, jwtRefreshSecretKey, (jwtErr, decoded) => {
+            if (jwtErr || !decoded || decoded.type !== "refresh" || !decoded.userID) {
+                return res.status(401).json({
+                    status: "error",
+                    message: "Refresh token is invalid or expired. Please log in again.",
+                });
+            }
+
+            const userID = decoded.userID;
+            const sql = `
+                SELECT id, user_name, user_email, user_dni, user_verified, isEnabled,
+                       (refresh_token_expiry >= NOW()) AS is_not_expired
+                FROM app_user
+                WHERE id = ? 
+                  AND refresh_token = ? 
+                  AND refresh_token IS NOT NULL 
+                  AND refresh_token != ''
+                  AND isEnabled = 1
+            `;
+
+            req.dbConnectionPool.query(
+                sql,
+                [userID, cleanRefreshToken],
+                (dbErr, results) => {
+                    if (dbErr) {
+                        console.error("Refresh token DB error:", dbErr);
+                        return res.status(500).json({
+                            status: "error",
+                            message: "Database error verifying refresh token.",
+                        });
+                    }
+
+                    if (!results || results.length === 0) {
+                        return res.status(401).json({
+                            status: "error",
+                            message: "Session revoked or invalid refresh token.",
+                        });
+                    }
+
+                    const user = results[0];
+                    if (user.user_verified !== 1) {
+                        return res.status(403).json({
+                            status: "error",
+                            message: "User account is not verified.",
+                        });
+                    }
+
+                    if (!user.is_not_expired) {
+                        return res.status(401).json({
+                            status: "error",
+                            message: "Refresh token has expired. Please log in again.",
+                        });
+                    }
+
+                    // Rotacion segura de par de tokens: nuevo Access Token (1d) y nuevo Refresh Token (7d)
+                    const tokens = generateTokens(user.id);
+                    const updateSql = `
+                        UPDATE app_user 
+                        SET access_token = ?, 
+                            refresh_token = ?, 
+                            refresh_token_expiry = DATE_ADD(NOW(), INTERVAL 7 DAY) 
+                        WHERE id = ?
+                    `;
+
+                    req.dbConnectionPool.query(
+                        updateSql,
+                        [tokens.accessToken, tokens.refreshToken, user.id],
+                        (updateErr) => {
+                            if (updateErr) {
+                                console.error("Error updating rotated tokens:", updateErr);
+                                return res.status(500).json({
+                                    status: "error",
+                                    message: "Error updating session tokens.",
+                                });
+                            }
+
+                            return res.status(200).json({
+                                status: "success",
+                                message: "Tokens refreshed successfully",
+                                cookieJWT: tokens.accessToken,
+                                token: tokens.accessToken,
+                                refreshToken: tokens.refreshToken,
+                                result: {
+                                    id: user.id,
+                                    name: user.user_name,
+                                    email: user.user_email,
+                                    dni: user.user_dni,
+                                },
+                            });
+                        },
+                    );
+                },
+            );
+        });
+    } catch (error) {
+        console.error("Refresh token endpoint error:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error during token refresh",
+        });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+});
+
+// Endpoint: POST /api/logout
+// Que hace: Invalida y anula los tokens de sesion (access_token y refresh_token) del usuario en base de datos.
+// Por que: Cierra la sesion de manera efectiva en el servidor evitando reutilizacion de credenciales.
+expressRouter.post("/logout", (req, res) => {
+    try {
+        const token = extractTokenFromReq(req);
+        let refreshToken = "";
+        if (req.body && req.body.refreshToken) {
+            refreshToken = req.body.refreshToken;
+        } else if (req.cookies && req.cookies.refreshToken) {
+            refreshToken = req.cookies.refreshToken;
+        }
+
+        let targetUserID = null;
+        if (token) {
+            const decodedAccess = jwt.decode(token);
+            if (decodedAccess && decodedAccess.userID) {
+                targetUserID = decodedAccess.userID;
+            }
+        }
+        if (!targetUserID && refreshToken) {
+            const decodedRefresh = jwt.decode(refreshToken);
+            if (decodedRefresh && decodedRefresh.userID) {
+                targetUserID = decodedRefresh.userID;
+            }
+        }
+
+        if (targetUserID) {
+            req.dbConnectionPool.query(
+                "UPDATE app_user SET access_token = NULL, refresh_token = NULL, refresh_token_expiry = NULL WHERE id = ?",
+                [targetUserID],
+                (err) => {
+                    if (err) {
+                        console.error("Error clearing tokens on logout:", err);
+                    }
+                    return res.status(200).json({
+                        status: "success",
+                        message: "Logged out successfully",
+                    });
+                },
+            );
+        } else if (token || refreshToken) {
+            req.dbConnectionPool.query(
+                "UPDATE app_user SET access_token = NULL, refresh_token = NULL, refresh_token_expiry = NULL WHERE access_token = ? OR refresh_token = ?",
+                [token || "", refreshToken || ""],
+                (err) => {
+                    if (err) {
+                        console.error("Error clearing tokens on logout by token:", err);
+                    }
+                    return res.status(200).json({
+                        status: "success",
+                        message: "Logged out successfully",
+                    });
+                },
+            );
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Logged out successfully",
+            });
+        }
+    } catch (e) {
+        console.error("Logout error:", e);
+        return res.status(200).json({
+            status: "success",
+            message: "Logged out successfully",
+        });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1094,7 +1327,9 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
 expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
     try {
         const { token, email, password } = req.body;
-        if (!token || !email || !password) {
+        const cleanToken = typeof token === "string" ? token.trim() : "";
+        const cleanEmail = typeof email === "string" ? email.trim() : "";
+        if (!cleanToken || !cleanEmail || !password) {
             return res.status(400).json({
                 status: "error",
                 message: "Token, email, and new password are required.",
@@ -1107,10 +1342,18 @@ expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
             });
         }
 
-        // Find the user by email and reset token
+        // Buscar usuario por email y token activo no vacio
+        const sql = `
+            SELECT id, reset_token_expiry, (reset_token_expiry >= NOW()) AS is_not_expired 
+            FROM app_user 
+            WHERE user_email = ? 
+              AND reset_token = ? 
+              AND reset_token IS NOT NULL 
+              AND reset_token != ''
+        `;
         req.dbConnectionPool.query(
-            "SELECT id, reset_token_expiry FROM app_user WHERE user_email = ? AND reset_token = ?",
-            [email, token],
+            sql,
+            [cleanEmail, cleanToken],
             async (err, results) => {
                 if (err) {
                     console.error("recoverAccount DB error:", err);
@@ -1120,48 +1363,44 @@ expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
                     });
                 }
                 if (results && results.length > 0) {
-                    const id = results[0].id;
-                    const resetTokenExpiry = new Date(
-                        results[0].reset_token_expiry,
-                    );
-                    const now = new Date();
-
-                    if (now < resetTokenExpiry) {
-                        const encryptedPassword = await bcrypt.hash(
-                            password,
-                            salt,
-                        );
-                        req.dbConnectionPool.query(
-                            "UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?",
-                            [encryptedPassword, id],
-                            (updateErr) => {
-                                if (updateErr) {
-                                    console.error(
-                                        "Error updating recovered password:",
-                                        updateErr,
-                                    );
-                                    return res.status(500).json({
-                                        status: "error",
-                                        message: "Error updating password.",
-                                    });
-                                }
-                                return res.status(200).json({
-                                    status: "success",
-                                    message:
-                                        "Account recovered, password changed successfully!",
-                                });
-                            },
-                        );
-                    } else {
+                    const user = results[0];
+                    if (!user.is_not_expired) {
                         return res.status(400).json({
                             status: "error",
-                            message: "Reset token expired",
+                            message:
+                                "Reset token expired. Please request a new recovery email.",
                         });
                     }
+
+                    const encryptedPassword = await bcrypt.hash(
+                        password,
+                        salt,
+                    );
+                    req.dbConnectionPool.query(
+                        "UPDATE app_user SET user_password = ?, reset_token = NULL, reset_token_expiry = NULL, access_token = NULL, refresh_token = NULL, refresh_token_expiry = NULL WHERE id = ?",
+                        [encryptedPassword, user.id],
+                        (updateErr) => {
+                            if (updateErr) {
+                                console.error(
+                                    "Error updating recovered password:",
+                                    updateErr,
+                                );
+                                return res.status(500).json({
+                                    status: "error",
+                                    message: "Error updating password.",
+                                });
+                            }
+                            return res.status(200).json({
+                                status: "success",
+                                message:
+                                    "Account recovered, password changed successfully! Please log in with your new password.",
+                            });
+                        },
+                    );
                 } else {
                     return res.status(400).json({
                         status: "error",
-                        message: "Code is invalid or expired!",
+                        message: "Invalid email or reset token.",
                     });
                 }
             },
@@ -1528,21 +1767,14 @@ expressRouter.post("/getUserImgByToken", verifyUser, (req, res) => {
 
 async function sendConfirmationEmail(connection, userId) {
     return new Promise(async (resolve, reject) => {
-        // Generate a random confirmation token
+        // Generate a cryptographically secure random confirmation token
         const confirmationToken = generateRandomToken();
 
-        // Set the expiry date to 1 hour from now
-        const verificationTokenExpiry = new Date();
-        verificationTokenExpiry.setHours(
-            verificationTokenExpiry.getHours() + 1,
-        );
-
-        // Update the user record with the confirmation token and expiry
+        // Update the user record with the confirmation token and 1-hour expiry (via MySQL DATE_ADD)
         await updateUserVerificationData(
             connection,
             userId,
             confirmationToken,
-            verificationTokenExpiry,
         );
 
         // Form the verification URL
@@ -1575,18 +1807,15 @@ async function sendRecoverPasswordEmail(connection, userId, userEmail) {
     return new Promise(async (resolve, reject) => {
         try {
             if (userEmail) {
-                // Generate a random confirmation token
+                // Generate a cryptographically secure random reset token
                 const resetToken = generateRandomToken();
-
-                const resetTokenExpiry = new Date();
-                resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
-                resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 10);
 
                 await connection.beginTransaction();
 
+                // Expiracion exacta de 10 minutos calculada directamente en MySQL
                 await connection.query(
-                    "UPDATE app_user SET reset_token = ?, reset_token_expiry = ? WHERE id = ?",
-                    [resetToken, resetTokenExpiry, userId],
+                    "UPDATE app_user SET reset_token = ?, reset_token_expiry = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id = ?",
+                    [resetToken, userId],
                 );
                 await connection.commit();
 
@@ -1601,7 +1830,7 @@ async function sendRecoverPasswordEmail(connection, userId, userEmail) {
 
                 resolve();
             } else {
-                reject();
+                reject(new Error("User email is required"));
             }
         } catch (error) {
             await connection.rollback();
@@ -1610,27 +1839,24 @@ async function sendRecoverPasswordEmail(connection, userId, userEmail) {
     });
 }
 
-// Functions to generate random tokens
+// Function to generate cryptographically secure random tokens (64 hex characters)
 function generateRandomToken() {
-    return (
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
-    );
+    return crypto.randomBytes(32).toString("hex");
 }
-// Function to update user verification data
+
+// Function to update user verification data with 1-hour expiry using MySQL DATE_ADD
 const updateUserVerificationData = (
     connection,
     userId,
     verificationToken,
-    verificationTokenExpiry,
 ) => {
     return new Promise((resolve, reject) => {
         try {
             const query =
-                "UPDATE app_user SET verification_token = ?, verification_token_expiry = ? WHERE id = ?";
+                "UPDATE app_user SET verification_token = ?, verification_token_expiry = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?";
             connection.query(
                 query,
-                [verificationToken, verificationTokenExpiry, userId],
+                [verificationToken, userId],
                 (error) => {
                     if (error) {
                         reject(error);
@@ -1654,27 +1880,57 @@ expressRouter.post("/user/verifyEmail/:token", async function (req, res) {
             token,
         );
 
-        // Check if the user exists and the token hasn't expired
-        if (!user || user.verification_token_expiry < new Date()) {
+        // Check if user exists
+        if (!user) {
             return res.status(400).json({
                 status: "error",
-                message: "Invalid or expired token.",
+                message: "Invalid verification token.",
             });
         }
 
-        // Update user verification status
-        await updateUserVerificationStatus(req.dbConnectionPool, user.id, true);
+        // Check if token has expired
+        if (!user.is_not_expired) {
+            return res.status(400).json({
+                status: "error",
+                message:
+                    "Verification token has expired. Please request a new confirmation email.",
+            });
+        }
 
-        // Clear verification token and expiry
-        await clearVerificationToken(req.dbConnectionPool, user.id);
+        // Issue fresh active session tokens
+        const { accessToken, refreshToken } = generateTokens(user.id);
 
-        // let jwtToken = jwt.sign({ userID: user.id }, jwtSecretKey, { expiresIn: '1d' })
+        // Update user verification status, clear verification tokens, and persist session tokens
+        await new Promise((resolve, reject) => {
+            const updateSql = `
+                UPDATE app_user 
+                SET user_verified = 1, 
+                    verification_token = NULL, 
+                    verification_token_expiry = NULL,
+                    access_token = ?,
+                    refresh_token = ?,
+                    refresh_token_expiry = DATE_ADD(NOW(), INTERVAL 7 DAY)
+                WHERE id = ?
+            `;
+            req.dbConnectionPool.query(
+                updateSql,
+                [accessToken, refreshToken, user.id],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                },
+            );
+        });
+
         return res.status(200).json({
             status: "success",
             message: "Email verified successfully.",
-            jwt: user.access_token,
+            jwt: accessToken,
+            token: accessToken,
+            refreshToken: refreshToken,
         });
     } catch (error) {
+        console.error("verifyEmail error:", error);
         return res
             .status(500)
             .json({ status: "error", message: "Internal Server Error" });
@@ -1688,8 +1944,20 @@ expressRouter.post("/user/verifyEmail/:token", async function (req, res) {
 const getUserByVerificationToken = (connection, token) => {
     return new Promise((resolve, reject) => {
         try {
-            const query = "SELECT * FROM app_user WHERE verification_token = ?";
-            connection.query(query, [token], (error, results) => {
+            const cleanToken = typeof token === "string" ? token.trim() : "";
+            if (!cleanToken) {
+                return resolve(null);
+            }
+            const query = `
+                SELECT id, user_name, user_email, user_dni, user_verified, isEnabled,
+                       verification_token_expiry,
+                       (verification_token_expiry >= NOW()) AS is_not_expired
+                FROM app_user 
+                WHERE verification_token = ? 
+                  AND verification_token IS NOT NULL 
+                  AND verification_token != ''
+            `;
+            connection.query(query, [cleanToken], (error, results) => {
                 if (error) {
                     reject(error);
                 } else {
