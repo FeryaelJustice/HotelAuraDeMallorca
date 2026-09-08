@@ -3641,15 +3641,26 @@ expressRouter.post("/createBooking", async (req, res) => {
 // Helper: Contador acumulado de reservas finalizadas por usuario
 // Que hace: Incrementa atomicamente el campo booking_count en user_booking_count.
 // Por que: Soporta el programa de fidelizacion y verificacion de regalos.
-async function addBookingCountToUser(userID, connectionPool) {
-    try {
-        const query =
-            "INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE booking_count = booking_count + 1";
-        const values = [userID];
-        await connectionPool.query(query, values);
-    } catch (error) {
-        throw error;
-    }
+async function addBookingCountToUser(userID, targetDb) {
+    if (!userID) return;
+    const db = targetDb || pool;
+    const query =
+        "INSERT INTO user_booking_count (user_id, booking_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE booking_count = booking_count + 1";
+    const values = [userID];
+
+    return new Promise((resolve, reject) => {
+        if (typeof db.promise === "function") {
+            db.promise()
+                .query(query, values)
+                .then(([result]) => resolve(result))
+                .catch((err) => reject(err));
+        } else {
+            db.query(query, values, (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        }
+    });
 }
 
 // Endpoint: POST /api/userPresentCheck
