@@ -630,25 +630,34 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
                         </Form.Group>
 
-                        {import.meta.env.MODE != 'development' && (<div className='captcha'>
+                        {import.meta.env.MODE != 'development' && (<div className='captcha user-modal-captcha'>
                             <ReCAPTCHA
                                 sitekey={captchaKey as string}
                                 onChange={(token) => onLoginCaptchaChange(token ?? '')}
                             />
                             {captchaLoginError ? (
-                                <Alert key='danger' variant='danger'>
+                                <Alert key='danger' variant='danger' style={{ marginTop: '8px', width: '100%' }}>
                                     Captcha error
                                 </Alert>
                             ) : null}
                         </div>)}
 
                         <div className="userLoginModalActions">
-                            <Button variant="primary" type="submit">
+                            <Button variant="primary" type="submit" className="btn-login-submit">
                                 {t("modal_user_login_send")}
                             </Button>
-                            <div className="vertical-align">
-                                <span>{t("modal_user_login_advert")} <a id='goToRegisterA' onClick={goToRegisterScreen}>{t("modal_user_login_register")}</a></span>
-                                <a id='goToRecoverA' onClick={goToRecoverAccount} style={{ color: '#FFA8A8', cursor: 'pointer' }}>¿Forgot your password? Recover your account here</a>
+                            <div className="user-login-links-container">
+                                <div className="user-login-register-line">
+                                    <span>{t("modal_user_login_advert")}</span>
+                                    <a id='goToRegisterA' onClick={goToRegisterScreen}>
+                                        {t("modal_user_login_register")}
+                                    </a>
+                                </div>
+                                <div className="user-login-recover-line">
+                                    <a id='goToRecoverA' onClick={goToRecoverAccount} className="user-login-recover-link">
+                                        ¿Forgot your password? Recover your account here
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </Form>

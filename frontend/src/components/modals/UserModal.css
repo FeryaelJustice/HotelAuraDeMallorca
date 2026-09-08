@@ -16,3 +16,61 @@
     width: 100%;
     margin-right: 12px;
 }
+
+/* User Login Modal Spacing & Layout */
+.user-modal-captcha {
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.userLoginModalActions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.userLoginModalActions .btn-login-submit {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    font-weight: 700;
+    border-radius: 10px;
+}
+
+.user-login-links-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    text-align: center;
+    font-size: 0.92rem;
+}
+
+.user-login-register-line {
+    opacity: 0.9;
+}
+
+.user-login-register-line a {
+    font-weight: 700;
+    color: #0d6efd;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-left: 4px;
+}
+
+.user-login-recover-link {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #ef4444 !important;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.user-login-recover-link:hover {
+    opacity: 0.8;
+}
