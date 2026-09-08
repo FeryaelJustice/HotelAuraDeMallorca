@@ -289,11 +289,36 @@ pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
                     console.log(
                         "[DB INIT] Columnas is_active e is_visible anadidas exitosamente a promotion.",
                     );
+                    syncExpiredPromotions(pool);
                 }
             },
         );
+    } else {
+        syncExpiredPromotions(pool);
     }
 });
+
+// Sincronizacion y actualizacion automatica de cupones caducados (Cron / On-Demand)
+// Que hace: Marca is_active = 0 e is_visible = 0 en promociones cuya fecha end_date ya haya vencido (end_date < CURDATE()).
+// Por que: Garantiza que los cupones que hayan pasado de fecha no requieran desactivacion manual y queden invalidados.
+function syncExpiredPromotions(targetPool) {
+    const activePool = targetPool || pool;
+    if (!activePool) return;
+    const sql =
+        "UPDATE promotion SET is_active = 0, is_visible = 0 WHERE end_date IS NOT NULL AND end_date < CURDATE() AND (is_active = 1 OR is_visible = 1)";
+    activePool.query(sql, (err, result) => {
+        if (err) {
+            console.warn("[PROMO AUTO-EXPIRE] Advertencia comprobando caducidad de cupones:", err.message);
+        } else if (result && result.affectedRows > 0) {
+            console.log(
+                `[PROMO AUTO-EXPIRE] Se han desactivado y ocultado automaticamente ${result.affectedRows} promociones vencidas.`
+            );
+        }
+    });
+}
+
+// Programacion de revision periodica (tipo cron cada hora)
+setInterval(() => syncExpiredPromotions(pool), 60 * 60 * 1000);
 
 // Verificacion y sincronizacion por codigo del usuario administrador mediante variables de entorno
 ensureAdminUser(pool).catch((adminErr) => {
@@ -4100,6 +4125,9 @@ expressRouter.get("/weather", (req, res) => {
 // PROMOTIONS
 // Get promos: soporta ?visible=true para seccion publica web
 expressRouter.get("/promotions", (req, res) => {
+    // Sincronizar cupones caducados de inmediato antes de responder
+    syncExpiredPromotions(req.dbConnectionPool);
+
     const onlyVisible =
         req.query.visible === "true" || req.query.visible === "1";
     let sql =
@@ -4141,6 +4169,10 @@ expressRouter.post("/checkPromoCode", (req, res) => {
             message: "El código de promoción es requerido",
         });
     }
+
+    // Sincronizar cupones caducados de inmediato antes de comprobar
+    syncExpiredPromotions(req.dbConnectionPool);
+
     const sql =
         "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (start_date IS NULL OR start_date <= CURDATE()) AND (end_date IS NULL OR end_date >= CURDATE())";
     req.dbConnectionPool.query(sql, [code], (err, results) => {

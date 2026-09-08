@@ -20,6 +20,7 @@ import weatherAPI from "./../../services/weatherAPI";
 import { QRCodeSVG } from 'qrcode.react';
 
 import { useTranslation } from "react-i18next";
+import Swal from 'sweetalert2';
 
 // Stripe
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js'
@@ -113,13 +114,14 @@ class BookingErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 }
 
 interface StripeCheckoutFormProps {
-    plan: any;
+    plan?: any;
     stripeOptions?: StripeElementsOptions;
     totalPriceToPay: number;
-    onPay: (paymentData: any) => Promise<void>;
+    onPay: (stripeContext: { stripe: any; elements: any }) => Promise<void>;
+    isProcessing?: boolean;
 }
 
-const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay, onPay }: StripeCheckoutFormProps) => {
+const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay, onPay, isProcessing }: StripeCheckoutFormProps) => {
     const stripe = useStripe();
     const elements = useElements();
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -141,28 +143,35 @@ const StripeCheckoutForm = ({ plan, stripeOptions, totalPriceToPay, onPay }: Str
             return;
         }
 
-        const paymentData = {
-            amount: Math.max(50, Math.round(totalPriceToPay * 100)),
-            currency: stripeOptions?.currency || 'eur',
-            plan: plan
-        };
-
         try {
-            await onPay(paymentData);
+            await onPay({ stripe, elements });
         } catch (err: any) {
-            setErrorMessage(err.message || 'Payment processing failed');
+            setErrorMessage(err.message || 'Error al procesar el pago.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ marginTop: '16px' }}>
             <PaymentElement />
-            <Button variant="primary" type="submit" disabled={!stripe || !elements || isSubmitting} className="mt-3">
-                {isSubmitting ? 'Processing...' : `Pay €${totalPriceToPay.toFixed(2)}`}
+            <Button
+                variant="primary"
+                type="submit"
+                disabled={!stripe || !elements || isSubmitting || isProcessing}
+                className="mt-4 btn-luxury-primary w-100"
+                size="lg"
+            >
+                {isSubmitting || isProcessing ? (
+                    <span>
+                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" style={{ marginRight: '8px' }} />
+                        Procesando pago seguro...
+                    </span>
+                ) : (
+                    `Pagar con Tarjeta (${Number(totalPriceToPay).toFixed(2)} €)`
+                )}
             </Button>
-            {errorMessage && <div className="text-danger mt-2">{errorMessage}</div>}
+            {errorMessage && <div className="text-danger mt-3" style={{ fontWeight: 600, textAlign: 'center' }}>{errorMessage}</div>}
         </form>
     );
 };
@@ -386,8 +395,8 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
         );
     };
 
-    // Deterministic price calculation helper
-    const computeTotalPrice = (): number => {
+    // Deterministic price calculation helpers
+    const computeTotalPriceWithoutDiscount = (): number => {
         let total = 0;
 
         // 1. Plan price
@@ -417,6 +426,12 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             });
         }
 
+        return Math.max(0, Math.round(total * 100) / 100);
+    };
+
+    const computeTotalPrice = (): number => {
+        let total = computeTotalPriceWithoutDiscount();
+
         // 4. Promo discount percentage
         if (appliedPromoDiscount > 0) {
             total = total * (1 - appliedPromoDiscount / 100);
@@ -429,12 +444,12 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
     useEffect(() => {
         const calculatedPrice = computeTotalPrice();
         setTotalPriceToPay(calculatedPrice);
-        setStripeOptions(prev => ({
-            ...prev,
+        setStripeOptions({
             mode: 'payment',
             currency: 'eur',
             amount: Math.max(100, Math.round(calculatedPrice * 100)),
-        }));
+            appearance: {},
+        });
     }, [checkedPlan, selectedRoomID, startDate, endDate, selectedServicesIDs, appliedPromoDiscount, plans, rooms, services]);
 
     // Get JWT user data
@@ -1073,73 +1088,160 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
         }
     };
 
-    async function bookingProcess(paymentData: any) {
+    async function bookingProcess(stripeContext?: { stripe: any; elements: any } | null) {
         setIsProcessingBooking(true);
         try {
-            // Check room availability
+            let effectivePromoID = userSelectedPromoID;
+            let effectivePrice = totalPriceToPay;
+
+            // -----------------------------------------------------------------
+            // CHECK 1: Verificacion de caducidad del cupon de descuento
+            // -----------------------------------------------------------------
+            if (userSelectedPromoCode && userSelectedPromoCode.trim() !== '' && userSelectedPromoID > 0) {
+                try {
+                    const promoCheckRes = await serverAPI.post('/checkPromoCode', {
+                        code: userSelectedPromoCode.trim()
+                    });
+
+                    // Si el cupon ha caducado, esta inactivo o no es valido
+                    if (!promoCheckRes.data || !promoCheckRes.data.valid) {
+                        const priceWithoutDiscount = computeTotalPriceWithoutDiscount();
+
+                        const alertResult = await Swal.fire({
+                            title: 'Cupon de descuento caducado',
+                            text: `El cupon "${userSelectedPromoCode}" ha caducado o ya no esta disponible. La reserva se realizara por el importe original sin descuento (${priceWithoutDiscount.toFixed(2)} €). Deseas continuar con la reserva?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Continuar sin descuento',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#c5a059',
+                            cancelButtonColor: '#6c757d',
+                            reverseButtons: true
+                        });
+
+                        // Si el usuario cancela: la reserva queda en pausa en este paso
+                        if (!alertResult.isConfirmed) {
+                            setUserSelectedPromoCode('');
+                            setUserSelectedPromoID(-1);
+                            setAppliedPromoDiscount(0);
+                            setPromoValidationStatus(null);
+                            setTotalPriceToPay(priceWithoutDiscount);
+                            setIsProcessingBooking(false);
+                            return;
+                        }
+
+                        // Si el usuario acepta: continua sin descuento
+                        setUserSelectedPromoCode('');
+                        setUserSelectedPromoID(-1);
+                        setAppliedPromoDiscount(0);
+                        setPromoValidationStatus(null);
+                        setTotalPriceToPay(priceWithoutDiscount);
+                        effectivePromoID = -1;
+                        effectivePrice = priceWithoutDiscount;
+                    }
+                } catch (promoErr) {
+                    console.error('Error al comprobar caducidad del cupon:', promoErr);
+                }
+            }
+
+            // -----------------------------------------------------------------
+            // CHECK 2: Re-verificacion de disponibilidad de habitacion en tiempo real
+            // -----------------------------------------------------------------
             const availabilityResponse = await serverAPI.post('/checkBookingAvailability', {
                 roomID: selectedRoomID,
                 start_date: startDate,
                 end_date: endDate
             });
 
-            if (availabilityResponse.data && availabilityResponse.data.status === "success") {
-                if (availabilityResponse.data.isAvailable) {
-                    // Check if the user exists
-                    let userID = userAllData?.id;
-                    if (!cookies.token) {
-                        userID = await createUser();
-                        if (!userID) {
-                            alert('No se pudo registrar la cuenta para formalizar la reserva. Revisa los datos introducidos.');
-                            setIsProcessingBooking(false);
-                            return;
-                        }
-                    }
-
-                    // Process payment (Stripe vs Hotel Reception fallback)
-                    let clientSecret = `offline_hotel_pay_${Date.now()}`;
-                    if (checkedPaymentMethod === 1 && process.env.STRIPE_PUBLISHABLE_KEY) {
-                        clientSecret = await doPayment(paymentData);
-                        if (!clientSecret) {
-                            alert('Error procesando el pago en línea. Por favor, prueba de nuevo o elige pagar en recepción.');
-                            setIsProcessingBooking(false);
-                            return;
-                        }
-                    }
-
-                    // Make the booking in database
-                    await doBooking(userID, clientSecret, totalPriceToPay, userSelectedPromoID);
-                } else {
-                    if (availabilityResponse.data.available) {
-                        const list = availabilityResponse.data.available.join(' / ');
-                        alert("No es posible reservar en estas fechas porque la habitación está ocupada. Fechas libres: " + list);
-                    } else {
-                        alert(availabilityResponse.data.message || "No es posible reservar en estas fechas porque la habitación está ocupada.");
-                    }
+            if (!availabilityResponse.data || availabilityResponse.data.status !== "success" || !availabilityResponse.data.isAvailable) {
+                let msg = "No es posible reservar en estas fechas porque la habitacion ha sido ocupada en este instante por otro usuario.";
+                if (availabilityResponse.data?.available && availabilityResponse.data.available.length > 0) {
+                    msg += " Fechas libres mas proximas: " + availabilityResponse.data.available.join(' / ');
+                } else if (availabilityResponse.data?.message) {
+                    msg = availabilityResponse.data.message;
                 }
-            } else {
-                alert("No hay habitaciones disponibles en las fechas solicitadas.");
+
+                await Swal.fire({
+                    title: 'Habitacion no disponible',
+                    text: msg,
+                    icon: 'error',
+                    confirmButtonColor: '#c5a059',
+                });
+                setIsProcessingBooking(false);
+                return;
             }
+
+            // -----------------------------------------------------------------
+            // CHECK 3: Ejecucion de cobro y registro final de la reserva
+            // -----------------------------------------------------------------
+            let userID = userAllData?.id;
+            if (!cookies.token) {
+                userID = await createUser();
+                if (!userID) {
+                    await Swal.fire({
+                        title: 'Error de registro',
+                        text: 'No se pudo crear la cuenta de usuario para tramitar la reserva. Revisa los datos introducidos.',
+                        icon: 'error',
+                        confirmButtonColor: '#c5a059'
+                    });
+                    setIsProcessingBooking(false);
+                    return;
+                }
+            }
+
+            let clientSecret = `offline_hotel_pay_${Date.now()}`;
+
+            // Si se selecciono Stripe (1) y la pasarela esta configurada
+            if (checkedPaymentMethod === 1 && process.env.STRIPE_PUBLISHABLE_KEY) {
+                if (!stripeContext || !stripeContext.stripe || !stripeContext.elements) {
+                    throw new Error('La pasarela de pago seguro Stripe no esta lista o no se pudo inicializar.');
+                }
+
+                const paymentAmountInCents = Math.max(50, Math.round(effectivePrice * 100));
+                const purchaseRes = await serverAPI.post('/purchase', {
+                    data: {
+                        amount: paymentAmountInCents,
+                        currency: 'eur',
+                        plan: checkedPlan
+                    }
+                });
+
+                if (!purchaseRes.data || purchaseRes.data.status !== 'success' || !purchaseRes.data.client_secret) {
+                    throw new Error('No se pudo inicializar la intencion de pago en el servidor.');
+                }
+
+                clientSecret = purchaseRes.data.client_secret;
+
+                // Confirmacion segura del pago con Stripe Elements
+                const confirmResult = await stripeContext.stripe.confirmPayment({
+                    elements: stripeContext.elements,
+                    clientSecret: clientSecret,
+                    confirmParams: {
+                        return_url: window.location.origin,
+                    },
+                    redirect: 'if_required',
+                });
+
+                if (confirmResult.error) {
+                    throw new Error(confirmResult.error.message || 'El banco ha rechazado la transaccion.');
+                }
+            }
+
+            // Formalizar reserva en base de datos
+            await doBooking(userID, clientSecret, effectivePrice, effectivePromoID);
+
         } catch (error: any) {
-            console.log('Error during the booking process:', error);
-            if (error && error.response && error.response.data && error.response.data.message) {
-                alert(error.response.data.message);
-            } else {
-                alert("Ocurrió un error procesando tu reserva. Por favor, inténtalo de nuevo.");
-            }
+            console.error('Error durante el proceso de reserva/pago:', error);
+            const errorMsg = error?.response?.data?.message || error?.message || "Ocurrio un error procesando tu reserva. Por favor, intentalo de nuevo.";
+            await Swal.fire({
+                title: 'Error en la reserva',
+                text: errorMsg,
+                icon: 'error',
+                confirmButtonColor: '#c5a059'
+            });
             await cancelBooking().catch(e => console.log('Rollback notice:', e));
         } finally {
             setIsProcessingBooking(false);
-        }
-    }
-
-    async function doPayment(paymentData: any) {
-        try {
-            const response = await serverAPI.post('/purchase', { data: paymentData });
-            return response.data.client_secret;
-        } catch (error) {
-            console.log('Error processing payment:', error);
-            throw error;
         }
     }
 
@@ -2142,7 +2244,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                         goToNextStep();
                                     }}
                                 >
-                                    <div style={{ display: 'flex', gap: '8px', maxWidth: '440px', marginBottom: '12px' }}>
+                                    <div style={{ maxWidth: '440px', marginBottom: '12px' }}>
                                         <Form.Control
                                             type="text"
                                             name="promoCode"
@@ -2155,13 +2257,6 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                             }}
                                             style={{ textTransform: 'uppercase' }}
                                         />
-                                        <Button
-                                            variant="outline-primary"
-                                            type="button"
-                                            onClick={() => validatePromoCodeManual()}
-                                        >
-                                            Validar
-                                        </Button>
                                     </div>
 
                                     {promoValidationStatus && (
@@ -2195,7 +2290,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                     )}
 
                     {/* Step 7: Payment */}
-                    {currentStep === BookingSteps.StepPayment && (
+                    {currentStep === BookingSteps.StepPaymentMethod && (
                         <div>
                             <h2>{t("modal_booking_payment_title")}</h2>
                             <p style={{ opacity: 0.85, fontSize: '0.92rem', marginBottom: '20px' }}>
@@ -2247,10 +2342,16 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                 {checkedPaymentMethod === 1 ? (
                                     <div>
                                         {stripeOptions && process.env.STRIPE_PUBLISHABLE_KEY && (
-                                            <Elements stripe={stripePromise} options={stripeOptions}>
-                                                <CheckoutForm onPay={async (paymentData: any) => {
-                                                    await handleSubmitBooking(paymentData);
-                                                }} />
+                                            <Elements stripe={stripePromise} options={stripeOptions} key={totalPriceToPay}>
+                                                <StripeCheckoutForm
+                                                    plan={checkedPlan}
+                                                    stripeOptions={stripeOptions}
+                                                    totalPriceToPay={totalPriceToPay}
+                                                    isProcessing={isProcessingBooking}
+                                                    onPay={async (stripeCtx) => {
+                                                        await bookingProcess(stripeCtx);
+                                                    }}
+                                                />
                                             </Elements>
                                         )}
                                         {!process.env.STRIPE_PUBLISHABLE_KEY && (
@@ -2262,7 +2363,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                                     variant="primary"
                                                     size="lg"
                                                     disabled={isProcessingBooking}
-                                                    onClick={() => handleSubmitBooking(null)}
+                                                    onClick={() => bookingProcess(null)}
                                                     className="btn-luxury-primary"
                                                 >
                                                     {isProcessingBooking ? (
@@ -2286,7 +2387,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                             variant="primary"
                                             size="lg"
                                             disabled={isProcessingBooking}
-                                            onClick={() => handleSubmitBooking(null)}
+                                            onClick={() => bookingProcess(null)}
                                             className="btn-luxury-primary"
                                         >
                                             {isProcessingBooking ? (
