@@ -125,7 +125,7 @@
     "modal_booking_nextstep": "Siguiente paso",
     "modal_booking_gotopay": "Finaliza la reserva, ¡paga!",
     "modal_duplicatebooking_title": "Crear nueva reserva a partir de la reserva cancelada",
-    "modal_duplicatebooking_info": "Todos los datos de esta reserva se mantienen (servicios vinculados, pago...). Lo único que debes cambiar son las fechas",
+    "modal_duplicatebooking_info": "Se conservan tu habitación, régimen de estancia y servicios contratados. Selecciona las nuevas fechas disponibles y formaliza el método de pago para tu nueva reserva.",
     "modal_duplicatebooking_btn": "Hacer nueva reserva a partir de ésta",
     "modal_duplicatebooking_cancelledBooking": "Reserva cancelada",
     "modal_duplicatebooking_noBookings": "No tienes reservas",

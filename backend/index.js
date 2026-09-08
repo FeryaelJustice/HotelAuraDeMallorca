@@ -276,42 +276,11 @@ pool.query(
     },
 );
 
-// Desactivar trigger legado que forzaba plazo de 24h desde la creacion
-pool.query("DROP TRIGGER IF EXISTS before_booking_insert", (err) => {
-    if (err) {
-        console.warn(
-            "[DB INIT] Advertencia eliminando trigger antes_booking_insert:",
-            err.message,
-        );
-    }
-});
-
-pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
-    if (!err && rows && rows.length === 0) {
-        pool.query(
-            "ALTER TABLE promotion ADD COLUMN is_active BOOLEAN DEFAULT TRUE, ADD COLUMN is_visible BOOLEAN DEFAULT TRUE",
-            (alterErr) => {
-                if (alterErr) {
-                    console.warn(
-                        "[DB INIT] No se pudieron anadir columnas is_active / is_visible a promotion:",
-                        alterErr.message,
-                    );
-                } else {
-                    console.log(
-                        "[DB INIT] Columnas is_active e is_visible anadidas exitosamente a promotion.",
-                    );
-                    syncExpiredPromotions(pool);
-                }
-            },
-        );
-    } else {
-        syncExpiredPromotions(pool);
-    }
-});
-
 // Sincronizacion y actualizacion automatica de cupones caducados (Cron / On-Demand)
 // Que hace: Marca is_active = 0 e is_visible = 0 en promociones cuya fecha end_date ya haya vencido (end_date < CURDATE()).
 // Por que: Garantiza que los cupones que hayan pasado de fecha no requieran desactivacion manual y queden invalidados.
+syncExpiredPromotions(pool);
+
 function syncExpiredPromotions(targetPool) {
     const activePool = targetPool || pool;
     if (!activePool) return;
@@ -3089,143 +3058,533 @@ expressRouter.put("/booking", verifyUser, (req, res) => {
     }
 });
 
-expressRouter.put("/cancelBookingByUser", verifyUser, (req, res) => {
+// Endpoint: PUT /api/cancelBookingByUser
+// Que hace: Procesa la cancelacion dentro del plazo gratuito, ejecuta el reembolso en Stripe (si se pago con tarjeta),
+// actualiza estados contables, y notifica por correo con desglose al cliente y al administrador.
+// Por que: Asegura el cumplimiento de la politica de cancelacion, auditoria financiera y tranquilidad del cliente.
+expressRouter.put("/cancelBookingByUser", verifyUser, async (req, res) => {
     try {
         const bookingID = req.body.bookingID;
+        if (!bookingID) {
+            return res.status(400).json({
+                status: "error",
+                message: "Falta el identificador de la reserva a cancelar.",
+            });
+        }
 
-        req.dbConnectionPool.query(
-            "SELECT cancellation_deadline FROM booking WHERE id =  ?",
-            [bookingID],
-            (err, results) => {
-                if (err) {
-                    return res.status(500).send({
-                        status: "error",
-                        message: "Internal server error",
+        // Consultar reserva completa con datos de usuario, habitacion, plan y pago
+        const selectSql = `
+            SELECT b.id, b.user_id, b.plan_id, b.room_id, b.booking_start_date, b.booking_end_date, 
+                   b.cancellation_deadline, b.is_cancelled,
+                   u.user_name, u.user_surnames, u.user_email, u.user_dni,
+                   r.room_name, pl.plan_name,
+                   p.id AS payment_id, p.payment_amount, p.payment_method_id, p.payment_status,
+                   pt.transaction_id,
+                   pm.payment_method_name
+            FROM booking b
+            JOIN app_user u ON u.id = b.user_id
+            LEFT JOIN room r ON r.id = b.room_id
+            LEFT JOIN plan pl ON pl.id = b.plan_id
+            LEFT JOIN payment p ON p.booking_id = b.id
+            LEFT JOIN payment_method pm ON pm.id = p.payment_method_id
+            LEFT JOIN payment_transaction pt ON pt.payment_id = p.id
+            WHERE b.id = ?
+        `;
+
+        const [bookingRows] = await req.dbConnectionPool.promise().query(selectSql, [bookingID]);
+
+        if (!bookingRows || bookingRows.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Reserva no encontrada.",
+            });
+        }
+
+        const bk = bookingRows[0];
+
+        // Validacion de autorizacion: el usuario debe ser el propietario o administrador
+        if (req.userRole !== "ADMIN" && bk.user_id !== req.id) {
+            return res.status(403).json({
+                status: "error",
+                message: "No tienes permiso para cancelar esta reserva.",
+            });
+        }
+
+        // Comprobar si ya esta cancelada
+        if (bk.is_cancelled === 1 || bk.is_cancelled === true) {
+            return res.status(400).json({
+                status: "error",
+                message: "Esta reserva ya fue cancelada previamente.",
+            });
+        }
+
+        // Comprobar fecha limite de cancelacion gratuita
+        if (bk.cancellation_deadline) {
+            const deadline = new Date(bk.cancellation_deadline);
+            const currentDate = new Date();
+            if (deadline < currentDate) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "El plazo límite para cancelar esta reserva gratuitamente ha expirado.",
+                });
+            }
+        }
+
+        // Gestion de Reembolso segun metodo de pago
+        let refundStatus = "CANCELLED";
+        let refundAmount = 0;
+        let refundTransactionId = null;
+        let refundNote = "";
+        const isStripe = bk.payment_method_id === 1;
+
+        if (isStripe && bk.payment_amount > 0) {
+            refundAmount = Number(bk.payment_amount);
+            const rawTxId = bk.transaction_id || "";
+            // Si el transaction_id incluye client_secret, extraer payment_intent (pi_...)
+            const paymentIntentId = rawTxId.includes("_secret_")
+                ? rawTxId.split("_secret_")[0]
+                : rawTxId;
+
+            if (paymentIntentId && paymentIntentId.startsWith("pi_")) {
+                try {
+                    const refund = await stripe.refunds.create({
+                        payment_intent: paymentIntentId,
                     });
+                    refundStatus = "REFUNDED";
+                    refundTransactionId = refund.id;
+                    refundNote = `Reembolso de ${refundAmount.toFixed(2)} € emitido automáticamente a través de Stripe (ID: ${refund.id}).`;
+                } catch (stripeErr) {
+                    console.error("[STRIPE REFUND] Error al emitir reembolso automático:", stripeErr.message);
+                    refundStatus = "REFUND_PENDING";
+                    refundNote = `Reembolso de ${refundAmount.toFixed(2)} € pendiente de tramitación manual en Stripe (${stripeErr.message}).`;
                 }
-                if (results) {
-                    const deadline = new Date(results[0].cancellation_deadline);
-                    const currentDate = new Date();
-                    // Compare dates
-                    if (deadline < currentDate) {
-                        return res.status(500).send({
-                            status: "error",
-                            message: "Deadline to cancel this booking is over",
-                        });
-                    }
+            } else {
+                refundStatus = "REFUND_PENDING";
+                refundNote = `Reembolso de ${refundAmount.toFixed(2)} € pendiente de revisión manual (No se encontró un PaymentIntent estándar).`;
+            }
+        } else if (bk.payment_method_id === 2) {
+            // Pago en recepcion
+            refundStatus = "CANCELLED";
+            refundAmount = 0;
+            refundNote = "Reserva con pago en recepción: Anulada sin ningún cargo ni reembolso económico requerido.";
+        }
 
-                    req.dbConnectionPool.beginTransaction(async (err) => {
-                        if (err) {
-                            req.dbConnectionPool.rollback();
-                            return res.status(500).send({
-                                status: "error",
-                                message: "Internal server error",
-                            });
-                        }
-                        req.dbConnectionPool.query(
-                            "UPDATE booking SET is_cancelled = true WHERE id = ?",
-                            [bookingID],
-                            (err) => {
-                                if (err) {
-                                    req.dbConnectionPool.rollback();
-                                    return res.status(500).send({
-                                        status: "error",
-                                        message: "Internal server error",
-                                    });
-                                }
+        // Actualizar en base de datos de manera transaccional
+        await req.dbConnectionPool.promise().beginTransaction();
+        try {
+            // 1. Marcar reserva como cancelada con timestamp
+            await req.dbConnectionPool.promise().query(
+                "UPDATE booking SET is_cancelled = 1, cancelled_at = NOW() WHERE id = ?",
+                [bookingID],
+            );
 
-                                req.dbConnectionPool.commit((err) => {
-                                    if (err) {
-                                        req.dbConnectionPool.rollback();
-                                    }
-                                    return res.status(200).send({
-                                        status: "success",
-                                        message: "Successfully updated!",
-                                    });
-                                });
-                            },
-                        );
-                    });
+            // 2. Actualizar registro de pago si existe
+            if (bk.payment_id) {
+                await req.dbConnectionPool.promise().query(
+                    "UPDATE payment SET payment_status = ?, refund_amount = ?, refund_date = NOW(), refund_transaction_id = ? WHERE id = ?",
+                    [refundStatus, refundAmount > 0 ? refundAmount : null, refundTransactionId, bk.payment_id],
+                );
+            }
+
+            await req.dbConnectionPool.promise().commit();
+        } catch (dbErr) {
+            await req.dbConnectionPool.promise().rollback();
+            throw dbErr;
+        }
+
+        // Notificaciones por Correo Electronico (Cliente y Administradores)
+        const recipientName = bk.user_name ? `${bk.user_name} ${bk.user_surnames || ""}`.trim() : "Estimado/a cliente";
+        const formattedStart = bk.booking_start_date ? new Date(bk.booking_start_date).toLocaleDateString("es-ES") : "-";
+        const formattedEnd = bk.booking_end_date ? new Date(bk.booking_end_date).toLocaleDateString("es-ES") : "-";
+
+        // A) Correo al Cliente
+        if (bk.user_email) {
+            try {
+                let refundCustomerText = "";
+                if (refundStatus === "REFUNDED") {
+                    refundCustomerText = `<p style="margin: 8px 0; color: #155724; background-color: #d4edda; padding: 12px; border-radius: 6px;">
+                        <strong>✓ Reembolso emitido:</strong> Se ha emitido un reembolso de <strong>${refundAmount.toFixed(2)} €</strong> a tu tarjeta vinculada a través de Stripe (Ref: <code>${refundTransactionId}</code>). El saldo estará disponible en tu cuenta en un plazo estimado de 5 a 10 días laborables según tu entidad bancaria.
+                    </p>`;
+                } else if (refundStatus === "REFUND_PENDING") {
+                    refundCustomerText = `<p style="margin: 8px 0; color: #856404; background-color: #fff3cd; padding: 12px; border-radius: 6px;">
+                        <strong>⏳ Reembolso en trámite:</strong> Nuestro departamento de administración está gestionando la devolución de <strong>${refundAmount.toFixed(2)} €</strong> a tu tarjeta. Recibirás una notificación en cuanto sea procesada.
+                    </p>`;
                 } else {
-                    return res.status(500).send({
-                        status: "error",
-                        message: "Internal server error",
-                    });
+                    refundCustomerText = `<p style="margin: 8px 0; color: #1b263b; background-color: #f1f3f5; padding: 12px; border-radius: 6px;">
+                        <strong>ℹ️ Sin coste:</strong> Tu reserva seleccionó la modalidad de pago directo en recepción, por lo que se anula sin ningún cargo económico.
+                    </p>`;
                 }
-            },
-        );
+
+                await sendEmailNotification({
+                    to: bk.user_email,
+                    subject: `Confirmación de Cancelación de Reserva #${bookingID} - Hotel Aura de Mallorca`,
+                    html: `
+                        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff; color: #2d3748;">
+                            <div style="text-align: center; border-bottom: 2px solid #c5a059; padding-bottom: 15px; margin-bottom: 20px;">
+                                <h1 style="color: #1b263b; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">Hotel Aura de Mallorca</h1>
+                                <p style="color: #c5a059; font-size: 13px; margin: 5px 0 0 0; text-transform: uppercase; font-weight: 600;">Sanctuary & Luxury Experience</p>
+                            </div>
+                            <p>Hola <strong>${recipientName}</strong>,</p>
+                            <p>Te confirmamos que tu reserva con localizador <strong>#${bookingID}</strong> ha sido cancelada correctamente dentro del plazo permitido.</p>
+                            
+                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #1b263b; font-size: 16px;">Resumen de la estancia cancelada</h3>
+                                <ul style="list-style: none; padding-left: 0; margin: 0; font-size: 14px; line-height: 1.8;">
+                                    <li><strong>Habitación:</strong> ${bk.room_name || "Suite Aura"}</li>
+                                    <li><strong>Régimen:</strong> ${bk.plan_name || "Estándar"}</li>
+                                    <li><strong>Fechas:</strong> ${formattedStart} al ${formattedEnd}</li>
+                                    <li><strong>Método de pago:</strong> ${bk.payment_method_name || (isStripe ? "Stripe" : "Recepción")}</li>
+                                </ul>
+                            </div>
+
+                            ${refundCustomerText}
+
+                            <p style="margin-top: 20px; font-size: 14px; line-height: 1.6;">
+                                Las fechas de la habitación han quedado liberadas en nuestro sistema. Si en el futuro deseas volver a disfrutar de nuestras instalaciones, puedes crear una nueva reserva en cualquier momento conservando tu configuración previa desde tu panel de usuario.
+                            </p>
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+                            <p style="color: #718096; font-size: 12px; text-align: center; margin: 0;">
+                                Hotel Aura de Mallorca • Mallorca, España<br>
+                                Si tienes alguna duda sobre tu reembolso, puedes contactarnos respondiendo a este mensaje.
+                            </p>
+                        </div>
+                    `,
+                    text: `Hola ${recipientName},\n\nTe confirmamos que tu reserva #${bookingID} (${bk.room_name || "Habitación"}) del ${formattedStart} al ${formattedEnd} ha sido cancelada.\n\nEstado de reembolso: ${refundNote}\n\nAtentamente,\nHotel Aura de Mallorca`,
+                });
+            } catch (mailErr) {
+                console.error("[MAIL] Error enviando correo de cancelacion al usuario:", mailErr);
+            }
+        }
+
+        // B) Correo a Administradores
+        try {
+            let adminReceivers = [];
+            try {
+                adminReceivers = JSON.parse(process.env.MAIL_CONTACT_RECEIVERS || "[]");
+            } catch (e) {
+                adminReceivers = [];
+            }
+            if (process.env.ADMIN_EMAIL && !adminReceivers.includes(process.env.ADMIN_EMAIL)) {
+                adminReceivers.push(process.env.ADMIN_EMAIL);
+            }
+            if (adminReceivers.length === 0) {
+                adminReceivers = [process.env.MAIL_SENDER_EMAIL || "contact@feryaeljustice.dev"];
+            }
+
+            await sendEmailNotification({
+                to: adminReceivers,
+                subject: `[AVISO ADMINISTRADOR] Cancelación de Reserva #${bookingID} - ${refundStatus}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #cbd5e0; border-radius: 8px;">
+                        <h2 style="color: #c5a059; margin-top: 0; border-bottom: 2px solid #c5a059; padding-bottom: 10px;">Aviso Interno: Cancelación de Reserva</h2>
+                        <p>Se ha registrado una cancelación en el sistema. A continuación los detalles de auditoría:</p>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin: 15px 0;">
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold; width: 40%;">ID Reserva:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">#${bookingID}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Cliente:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${recipientName} (ID: ${bk.user_id}, DNI: ${bk.user_dni || "-"})</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Email Cliente:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${bk.user_email}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Habitación / Plan:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${bk.room_name} / ${bk.plan_name}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Fechas:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${formattedStart} a ${formattedEnd}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Método de Pago:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${bk.payment_method_name || (isStripe ? "Stripe" : "Recepción")}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">Importe Abonado:</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${bk.payment_amount ? Number(bk.payment_amount).toFixed(2) + " €" : "0.00 €"}</td></tr>
+                            <tr><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">ID Transacción:</td><td style="padding: 6px; border: 1px solid #e2e8f0;"><code>${bk.transaction_id || "N/A"}</code></td></tr>
+                            <tr style="background-color: ${refundStatus === "REFUNDED" ? "#d4edda" : (refundStatus === "REFUND_PENDING" ? "#fff3cd" : "#f8fafc")};">
+                                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Estado Reembolso:</td>
+                                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">${refundStatus} - ${refundNote}</td>
+                            </tr>
+                        </table>
+                        <p style="font-size: 12px; color: #718096;">Generado automáticamente por el servidor Hotel Aura de Mallorca.</p>
+                    </div>
+                `,
+                text: `AVISO CANCELACION:\nReserva #${bookingID}\nCliente: ${recipientName} (${bk.user_email})\nImporte: ${bk.payment_amount} €\nEstado Reembolso: ${refundStatus}\nDetalle: ${refundNote}`,
+            });
+        } catch (adminMailErr) {
+            console.error("[MAIL] Error enviando correo de cancelacion al admin:", adminMailErr);
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Reserva cancelada correctamente.",
+            refundStatus: refundStatus,
+            refundMessage: refundNote,
+        });
     } catch (error) {
-        return res.status(500).send({
+        console.error("Error al cancelar reserva:", error);
+        return res.status(500).json({
             status: "error",
-            message: "Internal server error",
-            message: error,
+            message: "Error interno del servidor al cancelar la reserva.",
+            error: error.message,
         });
     } finally {
         req.dbConnectionPool.release();
     }
 });
 
-expressRouter.post("/duplicateBooking", verifyUser, (req, res) => {
-    const booking = req.body;
-    const startDateAsDate = new Date(booking.startDate);
-    startDateAsDate.setDate(startDateAsDate.getDate() + 1);
-    const endDateAsDate = new Date(booking.endDate);
-    endDateAsDate.setDate(endDateAsDate.getDate() + 1);
-    const startDate = startDateAsDate
-        .toISOString()
-        .slice(0, 11)
-        .replace("T", " ");
-    const endDate = endDateAsDate.toISOString().slice(0, 11).replace("T", " ");
+// Endpoint: GET /api/bookingDetailsForDuplication/:id
+// Que hace: Devuelve la configuracion de habitacion, plan, servicios y huespedes de una reserva
+// cancelada para precargar el modal de nueva reserva conservando dichos parametros.
+// Por que: Permite al cliente volver a reservar con los mismos servicios de manera agil y transparente.
+expressRouter.get("/bookingDetailsForDuplication/:id", verifyUser, async (req, res) => {
+    try {
+        const bookingId = Number(req.params.id);
+        if (!bookingId) {
+            return res.status(400).json({ status: "error", message: "ID de reserva inválido." });
+        }
 
-    req.dbConnectionPool.query(
-        "SELECT is_cancelled FROM booking WHERE id = ?",
-        [booking.id],
-        (err, results) => {
-            if (err) {
-                return res.status(500).send({
-                    status: "error",
-                    message: "Internal server error",
-                });
-            }
+        // 1. Obtener datos de la reserva
+        const [bkRows] = await req.dbConnectionPool.promise().query(
+            `SELECT b.id, b.user_id, b.plan_id, b.room_id, b.booking_start_date, b.booking_end_date, b.is_cancelled,
+                    r.room_name, r.room_price, r.room_description,
+                    p.plan_name, p.plan_price, p.plan_description,
+                    pay.payment_method_id, pay.payment_amount, pay.payment_status
+             FROM booking b
+             LEFT JOIN room r ON r.id = b.room_id
+             LEFT JOIN plan p ON p.id = b.plan_id
+             LEFT JOIN payment pay ON pay.booking_id = b.id
+             WHERE b.id = ?`,
+            [bookingId],
+        );
 
-            if (results[0].is_cancelled === 0) {
-                return res.status(400).send({
-                    status: "error",
-                    message: "This booking is active",
-                });
-            }
+        if (!bkRows || bkRows.length === 0) {
+            return res.status(404).json({ status: "error", message: "Reserva no encontrada." });
+        }
 
-            req.dbConnectionPool.beginTransaction((err) => {
-                if (err) {
-                    req.dbConnectionPool.rollback();
-                    return res.status(500).send({
-                        status: "error",
-                        message: "Internal server error",
-                    });
-                }
-                const sql =
-                    "UPDATE booking SET booking_start_date = ?, booking_end_date = ?, cancellation_deadline = DATE_SUB(?, INTERVAL 3 DAY), is_cancelled = 0 WHERE id = ?";
-                req.dbConnectionPool.query(
-                    sql,
-                    [startDate, endDate, startDate, booking.id],
-                    (err) => {
-                        if (err) {
-                            req.dbConnectionPool.rollback();
-                            return res.status(500).send({
-                                status: "error",
-                                message: "Internal server error: " + err,
-                            });
-                        }
-                        req.dbConnectionPool.commit();
-                        return res.status(200).send({
-                            status: "200",
-                            message: "Successfully updated!",
-                        });
-                    },
-                );
+        const bk = bkRows[0];
+        if (req.userRole !== "ADMIN" && bk.user_id !== req.id) {
+            return res.status(403).json({ status: "error", message: "Acceso no autorizado a esta reserva." });
+        }
+
+        // 2. Obtener servicios vinculados
+        const [services] = await req.dbConnectionPool.promise().query(
+            `SELECT s.id, s.serv_name, s.serv_price, s.serv_description
+             FROM service s
+             INNER JOIN booking_service bs ON bs.service_id = s.id
+             WHERE bs.booking_id = ?`,
+            [bookingId],
+        );
+
+        // 3. Obtener huéspedes vinculados
+        const [guests] = await req.dbConnectionPool.promise().query(
+            `SELECT g.id, g.guest_name, g.guest_surnames, g.guest_email, g.isAdult, g.isSystemUser
+             FROM guest g
+             INNER JOIN booking_guest bg ON bg.guest_id = g.id
+             WHERE bg.booking_id = ?`,
+            [bookingId],
+        );
+
+        return res.status(200).json({
+            status: "success",
+            data: {
+                booking: bk,
+                services: services || [],
+                guests: guests || [],
+            },
+        });
+    } catch (error) {
+        console.error("Error al obtener detalles para duplicar:", error);
+        return res.status(500).json({ status: "error", message: "Error interno al obtener la reserva." });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+});
+
+// Endpoint: POST /api/duplicateBooking
+// Que hace: Crea una NUEVA reserva formal a partir de una reserva previa cancelada, clonando su habitacion,
+// plan, servicios y huespedes, pero requiriendo nuevas fechas disponibles y formalizacion de pago (Stripe o Recepcion).
+// Por que: Preserva la trazabilidad contable de la reserva cancelada antigua y asegura el cobro de la nueva estancia.
+expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
+    try {
+        const {
+            originalBookingID,
+            startDate,
+            endDate,
+            paymentMethodID,
+            paymentTransactionID,
+            amount,
+        } = req.body;
+
+        if (!originalBookingID || !startDate || !endDate || !paymentMethodID) {
+            return res.status(400).json({
+                status: "error",
+                message: "Faltan parámetros requeridos para crear la nueva reserva (originalBookingID, fechas o método de pago).",
             });
-        },
-    );
+        }
+
+        // Formatear fechas a YYYY-MM-DD
+        const formattedStartDate = new Date(startDate).toISOString().slice(0, 10);
+        const formattedEndDate = new Date(endDate).toISOString().slice(0, 10);
+
+        if (formattedStartDate >= formattedEndDate) {
+            return res.status(400).json({
+                status: "error",
+                message: "La fecha de entrada debe ser anterior a la fecha de salida.",
+            });
+        }
+
+        // 1. Obtener la reserva original y validar
+        const [origRows] = await req.dbConnectionPool.promise().query(
+            "SELECT * FROM booking WHERE id = ?",
+            [originalBookingID],
+        );
+
+        if (!origRows || origRows.length === 0) {
+            return res.status(404).json({ status: "error", message: "Reserva original no encontrada." });
+        }
+
+        const original = origRows[0];
+        if (req.userRole !== "ADMIN" && original.user_id !== req.id) {
+            return res.status(403).json({ status: "error", message: "No tienes permiso sobre esta reserva." });
+        }
+
+        // Comprobar que la cuenta del usuario este activa
+        const [userRows] = await req.dbConnectionPool.promise().query(
+            "SELECT isEnabled, user_name, user_email FROM app_user WHERE id = ?",
+            [req.id],
+        );
+        if (userRows && userRows.length > 0 && userRows[0].isEnabled !== 1) {
+            return res.status(403).json({
+                status: "error",
+                message: "Tu cuenta está inhabilitada. Ponte en contacto con nosotros para reactivarla.",
+            });
+        }
+        const currentUser = userRows[0];
+
+        // 2. Comprobar disponibilidad de la habitacion en las nuevas fechas
+        const [availRows] = await req.dbConnectionPool.promise().query(
+            `SELECT id FROM booking 
+             WHERE room_id = ? 
+               AND is_cancelled = 0
+               AND (
+                 (booking_start_date <= ? AND booking_end_date > ?)
+                 OR (booking_start_date < ? AND booking_end_date >= ?)
+                 OR (booking_start_date >= ? AND booking_end_date <= ?)
+               )`,
+            [
+                original.room_id,
+                formattedStartDate, formattedStartDate,
+                formattedEndDate, formattedEndDate,
+                formattedStartDate, formattedEndDate,
+            ],
+        );
+
+        if (availRows && availRows.length > 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "La habitación no está disponible para las nuevas fechas seleccionadas. Por favor, selecciona otros días.",
+            });
+        }
+
+        // 3. Crear la NUEVA reserva de forma transaccional
+        await req.dbConnectionPool.promise().beginTransaction();
+        let newBookingId = null;
+        try {
+            // A. Insertar nueva fila en booking (preservando la original intacta)
+            const insertBookingSql = `
+                INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date, cancellation_deadline, is_cancelled)
+                VALUES (?, ?, ?, ?, ?, DATE_SUB(?, INTERVAL 3 DAY), 0)
+            `;
+            const [bookingInsertRes] = await req.dbConnectionPool.promise().query(insertBookingSql, [
+                req.id,
+                original.plan_id,
+                original.room_id,
+                formattedStartDate,
+                formattedEndDate,
+                formattedStartDate,
+            ]);
+
+            newBookingId = bookingInsertRes.insertId;
+
+            // B. Clonar servicios vinculados de la reserva original
+            await req.dbConnectionPool.promise().query(
+                "INSERT INTO booking_service (booking_id, service_id) SELECT ?, service_id FROM booking_service WHERE booking_id = ?",
+                [newBookingId, originalBookingID],
+            );
+
+            // C. Clonar huespedes vinculados de la reserva original
+            await req.dbConnectionPool.promise().query(
+                "INSERT INTO booking_guest (booking_id, guest_id) SELECT ?, guest_id FROM booking_guest WHERE booking_id = ?",
+                [newBookingId, originalBookingID],
+            );
+
+            // D. Registrar el pago formal de la nueva reserva
+            const effectiveAmount = amount ? Number(amount) : 0;
+            const insertPaymentSql = `
+                INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id, payment_status)
+                VALUES (?, ?, ?, CURDATE(), ?, 'PAID')
+            `;
+            const [paymentInsertRes] = await req.dbConnectionPool.promise().query(insertPaymentSql, [
+                req.id,
+                newBookingId,
+                effectiveAmount,
+                paymentMethodID,
+            ]);
+
+            const newPaymentId = paymentInsertRes.insertId;
+
+            // E. Si es Stripe, vincular el transaction_id
+            if (Number(paymentMethodID) === 1 && paymentTransactionID) {
+                await req.dbConnectionPool.promise().query(
+                    "INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)",
+                    [newPaymentId, paymentTransactionID],
+                );
+            }
+
+            // Confirmar transaccion
+            await req.dbConnectionPool.promise().commit();
+        } catch (txErr) {
+            await req.dbConnectionPool.promise().rollback();
+            throw txErr;
+        }
+
+        // 4. Actualizar contador de reservas del usuario
+        try {
+            await addBookingCountToUser(req.id, req.dbConnectionPool);
+        } catch (cntErr) {
+            console.warn("Advertencia actualizando contador de reservas:", cntErr);
+        }
+
+        // 5. Enviar correo de confirmacion de la nueva reserva al cliente
+        if (currentUser && currentUser.user_email) {
+            try {
+                const payMethodLabel = Number(paymentMethodID) === 1 ? "Tarjeta (Stripe)" : "Pago en Recepción";
+                await sendEmailNotification({
+                    to: currentUser.user_email,
+                    subject: `¡Tu nueva reserva #${newBookingId} está confirmada! - Hotel Aura de Mallorca`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <h2 style="color: #c5a059; margin-top: 0;">¡Reserva Confirmada!</h2>
+                            <p>Hola <strong>${currentUser.user_name || "Estimado/a cliente"}</strong>,</p>
+                            <p>Hemos creado tu nueva estancia a partir de tu configuración previa con el localizador <strong>#${newBookingId}</strong>.</p>
+                            <ul>
+                                <li><strong>Entrada (Check-in):</strong> ${formattedStartDate}</li>
+                                <li><strong>Salida (Check-out):</strong> ${formattedEndDate}</li>
+                                <li><strong>Método de Pago:</strong> ${payMethodLabel}</li>
+                                <li><strong>Total:</strong> ${Number(amount || 0).toFixed(2)} €</li>
+                            </ul>
+                            <p>Todos los servicios adicionales y huéspedes de tu estancia previa han sido transferidos a esta nueva reserva.</p>
+                            <p style="margin-top: 20px; color: #718096; font-size: 13px;">¡Te esperamos en Hotel Aura de Mallorca!</p>
+                        </div>
+                    `,
+                    text: `¡Tu nueva reserva #${newBookingId} del ${formattedStartDate} al ${formattedEndDate} está confirmada!\nTotal: ${Number(amount || 0).toFixed(2)} €\nMétodo: ${payMethodLabel}`,
+                });
+            } catch (mailErr) {
+                console.error("[MAIL] Error enviando confirmacion de reserva duplicada:", mailErr);
+            }
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "¡Nueva reserva formalizada con éxito!",
+            bookingId: newBookingId,
+        });
+    } catch (error) {
+        console.error("Error al duplicar reserva:", error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Error interno al crear la nueva reserva.",
+        });
+    } finally {
+        req.dbConnectionPool.release();
+    }
 });
 
 // Endpoint: POST /api/createBooking
@@ -4005,9 +4364,15 @@ expressRouter.get("/bookingByLocator/:locator", verifyAdmin, (req, res) => {
 
 expressRouter.get("/bookingsByUser", verifyUser, (req, res) => {
     try {
-        // AND is_cancelled = 0
+        const sql = `
+            SELECT b.*, p.payment_method_id, p.payment_amount, p.payment_status, p.refund_amount, p.refund_date
+            FROM booking b
+            LEFT JOIN payment p ON p.booking_id = b.id
+            WHERE b.user_id = ?
+            ORDER BY b.id DESC
+        `;
         req.dbConnectionPool.query(
-            "SELECT * FROM booking WHERE user_id = ?",
+            sql,
             [req.id],
             (err, results) => {
                 if (err) {

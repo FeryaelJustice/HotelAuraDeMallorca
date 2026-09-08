@@ -131,6 +131,7 @@ CREATE TABLE booking (
     booking_end_date DATE NOT NULL,
     cancellation_deadline DATE,
     is_cancelled BOOLEAN DEFAULT 0,
+    cancelled_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE
@@ -260,6 +261,10 @@ CREATE TABLE payment (
     payment_amount DECIMAL(10, 2),
     payment_date DATE,
     payment_method_id INT,
+    payment_status VARCHAR(50) NOT NULL DEFAULT 'PAID',
+    refund_amount DECIMAL(10, 2) DEFAULT NULL,
+    refund_date TIMESTAMP NULL DEFAULT NULL,
+    refund_transaction_id VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE
@@ -765,7 +770,11 @@ VALUES
  END; //
  */
 -- TRIGGERS
--- Cancellation date on booking (hasta 3 dias antes del inicio de la estancia)
+-- Nota: En TiDB los triggers no estan soportados y en MySQL/MariaDB la fecha limite de cancelacion
+-- (cancellation_deadline = booking_start_date - 3 dias) se gestiona de forma determinista
+-- a nivel de logica de negocio en el backend (ej. /booking, /duplicateBooking, etc.).
+-- Por ello, este trigger queda archivado y documentado para compatibilidad:
+/*
 DELIMITER / /
 CREATE TRIGGER before_booking_insert BEFORE
 INSERT
@@ -779,3 +788,4 @@ SET
 END IF;
 END;
 / /
+*/

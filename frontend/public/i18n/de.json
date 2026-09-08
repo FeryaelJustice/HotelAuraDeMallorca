@@ -125,7 +125,7 @@
     "modal_booking_nextstep": "Nächster Schritt",
     "modal_booking_gotopay": "Schließen Sie Ihre Reservierung ab, zahlen Sie!",
     "modal_duplicatebooking_title": "Erstellen Sie eine neue Reservierung aus der stornierten Reservierung",
-    "modal_duplicatebooking_info": "Alle Details dieser Reservierung werden beibehalten (verknüpfte Dienste, Zahlung ...). Das einzige, was Sie ändern müssen, sind die Daten",
+    "modal_duplicatebooking_info": "Ihr Zimmer, gewählter Tarif und Zusatzleistungen bleiben erhalten. Wählen Sie neue verfügbare Daten und die Zahlungsmethode für Ihre neue Reservierung.",
     "modal_duplicatebooking_btn": "Machen Sie eine neue Reservierung von dieser",
     "modal_duplicatebooking_cancelledBooking": "Reservierung storniert",
     "modal_duplicatebooking_noBookings": "Sie haben keine Reservierungen",

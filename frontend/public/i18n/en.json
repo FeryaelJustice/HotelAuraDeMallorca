@@ -124,7 +124,7 @@
     "modal_booking_nextstep": "Next step",
     "modal_booking_gotopay": "End the booking, pay!",
     "modal_duplicatebooking_title": "Create new booking from the cancelled booking",
-    "modal_duplicatebooking_info": "All the data of this booking is maintained (linked services, payment...). The only thing you have to change are the dates",
+    "modal_duplicatebooking_info": "Your room, chosen plan and extra services are preserved. Select new available dates and complete the payment method for your new booking.",
     "modal_duplicatebooking_btn": "Make a new booking from this one",
     "modal_duplicatebooking_cancelledBooking": "Booking cancelled",
     "modal_duplicatebooking_noBookings": "You don't have bookings",

@@ -3,6 +3,8 @@ import { useCookies } from "react-cookie";
 import { useNavigate } from "react-router-dom";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
+import Badge from "react-bootstrap/Badge";
+import Swal from "sweetalert2";
 import { Booking, Plan, Room } from "../models";
 import serverAPI from "./../services/serverAPI";
 import { API_URL, API_URL_BASE } from "./../services/consts";
@@ -127,6 +129,12 @@ export const UserBookings = ({
                             startDate: booking.booking_start_date,
                             endDate: booking.booking_end_date,
                             isCancelled: booking.is_cancelled === 1 || booking.is_cancelled === true,
+                            cancelledAt: booking.cancelled_at,
+                            paymentStatus: booking.payment_status,
+                            paymentMethodID: booking.payment_method_id,
+                            paymentAmount: booking.payment_amount,
+                            refundAmount: booking.refund_amount,
+                            refundDate: booking.refund_date,
                         })
                     );
                 });
@@ -167,27 +175,38 @@ export const UserBookings = ({
                 { bookingID: Number(selectedBookingId) },
                 { headers: { Authorization: cookies.token } }
             )
-            .then((res) => {
-                alert(res.data.message || "Reserva cancelada con exito");
+            .then(async (res) => {
                 setShowCancelModal(false);
+                const refundMsg = res.data?.refundMessage ? `\n\n${res.data.refundMessage}` : "";
+                await Swal.fire({
+                    title: "Reserva Cancelada",
+                    text: `${res.data?.message || "Tu reserva ha sido cancelada correctamente."}${refundMsg}`,
+                    icon: "success",
+                    confirmButtonColor: "#c5a059",
+                });
+
+                const newStatus = res.data?.refundStatus || "CANCELLED";
+
                 // Update booking in local state as cancelled
                 setBookings((prev) =>
                     prev.map((b) =>
-                        b.id === selectedBookingId ? { ...b, isCancelled: true } : b
+                        b.id === selectedBookingId ? { ...b, isCancelled: true, paymentStatus: newStatus } : b
                     )
                 );
                 setSelectedBookingIsCancelled(true);
                 if (selectedBooking) {
-                    setSelectedBooking(new Booking({ ...selectedBooking, isCancelled: true }));
+                    setSelectedBooking(new Booking({ ...selectedBooking, isCancelled: true, paymentStatus: newStatus }));
                 }
             })
             .catch((error) => {
-                console.log(error);
-                if (error && error.response && error.response.data && error.response.data.message) {
-                    alert(error.response.data.message);
-                } else {
-                    alert("Error al cancelar la reserva");
-                }
+                console.error("Error al cancelar reserva:", error);
+                const msg = error?.response?.data?.message || "Error al cancelar la reserva";
+                Swal.fire({
+                    title: "No se pudo cancelar",
+                    text: msg,
+                    icon: "error",
+                    confirmButtonColor: "#c5a059",
+                });
             })
             .finally(() => {
                 setIsCancelling(false);
@@ -467,6 +486,33 @@ export const UserBookings = ({
                                                     {estimatedTotal > 0 ? estimatedTotal + " €" : "Consultar en recepcion"}
                                                 </span>
                                             </div>
+
+                                            {selectedBookingIsCancelled && (
+                                                <div className="user-booking-info-item">
+                                                    <span className="user-booking-info-label">
+                                                        <span>💳</span> Estado de Pago / Devolución
+                                                    </span>
+                                                    <span className="user-booking-info-value">
+                                                        {selectedBooking?.paymentStatus === "REFUNDED" ? (
+                                                            <Badge bg="success" style={{ fontSize: "0.85rem" }}>
+                                                                ✓ Reembolsado en tarjeta
+                                                            </Badge>
+                                                        ) : selectedBooking?.paymentStatus === "REFUND_PENDING" ? (
+                                                            <Badge bg="warning" text="dark" style={{ fontSize: "0.85rem" }}>
+                                                                ⏳ Reembolso en trámite
+                                                            </Badge>
+                                                        ) : selectedBooking?.paymentMethodID === 2 || selectedBooking?.paymentStatus === "CANCELLED" ? (
+                                                            <Badge bg="secondary" style={{ fontSize: "0.85rem" }}>
+                                                                ✓ Anulado sin coste (Recepción)
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge bg="danger" style={{ fontSize: "0.85rem" }}>
+                                                                Reserva Cancelada
+                                                            </Badge>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -574,10 +620,30 @@ export const UserBookings = ({
                 </Modal.Header>
                 <Modal.Body>
                     <p style={{ marginBottom: "1rem" }}>
-                        ¿Estas seguro de que deseas cancelar la reserva <strong>#{selectedBookingId}</strong> para la habitacion <strong>{activeRoom?.name}</strong>?
+                        ¿Estás seguro de que deseas cancelar la reserva <strong>#{selectedBookingId}</strong> para la habitación <strong>{activeRoom?.name}</strong>?
                     </p>
+                    <div
+                        style={{
+                            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "#f8fafc",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            border: "1px solid",
+                            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                            marginBottom: "14px",
+                            fontSize: "0.85rem",
+                        }}
+                    >
+                        <p style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#c5a059" }}>
+                            {selectedBooking?.paymentMethodID === 1 ? "💳 Política de Reembolso (Stripe):" : "🏨 Política de Cancelación (Recepción):"}
+                        </p>
+                        <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
+                            {selectedBooking?.paymentMethodID === 1
+                                ? "Al cancelar dentro del plazo, tramitaremos el reembolso íntegro a tu tarjeta mediante Stripe. Recibirás un correo con la confirmación y el importe estará disponible en tu cuenta en un plazo de 5 a 10 días laborables."
+                                : "Como seleccionaste la modalidad de pago en el hotel, tu reserva se cancelará sin ningún cargo económico."}
+                        </p>
+                    </div>
                     <p style={{ fontSize: "0.85rem", opacity: 0.8, margin: 0 }}>
-                        Recuerda que si cancelas dentro del plazo se anulara tu estancia en el hotel. Si mas adelante cambias de opinion, podras volver a reservarla desde este mismo panel con el boton de duplicar.
+                        Recuerda que si en el futuro deseas volver a disfrutar de tu estancia, podrás crear una nueva reserva conservando tu habitación, plan y extras desde este mismo panel.
                     </p>
                 </Modal.Body>
                 <Modal.Footer>

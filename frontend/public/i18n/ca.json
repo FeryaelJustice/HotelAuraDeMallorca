@@ -125,7 +125,7 @@
     "modal_booking_nextstep": "Següent pas",
     "modal_booking_gotopay": "Finalitza la reserva, paga!",
     "modal_duplicatebooking_title": "Crear la nova reserva a partir de la reserva cancelada",
-    "modal_duplicatebooking_info": "Totes les dades d'aquesta reserva es mantenen (serveis vinculats, pagament...). L'únic que has de canviar són les dates",
+    "modal_duplicatebooking_info": "Es mantenen la teva habitació, règim i serveis contractats. Tria les noves dates disponibles i formalitza el mètode de pagament per a la teva nova reserva.",
     "modal_duplicatebooking_btn": "Fer nova reserva a partir d'aquesta",
     "modal_duplicatebooking_cancelledBooking": "Reserva cancel·lada",
     "modal_duplicatebooking_noBookings": "No tens reserves",
