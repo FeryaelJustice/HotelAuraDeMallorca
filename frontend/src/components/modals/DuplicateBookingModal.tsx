@@ -4,6 +4,7 @@ import { useCookies } from "react-cookie";
 import { Booking } from "./../../models";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import "./BookingModal.css";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -21,6 +22,14 @@ interface DuplicateBookingModalProps {
 
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
+
+interface OccupancyRecord {
+    id: number;
+    room_id: number;
+    room_name: string;
+    booking_start_date: string;
+    booking_end_date: string;
+}
 
 interface BookingServiceItem {
     id: number;
@@ -43,14 +52,21 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
     // Steps: 1 = Dates & Configuration, 2 = Payment selection
     const [step, setStep] = useState<number>(1);
 
-    // Dates
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfter = new Date();
-    dayAfter.setDate(dayAfter.getDate() + 3);
+    // Dates (default today + 2 to today + 5 to strictly satisfy 48h advance booking policy)
+    const defaultStart = new Date();
+    defaultStart.setDate(defaultStart.getDate() + 2);
+    defaultStart.setHours(12, 0, 0, 0);
 
-    const [startDate, setStartDate] = useState<Value>(tomorrow);
-    const [endDate, setEndDate] = useState<Value>(dayAfter);
+    const defaultEnd = new Date();
+    defaultEnd.setDate(defaultEnd.getDate() + 5);
+    defaultEnd.setHours(12, 0, 0, 0);
+
+    const [startDate, setStartDate] = useState<Value>(defaultStart);
+    const [endDate, setEndDate] = useState<Value>(defaultEnd);
+
+    // Occupancy state and hover information
+    const [occupancyList, setOccupancyList] = useState<OccupancyRecord[]>([]);
+    const [hoveredDateInfo, setHoveredDateInfo] = useState<{ dateStr: string; occupiedRooms: string[] } | null>(null);
 
     // Full booking details loaded from API
     const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
@@ -108,6 +124,98 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 });
         }
     }, [show, bookingData?.id, cookies.token]);
+
+    // Fetch calendar occupancy from backend on mount or when shown
+    useEffect(() => {
+        if (show) {
+            serverAPI
+                .get("/bookingOccupancy")
+                .then((res) => {
+                    if (res.data && res.data.status === "success") {
+                        setOccupancyList(res.data.data || []);
+                    }
+                })
+                .catch((err) => {
+                    console.warn("Error fetching occupancy for duplicate modal:", err);
+                });
+        }
+    }, [show]);
+
+    // Format date string as YYYY-MM-DD
+    const extractFormattedDate = (date: any): string => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = (d.getMonth() + 1).toString().padStart(2, "0");
+        const day = d.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    };
+
+    // Helpers to query occupancy by date for this room
+    const currentRoomId = roomDetails?.id || bookingData?.roomID;
+
+    const getOccupiedRoomsForDate = (date: Date): string[] => {
+        const dStr = extractFormattedDate(date);
+        const roomsSet = new Set<string>();
+        occupancyList.forEach((item) => {
+            if (dStr >= item.booking_start_date && dStr <= item.booking_end_date) {
+                roomsSet.add(item.room_name);
+            }
+        });
+        return Array.from(roomsSet);
+    };
+
+    const isDateOccupiedForThisRoom = (date: Date): boolean => {
+        if (!currentRoomId) return false;
+        const dStr = extractFormattedDate(date);
+        return occupancyList.some(
+            (item) =>
+                item.room_id === currentRoomId &&
+                dStr >= item.booking_start_date &&
+                dStr <= item.booking_end_date,
+        );
+    };
+
+    const getCalendarTileClassName = ({ date, view }: { date: Date; view: string }) => {
+        if (view !== "month") return "";
+        const occupied = getOccupiedRoomsForDate(date);
+        if (occupied.length === 0) return "calendar-tile-free";
+
+        if (currentRoomId && isDateOccupiedForThisRoom(date)) {
+            return "calendar-tile-occupied-selected";
+        }
+        return "calendar-tile-occupied-partial";
+    };
+
+    const getCalendarTileContent = ({ date, view }: { date: Date; view: string }) => {
+        if (view !== "month") return null;
+        const occupied = getOccupiedRoomsForDate(date);
+        if (occupied.length === 0) return null;
+
+        const isSelectedOccupied = currentRoomId ? isDateOccupiedForThisRoom(date) : false;
+        const badgeClass = isSelectedOccupied ? "occupied-badge-danger" : "occupied-badge-partial";
+        const badgeText = isSelectedOccupied ? "Ocupada" : `${occupied.length} ocup`;
+        const tooltipText = isSelectedOccupied
+            ? `Habitación (${roomDetails?.name || "Suite"}) ocupada en esta fecha`
+            : `Habitaciones ocupadas (${occupied.length}): ${occupied.join(", ")}`;
+
+        return (
+            <div
+                className="calendar-tile-full-overlay"
+                title={tooltipText}
+                onMouseEnter={() =>
+                    setHoveredDateInfo({
+                        dateStr: extractFormattedDate(date),
+                        occupiedRooms: occupied,
+                    })
+                }
+                onMouseLeave={() => setHoveredDateInfo(null)}
+            >
+                <span className={`calendar-tile-status-tag ${badgeClass}`}>
+                    {badgeText}
+                </span>
+            </div>
+        );
+    };
 
     // Calculate nights
     const calculateNights = (start: Value, end: Value): number => {
@@ -327,7 +435,10 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                         </div>
                                         <Calendar
                                             minDate={new Date()}
+                                            maxDate={endDate instanceof Date ? endDate : undefined}
                                             value={startDate}
+                                            tileClassName={getCalendarTileClassName}
+                                            tileContent={getCalendarTileContent}
                                             onChange={(val) => {
                                                 setStartDate(val);
                                                 if (val instanceof Date && endDate instanceof Date && val >= endDate) {
@@ -346,10 +457,56 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                         <Calendar
                                             minDate={startDate instanceof Date ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : new Date()}
                                             value={endDate}
+                                            tileClassName={getCalendarTileClassName}
+                                            tileContent={getCalendarTileContent}
                                             onChange={(val) => setEndDate(val)}
                                         />
                                     </Col>
                                 </Row>
+
+                                {/* Occupancy Legend */}
+                                <div style={{ display: "flex", gap: "14px", justifyContent: "center", margin: "8px 0 12px 0", fontSize: "0.8rem", flexWrap: "wrap" }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#28a745", display: "inline-block" }}></span>
+                                        Disponible
+                                    </span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#fd7e14", display: "inline-block" }}></span>
+                                        Ocupación parcial
+                                    </span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#dc3545", display: "inline-block" }}></span>
+                                        Habitación seleccionada ocupada
+                                    </span>
+                                </div>
+
+                                {/* Live Occupancy Banner upon hover */}
+                                <div className="calendar-occupancy-banner" style={{ marginBottom: "16px" }}>
+                                    <div className="occupancy-banner-title">
+                                        <span>📅 Disponibilidad de Habitaciones en el Calendario</span>
+                                        {hoveredDateInfo && (
+                                            <span className="hovered-date-badge">{hoveredDateInfo.dateStr}</span>
+                                        )}
+                                    </div>
+                                    {hoveredDateInfo ? (
+                                        hoveredDateInfo.occupiedRooms.length > 0 ? (
+                                            <div className="occupancy-banner-content">
+                                                <span style={{ color: "#ff6b6b", fontWeight: 600 }}>
+                                                    Habitaciones reservadas en esta fecha ({hoveredDateInfo.occupiedRooms.length}):{" "}
+                                                </span>
+                                                {hoveredDateInfo.occupiedRooms.join(", ")}
+                                            </div>
+                                        ) : (
+                                            <div className="occupancy-banner-content" style={{ color: "#51cf66" }}>
+                                                ✓ Todas las habitaciones se encuentran disponibles en este día.
+                                            </div>
+                                        )
+                                    ) : (
+                                        <div className="occupancy-banner-content" style={{ opacity: 0.8 }}>
+                                            Pasa el cursor sobre cualquier fecha del calendario para ver el detalle de habitaciones reservadas.
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Price breakdown */}
                                 <div

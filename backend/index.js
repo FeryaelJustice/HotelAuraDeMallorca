@@ -3448,22 +3448,14 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
         }
         const currentUser = userRows[0];
 
-        // 2. Comprobar disponibilidad de la habitacion en las nuevas fechas
+        // 2. Comprobar disponibilidad de la habitacion en las nuevas fechas (misma logica estricta que /checkBookingAvailability)
         const [availRows] = await req.dbConnectionPool.promise().query(
             `SELECT id FROM booking 
              WHERE room_id = ? 
                AND is_cancelled = 0
-               AND (
-                 (booking_start_date <= ? AND booking_end_date > ?)
-                 OR (booking_start_date < ? AND booking_end_date >= ?)
-                 OR (booking_start_date >= ? AND booking_end_date <= ?)
-               )`,
-            [
-                original.room_id,
-                formattedStartDate, formattedStartDate,
-                formattedEndDate, formattedEndDate,
-                formattedStartDate, formattedEndDate,
-            ],
+               AND booking_start_date < ? 
+               AND booking_end_date > ?`,
+            [original.room_id, formattedEndDate, formattedStartDate],
         );
 
         if (availRows && availRows.length > 0) {
@@ -3473,8 +3465,9 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
             });
         }
 
-        // 3. Crear la NUEVA reserva de forma transaccional
-        await req.dbConnectionPool.promise().beginTransaction();
+        // 3. Crear la NUEVA reserva de forma transaccional usando la conexion dedicada del request
+        const conn = req.dbConnection;
+        await conn.promise().beginTransaction();
         let newBookingId = null;
         try {
             // A. Insertar nueva fila en booking (preservando la original intacta)
@@ -3482,7 +3475,7 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
                 INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date, cancellation_deadline, is_cancelled)
                 VALUES (?, ?, ?, ?, ?, DATE_SUB(?, INTERVAL 3 DAY), 0)
             `;
-            const [bookingInsertRes] = await req.dbConnectionPool.promise().query(insertBookingSql, [
+            const [bookingInsertRes] = await conn.promise().query(insertBookingSql, [
                 req.id,
                 original.plan_id,
                 original.room_id,
@@ -3494,13 +3487,13 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
             newBookingId = bookingInsertRes.insertId;
 
             // B. Clonar servicios vinculados de la reserva original
-            await req.dbConnectionPool.promise().query(
+            await conn.promise().query(
                 "INSERT INTO booking_service (booking_id, service_id) SELECT ?, service_id FROM booking_service WHERE booking_id = ?",
                 [newBookingId, originalBookingID],
             );
 
             // C. Clonar huespedes vinculados de la reserva original
-            await req.dbConnectionPool.promise().query(
+            await conn.promise().query(
                 "INSERT INTO booking_guest (booking_id, guest_id) SELECT ?, guest_id FROM booking_guest WHERE booking_id = ?",
                 [newBookingId, originalBookingID],
             );
@@ -3511,7 +3504,7 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
                 INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id, payment_status)
                 VALUES (?, ?, ?, CURDATE(), ?, 'PAID')
             `;
-            const [paymentInsertRes] = await req.dbConnectionPool.promise().query(insertPaymentSql, [
+            const [paymentInsertRes] = await conn.promise().query(insertPaymentSql, [
                 req.id,
                 newBookingId,
                 effectiveAmount,
@@ -3522,27 +3515,31 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
 
             // E. Si es Stripe, vincular el transaction_id
             if (Number(paymentMethodID) === 1 && paymentTransactionID) {
-                await req.dbConnectionPool.promise().query(
+                await conn.promise().query(
                     "INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)",
                     [newPaymentId, paymentTransactionID],
                 );
             }
 
-            // Confirmar transaccion
-            await req.dbConnectionPool.promise().commit();
+            // Confirmar transaccion antes de operaciones externas
+            await conn.promise().commit();
         } catch (txErr) {
-            await req.dbConnectionPool.promise().rollback();
+            try {
+                await conn.promise().rollback();
+            } catch (rbErr) {
+                console.error("Error doing rollback in duplicateBooking:", rbErr);
+            }
             throw txErr;
         }
 
-        // 4. Actualizar contador de reservas del usuario
+        // 4. Actualizar contador de reservas del usuario (no bloqueante para la respuesta si falla)
         try {
             await addBookingCountToUser(req.id, req.dbConnectionPool);
         } catch (cntErr) {
             console.warn("Advertencia actualizando contador de reservas:", cntErr);
         }
 
-        // 5. Enviar correo de confirmacion de la nueva reserva al cliente
+        // 5. Enviar correo de confirmacion de la nueva reserva al cliente (no bloqueante)
         if (currentUser && currentUser.user_email) {
             try {
                 const payMethodLabel = Number(paymentMethodID) === 1 ? "Tarjeta (Stripe)" : "Pago en Recepción";
