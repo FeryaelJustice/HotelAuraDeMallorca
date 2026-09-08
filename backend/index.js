@@ -68,7 +68,10 @@ const multerStorageForUserPic = multer.diskStorage({
         return cb(null, pathDest);
     },
     filename: function (req, file, cb) {
-        const rawName = (req && req.dni ? req.dni : file.originalname.replace(fileExtensionRegex, "")) || "user";
+        const rawName =
+            (req && req.dni
+                ? req.dni
+                : file.originalname.replace(fileExtensionRegex, "")) || "user";
         const sanitized = rawName.replace(/[^a-zA-Z0-9_-]/g, "");
         return cb(null, `${sanitized || "profile"}.webp`);
     },
@@ -76,11 +79,20 @@ const multerStorageForUserPic = multer.diskStorage({
 
 // Filtro de tipos de imagen autorizados para Multer
 const multerImageFileFilter = function (req, file, cb) {
-    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    const allowedMimeTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/jpg",
+    ];
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file format. Only JPEG, PNG and WEBP are allowed."));
+        cb(
+            new Error(
+                "Invalid file format. Only JPEG, PNG and WEBP are allowed.",
+            ),
+        );
     }
 };
 
@@ -172,7 +184,7 @@ app.use(
     helmet({
         contentSecurityPolicy: false, // Evita romper CDNs externos, Stripe y Google reCAPTCHA
         crossOriginResourcePolicy: { policy: "cross-origin" }, // Permite servir multimedia al frontend
-    })
+    }),
 );
 
 // PARSEO DE PETICIONES HTTP
@@ -199,7 +211,8 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
     message: {
         status: "error",
-        message: "Demasiados intentos de autenticacion. Por favor, reintente en 15 minutos.",
+        message:
+            "Demasiados intentos de autenticacion. Por favor, reintente en 15 minutos.",
     },
 });
 
@@ -208,14 +221,20 @@ const authLimiter = rateLimit({
 // Por que: Garantiza que solo aplicaciones autorizadas (SPA de produccion/desarrollo) accedan al API.
 const allowedOrigins = [
     process.env.FRONT_URL,
-    process.env.CORS_ORIGIN_FRONT_URL ? `https://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
-    process.env.CORS_ORIGIN_FRONT_URL ? `http://${process.env.CORS_ORIGIN_FRONT_URL}` : null,
+    process.env.CORS_ORIGIN_FRONT_URL
+        ? `https://${process.env.CORS_ORIGIN_FRONT_URL}`
+        : null,
+    process.env.CORS_ORIGIN_FRONT_URL
+        ? `http://${process.env.CORS_ORIGIN_FRONT_URL}`
+        : null,
     "https://hotel-aura-de-mallorca.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
-].filter(Boolean).map(origin => origin.trim().replace(/^["']|["']$/g, ""));
+]
+    .filter(Boolean)
+    .map((origin) => origin.trim().replace(/^["']|["']$/g, ""));
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -226,7 +245,11 @@ const corsOptions = {
         } catch {
             isVercel = false;
         }
-        if (allowedOrigins.indexOf(origin) !== -1 || isVercel || process.env.NODE_ENV !== "production") {
+        if (
+            allowedOrigins.indexOf(origin) !== -1 ||
+            isVercel ||
+            process.env.NODE_ENV !== "production"
+        ) {
             return callback(null, true);
         }
         return callback(new Error("CORS policy: Not allowed by CORS"));
@@ -267,8 +290,12 @@ const pool = mysql.createPool(dbConfig);
 pool.query(
     "INSERT IGNORE INTO payment_method (id, payment_method_name) VALUES (1, 'Stripe'), (2, 'Hotel Reception')",
     (err) => {
-        if (err) console.warn("[DB INIT] Advertencia en comprobacion de payment_method:", err.message);
-    }
+        if (err)
+            console.warn(
+                "[DB INIT] Advertencia en comprobacion de payment_method:",
+                err.message,
+            );
+    },
 );
 
 pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
@@ -277,19 +304,27 @@ pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
             "ALTER TABLE promotion ADD COLUMN is_active BOOLEAN DEFAULT TRUE, ADD COLUMN is_visible BOOLEAN DEFAULT TRUE",
             (alterErr) => {
                 if (alterErr) {
-                    console.warn("[DB INIT] No se pudieron anadir columnas is_active / is_visible a promotion:", alterErr.message);
+                    console.warn(
+                        "[DB INIT] No se pudieron anadir columnas is_active / is_visible a promotion:",
+                        alterErr.message,
+                    );
                 } else {
-                    console.log("[DB INIT] Columnas is_active e is_visible anadidas exitosamente a promotion.");
+                    console.log(
+                        "[DB INIT] Columnas is_active e is_visible anadidas exitosamente a promotion.",
+                    );
                 }
-            }
+            },
         );
     }
 });
 
 // Clave secreta para firma y verificacion de JSON Web Tokens (JWT)
-const jwtSecretKey = process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
+const jwtSecretKey =
+    process.env.JWT_SECRET || "hotel-aura-secure-jwt-secret-key";
 if (!process.env.JWT_SECRET) {
-    console.warn("[SECURITY WARNING] JWT_SECRET is not configured in .env. Using fallback.");
+    console.warn(
+        "[SECURITY WARNING] JWT_SECRET is not configured in .env. Using fallback.",
+    );
 }
 
 // Helper: Extraccion de token JWT
@@ -336,34 +371,39 @@ const verifyUser = (req, res, next) => {
             LEFT JOIN role r ON r.id = ur.role_id 
             WHERE (u.access_token = ? OR u.id = ?) AND u.isEnabled = 1
         `;
-        req.dbConnectionPool.query(sql, [token, decoded.userID || 0], (queryErr, result) => {
-            if (queryErr) {
-                console.error("Token verification DB error:", queryErr);
-                return res.status(500).json({
-                    status: "error",
-                    message: "Database error verifying credentials.",
-                });
-            }
-
-            if (result && result.length > 0) {
-                if (result[0].user_verified == 1) {
-                    req.id = decoded.userID || result[0].id;
-                    req.dni = result[0].user_dni;
-                    req.userRole = result[0].role_name || "CLIENT";
-                    next();
-                } else {
-                    return res.status(403).json({
+        req.dbConnectionPool.query(
+            sql,
+            [token, decoded.userID || 0],
+            (queryErr, result) => {
+                if (queryErr) {
+                    console.error("Token verification DB error:", queryErr);
+                    return res.status(500).json({
                         status: "error",
-                        message: "Token is valid, but user is not verified.",
+                        message: "Database error verifying credentials.",
                     });
                 }
-            } else {
-                return res.status(401).json({
-                    status: "error",
-                    message: "Session is invalid or expired, forbidden.",
-                });
-            }
-        });
+
+                if (result && result.length > 0) {
+                    if (result[0].user_verified == 1) {
+                        req.id = decoded.userID || result[0].id;
+                        req.dni = result[0].user_dni;
+                        req.userRole = result[0].role_name || "CLIENT";
+                        next();
+                    } else {
+                        return res.status(403).json({
+                            status: "error",
+                            message:
+                                "Token is valid, but user is not verified.",
+                        });
+                    }
+                } else {
+                    return res.status(401).json({
+                        status: "error",
+                        message: "Session is invalid or expired, forbidden.",
+                    });
+                }
+            },
+        );
     });
 };
 
@@ -393,7 +433,10 @@ const brevoClient = process.env.BREVO_API_KEY
 
 const mailHost = process.env.MAIL_HOST || "smtp.hostinger.com";
 const mailPort = Number(process.env.MAIL_PORT) || 465;
-const mailSecure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === "true" : mailPort === 465;
+const mailSecure =
+    process.env.MAIL_SECURE !== undefined
+        ? process.env.MAIL_SECURE === "true"
+        : mailPort === 465;
 
 const transporterConfig = {
     host: mailHost,
@@ -468,18 +511,19 @@ async function sendEmailNotification({
             return dest;
         });
 
-        const brevoResponse = await brevoClient.transactionalEmails.sendTransacEmail({
-            subject: subject,
-            htmlContent: html,
-            textContent: text || "",
-            sender: { name: senderName, email: senderEmail },
-            to: recipientList,
-            replyTo: replyTo
-                ? typeof replyTo === "string"
-                    ? { email: replyTo }
-                    : replyTo
-                : undefined,
-        });
+        const brevoResponse =
+            await brevoClient.transactionalEmails.sendTransacEmail({
+                subject: subject,
+                htmlContent: html,
+                textContent: text || "",
+                sender: { name: senderName, email: senderEmail },
+                to: recipientList,
+                replyTo: replyTo
+                    ? typeof replyTo === "string"
+                        ? { email: replyTo }
+                        : replyTo
+                    : undefined,
+            });
 
         const messageId =
             brevoResponse?.messageId ||
@@ -677,7 +721,10 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                         values,
                         (error, results) => {
                             if (error) {
-                                console.error("Registration insert error:", error);
+                                console.error(
+                                    "Registration insert error:",
+                                    error,
+                                );
                                 return res.status(500).json({
                                     status: "error",
                                     message: "Error creating account on server",
@@ -694,7 +741,10 @@ expressRouter.post("/register", authLimiter, (req, res) => {
                                 [userID],
                                 (roleErr) => {
                                     if (roleErr) {
-                                        console.error("Error setting client role:", roleErr);
+                                        console.error(
+                                            "Error setting client role:",
+                                            roleErr,
+                                        );
                                     }
                                 },
                             );
@@ -917,7 +967,8 @@ expressRouter.post("/login", authLimiter, (req, res) => {
                 message: "Email and password are required.",
             });
         }
-        const sql = "SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1";
+        const sql =
+            "SELECT * FROM app_user WHERE user_email = ? AND isEnabled = 1";
         req.dbConnectionPool.query(sql, [email], (error, results) => {
             if (error) {
                 console.error("Login DB query error:", error);
@@ -945,20 +996,26 @@ expressRouter.post("/login", authLimiter, (req, res) => {
                 if (user.user_verified !== 1) {
                     return res.status(403).json({
                         status: "error",
-                        message: "User account is not verified. Please check your email.",
+                        message:
+                            "User account is not verified. Please check your email.",
                     });
                 }
 
                 // Emision de token JWT fresco de 24 horas
                 const userID = user.id;
-                const freshToken = jwt.sign({ userID }, jwtSecretKey, { expiresIn: "1d" });
+                const freshToken = jwt.sign({ userID }, jwtSecretKey, {
+                    expiresIn: "1d",
+                });
 
                 req.dbConnectionPool.query(
                     "UPDATE app_user SET access_token = ? WHERE id = ?",
                     [freshToken, userID],
                     (updateErr) => {
                         if (updateErr) {
-                            console.error("Error updating user access token:", updateErr);
+                            console.error(
+                                "Error updating user access token:",
+                                updateErr,
+                            );
                         }
                         return res.status(200).json({
                             status: "success",
@@ -976,7 +1033,9 @@ expressRouter.post("/login", authLimiter, (req, res) => {
             });
         });
     } catch (error) {
-        return res.status(500).json({ status: "error", message: "Internal server error" });
+        return res
+            .status(500)
+            .json({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -989,15 +1048,23 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
     try {
         const token = extractTokenFromReq(req);
         if (!token) {
-            return res.status(401).json({ status: "error", message: "Token not provided" });
+            return res
+                .status(401)
+                .json({ status: "error", message: "Token not provided" });
         }
 
         jwt.verify(token, jwtSecretKey, (jwtErr, decoded) => {
             if (jwtErr) {
-                return res.status(401).json({ status: "error", message: "Token expired or invalid" });
+                return res
+                    .status(401)
+                    .json({
+                        status: "error",
+                        message: "Token expired or invalid",
+                    });
             }
 
-            const sql = "SELECT id, user_name, user_email, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1";
+            const sql =
+                "SELECT id, user_name, user_email, user_dni, user_verified FROM app_user WHERE access_token = ? AND isEnabled = 1";
             req.dbConnectionPool.query(sql, [token], (error, results) => {
                 if (error) {
                     console.error("Login by token DB error:", error);
@@ -1027,12 +1094,19 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
                         });
                     }
                 } else {
-                    return res.status(401).json({ status: "error", message: "Session expired or invalid" });
+                    return res
+                        .status(401)
+                        .json({
+                            status: "error",
+                            message: "Session expired or invalid",
+                        });
                 }
             });
         });
     } catch (error) {
-        return res.status(500).json({ status: "error", message: "Internal server error" });
+        return res
+            .status(500)
+            .json({ status: "error", message: "Internal server error" });
     } finally {
         req.dbConnectionPool.release();
     }
@@ -1083,7 +1157,9 @@ expressRouter.post("/editUserPassword", verifyUser, async (req, res) => {
         const userID = req.id;
         const password = req.body.password;
         if (!password) {
-            return res.status(400).send({ status: "error", message: "Password is required" });
+            return res
+                .status(400)
+                .send({ status: "error", message: "Password is required" });
         }
         const encryptedPassword = await bcrypt.hash(password, salt);
         let sql = "UPDATE app_user SET user_password = ? WHERE id = ?";
@@ -1109,7 +1185,9 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
     try {
         const { email } = req.body;
         if (!email) {
-            return res.status(400).json({ status: "error", message: "Email is required." });
+            return res
+                .status(400)
+                .json({ status: "error", message: "Email is required." });
         }
 
         // Busqueda de usuario sin filtrar respuesta para prevenir enumeracion
@@ -1118,7 +1196,8 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
                 if (!user) {
                     return res.status(200).json({
                         status: "success",
-                        message: "If that email is registered, a password reset token has been sent.",
+                        message:
+                            "If that email is registered, a password reset token has been sent.",
                     });
                 }
 
@@ -1130,21 +1209,26 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
                     .then((_) => {
                         return res.status(200).json({
                             status: "success",
-                            message: "If that email is registered, a password reset token has been sent.",
+                            message:
+                                "If that email is registered, a password reset token has been sent.",
                         });
                     })
                     .catch((err) => {
                         console.error("Error sending recovery email:", err);
                         return res
                             .status(500)
-                            .send({ status: "error", message: "Error sending recovery email." });
+                            .send({
+                                status: "error",
+                                message: "Error sending recovery email.",
+                            });
                     });
             })
             .catch((err) => {
                 console.error("findUserByEmail error:", err);
                 return res.status(200).json({
                     status: "success",
-                    message: "If that email is registered, a password reset token has been sent.",
+                    message:
+                        "If that email is registered, a password reset token has been sent.",
                 });
             });
     } catch (error) {
@@ -1205,7 +1289,10 @@ expressRouter.post("/recoverAccount", authLimiter, (req, res) => {
                             [encryptedPassword, id],
                             (updateErr) => {
                                 if (updateErr) {
-                                    console.error("Error updating recovered password:", updateErr);
+                                    console.error(
+                                        "Error updating recovered password:",
+                                        updateErr,
+                                    );
                                     return res.status(500).json({
                                         status: "error",
                                         message: "Error updating password.",
@@ -1297,10 +1384,15 @@ expressRouter.post("/getLoggedUserID", verifyUser, (req, res) => {
 expressRouter.get("/getUserRole/:id", verifyUser, (req, res) => {
     try {
         const targetID = parseInt(req.params.id, 10);
-        if (req.id !== targetID && req.userRole !== "ADMIN" && req.userRole !== "EMPLOYEE") {
+        if (
+            req.id !== targetID &&
+            req.userRole !== "ADMIN" &&
+            req.userRole !== "EMPLOYEE"
+        ) {
             return res.status(403).json({
                 status: "error",
-                message: "Access denied: You are not authorized to view this user's role.",
+                message:
+                    "Access denied: You are not authorized to view this user's role.",
             });
         }
 
@@ -1341,10 +1433,15 @@ expressRouter.get("/getUserRole/:id", verifyUser, (req, res) => {
 expressRouter.get("/loggedUser/:id", verifyUser, (req, res) => {
     try {
         const targetID = parseInt(req.params.id, 10);
-        if (req.id !== targetID && req.userRole !== "ADMIN" && req.userRole !== "EMPLOYEE") {
+        if (
+            req.id !== targetID &&
+            req.userRole !== "ADMIN" &&
+            req.userRole !== "EMPLOYEE"
+        ) {
             return res.status(403).json({
                 status: "error",
-                message: "Access denied: You are not authorized to view this profile.",
+                message:
+                    "Access denied: You are not authorized to view this profile.",
             });
         }
 
@@ -1453,7 +1550,7 @@ expressRouter.post(
                                         return reject(delError);
                                     }
                                     resolve();
-                                }
+                                },
                             );
                         } else {
                             resolve();
@@ -1511,11 +1608,20 @@ expressRouter.post(
 
             if (process.env.NEEDS_CLOUDINARY_FOR_MEDIA === "1") {
                 // Primary: Cloudinary cloud storage
-                const rawName = (req && req.dni ? req.dni : (req.file.originalname || "").replace(fileExtensionRegex, "")) || `user_${userID}`;
+                const rawName =
+                    (req && req.dni
+                        ? req.dni
+                        : (req.file.originalname || "").replace(
+                              fileExtensionRegex,
+                              "",
+                          )) || `user_${userID}`;
                 const sanitized = rawName.replace(/[^a-zA-Z0-9_-]/g, "");
                 const publicId = sanitized || `user_${userID}`;
 
-                const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer, publicId);
+                const cloudinaryResult = await uploadBufferToCloudinary(
+                    req.file.buffer,
+                    publicId,
+                );
                 mediaUrl = cloudinaryResult.secure_url;
                 uploadedFilename = `${publicId}.webp`;
             } else {
@@ -1525,7 +1631,11 @@ expressRouter.post(
             }
 
             await deleteUserMediaPromise(userID, req.dbConnectionPool);
-            await insertMediaAndUserMediaPromise(mediaUrl, userID, req.dbConnectionPool);
+            await insertMediaAndUserMediaPromise(
+                mediaUrl,
+                userID,
+                req.dbConnectionPool,
+            );
 
             return res.status(200).json({
                 status: "success",
@@ -1966,19 +2076,22 @@ expressRouter.get("/rooms", (req, res) => {
                             const nowYear = new Date().getFullYear();
                             let startVal = result.room_availability_start;
                             let endVal = result.room_availability_end;
-                            const parseYear = (d) => d ? new Date(d).getFullYear() : 0;
+                            const parseYear = (d) =>
+                                d ? new Date(d).getFullYear() : 0;
                             if (!startVal || parseYear(startVal) < nowYear) {
-                                startVal = '2024-01-01T00:00:00.000Z';
+                                startVal = "2024-01-01T00:00:00.000Z";
                             }
                             if (!endVal || parseYear(endVal) < nowYear + 1) {
-                                endVal = '2035-12-31T23:59:59.000Z';
+                                endVal = "2035-12-31T23:59:59.000Z";
                             }
 
                             return {
                                 ...result,
                                 room_availability_start: startVal,
                                 room_availability_end: endVal,
-                                imageURL: mediaObject ? mediaObject.mediaURL : (result.imageURL || 'media/img/room.webp'),
+                                imageURL: mediaObject
+                                    ? mediaObject.mediaURL
+                                    : result.imageURL || "media/img/room.webp",
                             };
                         });
                         // Return rooms
@@ -2265,19 +2378,23 @@ expressRouter.get("/services", (req, res) => {
                             const nowYear = new Date().getFullYear();
                             let startVal = result.serv_availability_start;
                             let endVal = result.serv_availability_end;
-                            const parseYear = (d) => d ? new Date(d).getFullYear() : 0;
+                            const parseYear = (d) =>
+                                d ? new Date(d).getFullYear() : 0;
                             if (!startVal || parseYear(startVal) < nowYear) {
-                                startVal = '2024-01-01T00:00:00.000Z';
+                                startVal = "2024-01-01T00:00:00.000Z";
                             }
                             if (!endVal || parseYear(endVal) < nowYear + 1) {
-                                endVal = '2035-12-31T23:59:59.000Z';
+                                endVal = "2035-12-31T23:59:59.000Z";
                             }
 
                             return {
                                 ...result,
                                 serv_availability_start: startVal,
                                 serv_availability_end: endVal,
-                                imageURL: mediaObject ? mediaObject.mediaURL : (result.imageURL || 'media/img/services.webp'),
+                                imageURL: mediaObject
+                                    ? mediaObject.mediaURL
+                                    : result.imageURL ||
+                                      "media/img/services.webp",
                             };
                         });
                         // Return services
@@ -2555,13 +2672,16 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                     let rEnd = formatDateStr(room.room_availability_end);
                     const nowYearStr = `${new Date().getFullYear()}-01-01`;
                     if (!rStart || rStart < nowYearStr) {
-                        rStart = '2024-01-01';
+                        rStart = "2024-01-01";
                     }
                     if (!rEnd || rEnd < nowYearStr) {
-                        rEnd = '2035-12-31';
+                        rEnd = "2035-12-31";
                     }
 
-                    if ((rStart && startDate < rStart) || (rEnd && endDate > rEnd)) {
+                    if (
+                        (rStart && startDate < rStart) ||
+                        (rEnd && endDate > rEnd)
+                    ) {
                         req.dbConnectionPool.release();
                         return res.status(200).json({
                             status: "success",
@@ -2593,11 +2713,15 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                         [roomID, endDate, startDate],
                         (overlapErr, overlapResults) => {
                             if (overlapErr) {
-                                console.error("Error checking overlap:", overlapErr);
+                                console.error(
+                                    "Error checking overlap:",
+                                    overlapErr,
+                                );
                                 req.dbConnectionPool.release();
                                 return res.status(500).json({
                                     status: "error",
-                                    message: "Error checking room booking overlap",
+                                    message:
+                                        "Error checking room booking overlap",
                                 });
                             }
 
@@ -2606,7 +2730,8 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                                 return res.status(200).json({
                                     status: "success",
                                     isAvailable: false,
-                                    message: "Cannot book these dates; they're occupied",
+                                    message:
+                                        "Cannot book these dates; they're occupied",
                                 });
                             }
 
@@ -2616,9 +2741,9 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                                 isAvailable: true,
                                 message: "OK, room is available",
                             });
-                        }
+                        },
                     );
-                }
+                },
             );
         } else {
             // General availability check across any room
@@ -2678,7 +2803,7 @@ expressRouter.post("/checkBookingAvailability", (req, res) => {
                         isAvailable: false,
                         message: "No rooms available on those dates",
                     });
-                }
+                },
             );
         }
     } catch (error) {
@@ -3251,18 +3376,24 @@ async function createOrSelectGuests(guests, connection) {
         if (!guests || !Array.isArray(guests) || guests.length === 0) {
             return [];
         }
-        const existingGuests = guests.filter((guest) => guest.id !== null && guest.id !== undefined);
+        const existingGuests = guests.filter(
+            (guest) => guest.id !== null && guest.id !== undefined,
+        );
         const existingGuestIds = existingGuests.map((guest) => guest.id);
 
         const [guestIdMap, guestsToInsert] = await Promise.all([
             selectGuestIds(existingGuestIds, connection),
             insertGuests(
-                guests.filter((guest) => guest.id === null || guest.id === undefined),
+                guests.filter(
+                    (guest) => guest.id === null || guest.id === undefined,
+                ),
                 connection,
             ),
         ]);
 
-        const uniqueGuestIds = Array.from(new Set(guestIdMap.concat(guestsToInsert)));
+        const uniqueGuestIds = Array.from(
+            new Set(guestIdMap.concat(guestsToInsert)),
+        );
         return uniqueGuestIds;
     } catch (error) {
         console.error("Error in createOrSelectGuests:", error);
@@ -3317,7 +3448,10 @@ function insertGuests(guestsToInsert, connection) {
                 } else {
                     const count = guestsToInsert.length;
                     const firstId = result.insertId;
-                    const insertedIds = Array.from({ length: count }, (_, i) => firstId + i);
+                    const insertedIds = Array.from(
+                        { length: count },
+                        (_, i) => firstId + i,
+                    );
                     resolve(insertedIds);
                 }
             });
@@ -3366,7 +3500,11 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
                             bookingId,
                             servicesIDs,
                         );
-                        await insertBookingGuests(connection, bookingId, guestIds);
+                        await insertBookingGuests(
+                            connection,
+                            bookingId,
+                            guestIds,
+                        );
 
                         connection.commit((commitErr) => {
                             if (commitErr) {
@@ -3379,7 +3517,9 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
                         });
                     } catch (subErr) {
                         connection.rollback(() =>
-                            reject(`Error inserting related booking details: ${subErr}`),
+                            reject(
+                                `Error inserting related booking details: ${subErr}`,
+                            ),
                         );
                     }
                 });
@@ -3392,7 +3532,11 @@ async function createBooking(booking, guestIds, servicesIDs, connection) {
 
 function insertBookingServices(connection, bookingId, servicesIDs) {
     try {
-        if (!servicesIDs || !Array.isArray(servicesIDs) || servicesIDs.length === 0) {
+        if (
+            !servicesIDs ||
+            !Array.isArray(servicesIDs) ||
+            servicesIDs.length === 0
+        ) {
             return Promise.resolve();
         }
         const query =
@@ -3723,8 +3867,15 @@ expressRouter.post("/captchaSiteVerify", authLimiter, async (req, res) => {
         // The secret key must ONLY be read from server environment variables
         const captchaSecret = process.env.reCAPTCHA_SECRET_KEY;
         if (!captchaSecret) {
-            console.error("reCAPTCHA server secret key is not set in environment");
-            return res.status(500).json({ success: false, message: "reCAPTCHA server misconfiguration" });
+            console.error(
+                "reCAPTCHA server secret key is not set in environment",
+            );
+            return res
+                .status(500)
+                .json({
+                    success: false,
+                    message: "reCAPTCHA server misconfiguration",
+                });
         }
 
         const reCaptchaURLEndpoint =
@@ -3745,7 +3896,9 @@ expressRouter.post("/captchaSiteVerify", authLimiter, async (req, res) => {
         } else {
             res.status(400).json({
                 success: false,
-                errors: verificationResponse.data ? verificationResponse.data["error-codes"] : null,
+                errors: verificationResponse.data
+                    ? verificationResponse.data["error-codes"]
+                    : null,
             });
         }
     } catch (error) {
@@ -3978,23 +4131,34 @@ expressRouter.get("/weather", (req, res) => {
 // PROMOTIONS
 // Get promos: soporta ?visible=true para seccion publica web
 expressRouter.get("/promotions", (req, res) => {
-    const onlyVisible = req.query.visible === "true" || req.query.visible === "1";
-    let sql = "SELECT * FROM promotion WHERE (is_active IS NULL OR is_active = 1)";
+    const onlyVisible =
+        req.query.visible === "true" || req.query.visible === "1";
+    let sql =
+        "SELECT * FROM promotion WHERE (is_active IS NULL OR is_active = 1)";
     if (onlyVisible) {
         sql += " AND (is_visible IS NULL OR is_visible = 1)";
     }
-    sql += " AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY discount_price DESC";
+    sql +=
+        " AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY discount_price DESC";
 
     req.dbConnectionPool.query(sql, (err, results) => {
         if (err) {
-            req.dbConnectionPool.query("SELECT * FROM promotion", (fallbackErr, fallbackResults) => {
-                if (fallbackErr) {
+            req.dbConnectionPool.query(
+                "SELECT * FROM promotion",
+                (fallbackErr, fallbackResults) => {
+                    if (fallbackErr) {
+                        return res
+                            .status(500)
+                            .send({
+                                status: "error",
+                                message: "Internal server error",
+                            });
+                    }
                     return res
-                        .status(500)
-                        .send({ status: "error", message: "Internal server error" });
-                }
-                return res.status(200).send({ status: "success", data: fallbackResults });
-            });
+                        .status(200)
+                        .send({ status: "success", data: fallbackResults });
+                },
+            );
             return;
         }
         return res.status(200).send({ status: "success", data: results });
@@ -4005,18 +4169,38 @@ expressRouter.get("/promotions", (req, res) => {
 expressRouter.post("/checkPromoCode", (req, res) => {
     const code = req.body && req.body.code ? String(req.body.code).trim() : "";
     if (!code) {
-        return res.status(400).json({ status: "error", message: "El código de promoción es requerido" });
+        return res
+            .status(400)
+            .json({
+                status: "error",
+                message: "El código de promoción es requerido",
+            });
     }
-    const sql = "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (end_date IS NULL OR end_date >= CURDATE())";
+    const sql =
+        "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (start_date IS NULL OR start_date <= CURDATE()) AND (end_date IS NULL OR end_date >= CURDATE())";
     req.dbConnectionPool.query(sql, [code], (err, results) => {
         if (err) {
             console.error("Error verificando cupon:", err);
-            return res.status(500).json({ status: "error", message: "Error en base de datos" });
+            return res
+                .status(500)
+                .json({ status: "error", message: "Error en base de datos" });
         }
         if (results && results.length > 0) {
-            return res.status(200).json({ status: "success", valid: true, promotion: results[0] });
+            return res
+                .status(200)
+                .json({
+                    status: "success",
+                    valid: true,
+                    promotion: results[0],
+                });
         }
-        return res.status(200).json({ status: "success", valid: false, message: "Cupón no encontrado, expirado o inactivo" });
+        return res
+            .status(200)
+            .json({
+                status: "success",
+                valid: false,
+                message: "Cupón no encontrado, expirado o inactivo",
+            });
     });
 });
 expressRouter.get("/get-promo-discount/:id", (req, res) => {
@@ -4084,13 +4268,18 @@ expressRouter.post("/getUserAssociatedPromoCode", (req, res) => {
         [userID],
         (err, results) => {
             if (err) {
-                console.error("Error fetching user associated promo code:", err);
+                console.error(
+                    "Error fetching user associated promo code:",
+                    err,
+                );
                 return res.status(500).send({
                     status: "error",
                     message: "Internal server error",
                 });
             }
-            return res.status(200).send({ status: "success", results: results || [] });
+            return res
+                .status(200)
+                .send({ status: "success", results: results || [] });
         },
     );
 });
