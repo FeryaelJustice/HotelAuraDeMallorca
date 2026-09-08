@@ -63,7 +63,6 @@
     "modal_user_register_password_placeholder": "Enter your password",
     "modal_user_register_repeatpassword_label": "Repeat Password",
     "modal_user_register_repeatpassword_placeholder": "Enter your password again",
-    "modal_user_register_wantsToRegisterWithQR": "¿Want to register with QR? It will register with the email and DNI that you put, with the password to 1234.",
     "modal_user_register_send": "Register",
     "modal_user_editprofile_title": "Edit Profile",
     "modal_user_editprofile_send": "Save",

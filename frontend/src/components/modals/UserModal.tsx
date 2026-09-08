@@ -14,9 +14,7 @@ import { UserRoles } from '../../constants';
 import './UserModal.css'
 
 import { useTranslation } from "react-i18next";
-import {QRCodeSVG} from 'qrcode.react';
 import { EventEmitter, Events } from "./../../events/events";
-// import { QrScanner } from '@yudiel/react-qr-scanner';
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -324,36 +322,6 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
     const [userRegisterPasswordsVisibility, setUserRegisterPasswordsVisiblity] = useState({ passwordVisible: false, repeatPasswordVisible: false });
     const [captchaRegisterValid, setCaptchaRegisterValid] = useState(false);
     const [captchaRegisterError, setCaptchaRegisterError] = useState(false);
-    // QR
-    const [formWantsQRRegister, setFormWantsQRRegister] = useState(false);
-    const qrData = {
-        user_name: 'usuario',
-        user_surnames: 'usuario',
-        user_password: '1234',
-        user_verified: 0,
-        user_email: userRegister.email,
-        user_dni: userRegister.dni,
-        endpointUrl_register: API_URL + '/register',
-        endPointUrl_login: API_URL + '/login',
-    };
-    const handleFormWantsQRRegister = (e: any) => {
-        setFormWantsQRRegister(!formWantsQRRegister);
-        // setShowQRCameraReader(true)
-        console.log(e.type)
-    }
-    const [imagePicQR, setImagePicQR] = useState<string | ArrayBuffer | null>()
-    const [imagePicQRPreview, setImagePicQRPreview] = useState<string | ArrayBuffer | null>()
-
-    const handlePicQRChange = (e: any) => {
-        const file = e.target.files[0];
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            setImagePicQRPreview(reader.result);
-            setImagePicQR(reader.result)
-        }
-        reader.readAsDataURL(file)
-    }
 
     const handleRegisterChange = (event: any) => {
         setUserRegister({ ...userRegister, [event.target.name]: event.target.value });
@@ -374,30 +342,17 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             formValidity = ((form.checkValidity() && captchaRegisterValid) || import.meta.env.MODE == 'development') && (passwordsMatching)
             setRegisterValidated(formValidity);
             if (formValidity) {
-                if (!formWantsQRRegister) {
-                    // api call
-                    serverAPI.post('/register', userRegister).then(res => {
-                        alert(res.data.message)
-                        resetUserModal();
-                        onClose();
-                    }).catch(err => {
-                        console.log(err)
-                        if (err.response.data && err.response.data.message) {
-                            alert(err.response.data.message)
-                        }
-                    })
-                } else {
-                    serverAPI.post('/registerWithQR', { imagePicQR }).then(res => {
-                        alert(res.data.message)
-                        resetUserModal();
-                        onClose();
-                    }).catch(err => {
-                        console.log(err)
-                        if (err.response.data && err.response.data.message) {
-                            alert(err.response.data.message)
-                        }
-                    })
-                }
+                // api call
+                serverAPI.post('/register', userRegister).then(res => {
+                    alert(res.data.message)
+                    resetUserModal();
+                    onClose();
+                }).catch(err => {
+                    console.log(err)
+                    if (err.response.data && err.response.data.message) {
+                        alert(err.response.data.message)
+                    }
+                })
             } else {
                 if (!passwordsMatching) {
                     alert("Passwords don't match!")
@@ -685,97 +640,58 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                             <Form.Control.Feedback type='invalid'>Please put a valid DNI</Form.Control.Feedback>
                         </Form.Group>
 
-                        {!formWantsQRRegister ? (
-                            <div>
-                                <Form.Group className="mb-3" controlId="formName">
-                                    <Form.Label>{t("modal_user_register_name_label")}</Form.Label>
-                                    <Form.Control type="text" name='name' placeholder={t("modal_user_register_name_placeholder")} onChange={handleRegisterChange} />
-                                    <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
-                                </Form.Group>
+                        <div>
+                            <Form.Group className="mb-3" controlId="formName">
+                                <Form.Label>{t("modal_user_register_name_label")}</Form.Label>
+                                <Form.Control type="text" name='name' placeholder={t("modal_user_register_name_placeholder")} onChange={handleRegisterChange} />
+                                <Form.Control.Feedback type='invalid'>Name is not valid</Form.Control.Feedback>
+                            </Form.Group>
 
-                                <Form.Group className="mb-3" controlId="formSurnames">
-                                    <Form.Label>{t("modal_user_register_surnames_label")}</Form.Label>
-                                    <Form.Control type="text" name='surnames' placeholder={t("modal_user_register_surnames_placeholder")} onChange={handleRegisterChange} />
-                                    <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
-                                </Form.Group>
+                            <Form.Group className="mb-3" controlId="formSurnames">
+                                <Form.Label>{t("modal_user_register_surnames_label")}</Form.Label>
+                                <Form.Control type="text" name='surnames' placeholder={t("modal_user_register_surnames_placeholder")} onChange={handleRegisterChange} />
+                                <Form.Control.Feedback type='invalid'>Surnames is not valid</Form.Control.Feedback>
+                            </Form.Group>
 
-                                <Form.Group className="mb-3" controlId="formPassword">
-                                    <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
-                                    <InputGroup>
-                                        <Form.Control type={userRegisterPasswordsVisibility.passwordVisible ? 'text' : 'password'} name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
-                                        <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, passwordVisible: !userRegisterPasswordsVisibility.passwordVisible }) }}>
-                                            {userRegisterPasswordsVisibility.passwordVisible ? <FaEyeSlash /> : <FaEye />}
-                                        </Button>
-                                    </InputGroup>
-                                    <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
-                                </Form.Group>
+                            <Form.Group className="mb-3" controlId="formPassword">
+                                <Form.Label>{t("modal_user_register_password_label")}</Form.Label>
+                                <InputGroup>
+                                    <Form.Control type={userRegisterPasswordsVisibility.passwordVisible ? 'text' : 'password'} name='password' placeholder={t("modal_user_register_password_placeholder")} onChange={handleRegisterChange} required />
+                                    <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, passwordVisible: !userRegisterPasswordsVisibility.passwordVisible }) }}>
+                                        {userRegisterPasswordsVisibility.passwordVisible ? <FaEyeSlash /> : <FaEye />}
+                                    </Button>
+                                </InputGroup>
+                                <Form.Control.Feedback type='invalid'>Password is not valid</Form.Control.Feedback>
+                            </Form.Group>
 
-                                <Form.Group className="mb-3" controlId="formRepeatPassword">
-                                    <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
-                                    <InputGroup>
-                                        <Form.Control type={userRegisterPasswordsVisibility.repeatPasswordVisible ? 'text' : 'password'} name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
-                                        <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, repeatPasswordVisible: !userRegisterPasswordsVisibility.repeatPasswordVisible }) }}>
-                                            {userRegisterPasswordsVisibility.repeatPasswordVisible ? <FaEyeSlash /> : <FaEye />}
-                                        </Button>
-                                    </InputGroup>
-                                    <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
-                                </Form.Group>
-                            </div>
-                        ) : (
-                            <div>
-                                <Form.Group className='mb-3'>
-                                    {userRegister.email != '' && userRegister.dni != '' && (
-                                        <div>
-                                            <QRCodeSVG value={JSON.stringify(qrData)} size={128} />
-                                            <img src={typeof imagePicQRPreview === 'string' ? imagePicQRPreview : ''} width={140} height={140} alt='uploaded image picture QR' style={{ marginLeft: '20px', verticalAlign: 'none' }} />
-                                            <br />
-                                            <br />
-                                            <Form.Label htmlFor=''>Upload your QR</Form.Label>
-                                            <Form.Control type='file' accept='image/*' name='qrPreview' id="qrPreview" onChange={handlePicQRChange} />
-                                        </div>
-                                    )}
-                                </Form.Group>
-                            </div>
-                        )}
+                            <Form.Group className="mb-3" controlId="formRepeatPassword">
+                                <Form.Label>{t("modal_user_register_repeatpassword_label")}</Form.Label>
+                                <InputGroup>
+                                    <Form.Control type={userRegisterPasswordsVisibility.repeatPasswordVisible ? 'text' : 'password'} name='repeatpassword' placeholder={t("modal_user_register_repeatpassword_placeholder")} onChange={handleRegisterChange} required />
+                                    <Button onClick={() => { setUserRegisterPasswordsVisiblity({ ...userRegisterPasswordsVisibility, repeatPasswordVisible: !userRegisterPasswordsVisibility.repeatPasswordVisible }) }}>
+                                        {userRegisterPasswordsVisibility.repeatPasswordVisible ? <FaEyeSlash /> : <FaEye />}
+                                    </Button>
+                                </InputGroup>
+                                <Form.Control.Feedback type='invalid'>Passwords don't match</Form.Control.Feedback>
+                            </Form.Group>
+                        </div>
 
-                        <Form.Group className='mb-3' controlId='formWantsQRRegister'>
-                            <Form.Check
-                                type="checkbox"
-                                label={t("modal_user_register_wantsToRegisterWithQR")}
-                                name="formWantsQRRegister"
-                                checked={formWantsQRRegister}
-                                onChange={(e: any) => handleFormWantsQRRegister(e)}
-                            />
-                        </Form.Group>
-
-                        {import.meta.env.MODE != 'development' && (<div className='captcha'>
+                        {import.meta.env.MODE != 'development' && (<div className='captcha user-modal-captcha'>
                             <ReCAPTCHA
                                 sitekey={captchaKey as string}
                                 onChange={(token) => onRegisterCaptchaChange(token ?? '')}
                             />
                             {captchaRegisterError ? (
-                                <Alert key='danger' variant='danger'>
+                                <Alert key='danger' variant='danger' style={{ marginTop: '8px', width: '100%' }}>
                                     Captcha error
                                 </Alert>
                             ) : null}
                         </div>)}
 
-                        {/*showQRCameraReader && (
-                            <div style={{ width: '200px', height: '200px' }}>
-                                <QrScanner
-                                    onDecode={(result) => console.log(result)}
-                                    onError={(error) => console.log(error?.message)}
-                                />
-                            </div>
-                        )*/}
-
                         <div style={{
-                            display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                            display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: '1rem'
                         }}>
-                            {/*formWantsQRRegister && (
-                                <Button type='button' variant='warning' style={{ marginBottom: '12px' }} onClick={() => { setShowQRCameraReader(!showQRCameraReader) }}>{!showQRCameraReader ? `Open` : `Close`} your camera {!showQRCameraReader && `and scan your QR`}</Button>
-                            )*/}
-                            <Button variant="primary" type="submit">
+                            <Button variant="primary" type="submit" className="btn-login-submit">
                                 {t("modal_user_register_send")}
                             </Button>
                         </div>
