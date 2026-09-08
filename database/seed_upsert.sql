@@ -134,15 +134,59 @@ ON DUPLICATE KEY UPDATE
     updated_at = CURRENT_TIMESTAMP;
 
 -- 10. PROMOTIONS
-INSERT INTO promotion (id, code, discount_price, name, description, start_date, end_date)
+INSERT INTO promotion (id, code, discount_price, name, description, start_date, end_date, is_active, is_visible)
 VALUES
-    (1, 'WELCOME10', 10.00, 'Welcome Promo', 'Enjoy 10% discount on your reservation', '2024-01-01', '2035-12-31'),
-    (2, 'SUMMERVIP', 15.00, 'Summer VIP', 'Special 15% discount for early season bookings', '2024-01-01', '2035-12-31'),
-    (3, 'AURA20', 20.00, 'Aura Special', '20% off on all luxury rooms', '2024-01-01', '2035-12-31')
+    (1, 'WELCOME10', 10.00, 'Welcome Promo', 'Enjoy 10% discount on your reservation', '2024-01-01', '2035-12-31', 1, 1),
+    (2, 'SUMMERVIP', 15.00, 'Summer VIP', 'Special 15% discount for early season bookings', '2024-01-01', '2035-12-31', 1, 1),
+    (3, 'AURA20', 20.00, 'Aura Special', '20% off on all luxury rooms', '2024-01-01', '2035-12-31', 1, 1),
+    (4, 'SUMMER2026', 30.00, 'Summer discount', 'Get 30% off on your stay!', '2026-06-21', '2026-09-21', 1, 1)
 ON DUPLICATE KEY UPDATE
     code = VALUES(code),
     discount_price = VALUES(discount_price),
     name = VALUES(name),
     description = VALUES(description),
     start_date = VALUES(start_date),
-    end_date = VALUES(end_date);
+    end_date = VALUES(end_date),
+    is_active = VALUES(is_active),
+    is_visible = VALUES(is_visible);
+
+-- 11. USUARIO ADMINISTRADOR Y ROLES
+-- Que hace: Siembra un usuario administrador maestro verificado y habilitado con rol ADMIN.
+-- Por que: Permite el acceso directo al panel administrativo (/admin) y a la validacion de reservas.
+-- Nota: Password hasheado para 'AuraAdmin2026!'
+INSERT INTO app_user (
+    id,
+    user_name,
+    user_surnames,
+    user_email,
+    user_dni,
+    user_password,
+    user_verified,
+    isEnabled,
+    enabledByAdmin
+)
+VALUES (
+    100,
+    'Admin',
+    'Hotel Aura de Mallorca',
+    'admin@hotelaurademallorca.com',
+    '00000000A',
+    '$2b$10$BW9pwcY1.mHWAlpCTVB7f.8lyaH/5Ad1y02JhFmvZo8JLGWq5STEC',
+    TRUE,
+    TRUE,
+    TRUE
+)
+ON DUPLICATE KEY UPDATE
+    user_name = VALUES(user_name),
+    user_email = VALUES(user_email),
+    user_verified = TRUE,
+    isEnabled = TRUE,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- Asignacion de rol ADMIN (role_id = 2) al usuario administrador
+INSERT INTO user_role (id, user_id, role_id)
+VALUES (100, 100, 2)
+ON DUPLICATE KEY UPDATE
+    role_id = 2,
+    updated_at = CURRENT_TIMESTAMP;
+

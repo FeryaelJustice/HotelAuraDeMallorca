@@ -3587,6 +3587,126 @@ expressRouter.get("/bookings", verifyAdmin, (req, res) => {
     }
 });
 
+// Endpoint: GET /api/bookingByLocator/:locator
+// Que hace: Busca una reserva por su localizador escaneado (ej: AURA-BK-14) o ID numerico directo.
+// Por que: Permite a recepcion / admin validar y cargar los datos de huespedes, habitacion y estado en un solo paso.
+expressRouter.get("/bookingByLocator/:locator", verifyAdmin, (req, res) => {
+    try {
+        const rawLocator = String(req.params.locator || "").trim();
+        let bookingId = null;
+
+        // Si viene en formato localizador industrial AURA-BK-<id> o AURA-BK-<id>-...
+        const match = rawLocator.match(/AURA-BK-(\d+)/i);
+        if (match) {
+            bookingId = parseInt(match[1], 10);
+        } else if (/^\d+$/.test(rawLocator)) {
+            bookingId = parseInt(rawLocator, 10);
+        }
+
+        if (!bookingId || isNaN(bookingId)) {
+            return res.status(400).json({
+                status: "error",
+                message: "Formato de localizador o identificador de reserva no valido.",
+            });
+        }
+
+        const sql = `
+            SELECT 
+                b.id as booking_id,
+                b.user_id,
+                b.plan_id,
+                b.room_id,
+                b.booking_start_date,
+                b.booking_end_date,
+                b.cancellation_deadline,
+                b.is_cancelled,
+                b.created_at,
+                u.user_name,
+                u.user_surnames,
+                u.user_email,
+                u.user_dni,
+                r.room_name,
+                r.room_price,
+                p.plan_name,
+                p.plan_price,
+                pay.id as payment_id,
+                pay.payment_amount,
+                pay.payment_method_id,
+                pm.payment_method_name
+            FROM booking b
+            LEFT JOIN app_user u ON u.id = b.user_id
+            LEFT JOIN room r ON r.id = b.room_id
+            LEFT JOIN plan p ON p.id = b.plan_id
+            LEFT JOIN payment pay ON pay.booking_id = b.id
+            LEFT JOIN payment_method pm ON pm.id = pay.payment_method_id
+            WHERE b.id = ?
+        `;
+
+        req.dbConnectionPool.query(sql, [bookingId], (err, results) => {
+            if (err) {
+                console.error("Error looking up booking by locator:", err);
+                return res.status(500).json({
+                    status: "error",
+                    message: "Error interno al consultar la reserva.",
+                });
+            }
+
+            if (!results || results.length === 0) {
+                return res.status(404).json({
+                    status: "error",
+                    message: `No se encontro ninguna reserva con el localizador #${bookingId}.`,
+                });
+            }
+
+            const bookingData = results[0];
+
+            // Obtener huespedes vinculados a la reserva
+            const guestsSql = `
+                SELECT g.id, g.guest_name, g.guest_surnames, g.guest_email, g.isAdult, g.isSystemUser
+                FROM guest g
+                INNER JOIN booking_guest bg ON bg.guest_id = g.id
+                WHERE bg.booking_id = ?
+            `;
+
+            req.dbConnectionPool.query(guestsSql, [bookingId], (guestErr, guestRows) => {
+                if (guestErr) {
+                    console.error("Error looking up booking guests:", guestErr);
+                }
+
+                // Obtener servicios vinculados a la reserva
+                const servicesSql = `
+                    SELECT s.id, s.serv_name, s.serv_price
+                    FROM service s
+                    INNER JOIN booking_service bs ON bs.service_id = s.id
+                    WHERE bs.booking_id = ?
+                `;
+
+                req.dbConnectionPool.query(servicesSql, [bookingId], (servErr, servRows) => {
+                    return res.status(200).json({
+                        status: "success",
+                        message: "Reserva localizada correctamente",
+                        data: {
+                            ...bookingData,
+                            guests: guestRows || [],
+                            services: servRows || [],
+                            locator: `AURA-BK-${bookingId}`,
+                        },
+                    });
+                });
+            });
+        });
+    } catch (error) {
+        console.error("Catch in /bookingByLocator:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor.",
+        });
+    } finally {
+        req.dbConnectionPool.release();
+    }
+});
+
+
 expressRouter.get("/bookingsByUser", verifyUser, (req, res) => {
     try {
         // AND is_cancelled = 0

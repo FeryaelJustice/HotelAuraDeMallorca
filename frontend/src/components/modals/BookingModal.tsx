@@ -193,6 +193,7 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
     const [currentStep, setCurrentStep] = useState(cookies.token ? BookingSteps.StepPlan : BookingSteps.StepPersonalData);
     const [userAllData, setUserAllData] = useState<User>();
     const [bookingFinalMessage, setBookingFinalMessage] = useState("");
+    const [createdBookingId, setCreatedBookingId] = useState<number | null>(null);
     const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>("");
     const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1);
     const [userSelectedPromoIsAssociatedWithUser, setUserSelectedPromoIsAssociatedWithUser] = useState<boolean>(false);
@@ -1202,10 +1203,13 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             const bookingResponse = await serverAPI.post('/createBooking', bookingData);
 
             if (bookingResponse.data.status === "success") {
+                const newBookingId = bookingResponse.data.insertId;
+                setCreatedBookingId(newBookingId);
+
                 // Insert promo applied with booking if its the case
                 if (promoID != -1) {
                     // Promo was found
-                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: bookingResponse.data.insertId });
+                    await serverAPI.post('/saveBookingWithPromoApplied', { promoID: promoID, bookingID: newBookingId });
                 }
 
                 // Make the API call for payment
@@ -2056,16 +2060,19 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
 
                             {publicPromotions && publicPromotions.length > 0 && (
                                 <div style={{ marginBottom: '24px' }}>
-                                    <h4 style={{ fontSize: '1.05rem', color: '#c5a059', marginBottom: '12px' }}>
+                                    <h4 style={{ fontSize: '1.05rem', color: '#c5a059', marginBottom: '14px', fontWeight: 700 }}>
                                         ✨ Cupones Disponibles para Seleccionar:
                                     </h4>
-                                    <div className="promo-cards-grid">
+                                    <div className="promo-cards-luxury-grid">
                                         {publicPromotions.map((promo) => {
                                             const isSelected = userSelectedPromoCode.trim().toUpperCase() === (promo.code || '').trim().toUpperCase();
+                                            const startStr = promo.start_date ? new Date(promo.start_date).toLocaleDateString('es-ES') : null;
+                                            const endStr = promo.end_date ? new Date(promo.end_date).toLocaleDateString('es-ES') : null;
+
                                             return (
                                                 <div
                                                     key={promo.id}
-                                                    className={`promo-card-luxury ${isSelected ? 'selected' : ''}`}
+                                                    className={`promo-luxury-card ${isSelected ? 'is-selected' : ''}`}
                                                     onClick={() => {
                                                         if (isSelected) {
                                                             setUserSelectedPromoCode('');
@@ -2073,28 +2080,43 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                                             setUserSelectedPromoID(-1);
                                                             setPromoValidationStatus(null);
                                                         } else {
-                                                            setUserSelectedPromoCode(promo.code);
-                                                            validatePromoCodeManual(promo.code);
+                                                            setUserSelectedPromoCode(promo.code || '');
+                                                            validatePromoCodeManual(promo.code || '');
                                                         }
                                                     }}
                                                     role="button"
                                                     tabIndex={0}
                                                 >
-                                                    <div className="promo-card-luxury-badge">
+                                                    <span className="promo-luxury-badge">
                                                         -{promo.discount_price}%
+                                                    </span>
+
+                                                    <div className="promo-luxury-header">
+                                                        <span className="promo-luxury-name">
+                                                            {promo.name || promo.code}
+                                                        </span>
+                                                        <span className="promo-luxury-code-box">
+                                                            <span>🎟️</span>
+                                                            <strong>{promo.code}</strong>
+                                                        </span>
                                                     </div>
-                                                    <div className="promo-card-luxury-name">
-                                                        {promo.name || promo.code}
-                                                    </div>
+
                                                     {promo.description && (
-                                                        <div className="promo-card-luxury-desc">
+                                                        <p className="promo-luxury-desc">
                                                             {promo.description}
+                                                        </p>
+                                                    )}
+
+                                                    {(startStr || endStr) && (
+                                                        <div className="promo-luxury-validity">
+                                                            <span>⏳</span>
+                                                            <span>
+                                                                Válido: {startStr ? startStr : 'Ahora'} - {endStr ? endStr : 'Indefinido'}
+                                                            </span>
                                                         </div>
                                                     )}
-                                                    <div className="promo-card-luxury-code">
-                                                        CÓDIGO: <strong>{promo.code}</strong>
-                                                    </div>
-                                                    <div className="promo-card-luxury-action">
+
+                                                    <div className="promo-luxury-action-badge">
                                                         {isSelected ? '✓ Cupón Seleccionado' : 'Clic para Seleccionar'}
                                                     </div>
                                                 </div>
@@ -2159,11 +2181,10 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                                         </div>
                                     )}
 
-                                    <div className='bookingNavButtons' style={{ marginTop: '24px' }}>
-                                        <Button variant="secondary" type='button' onClick={goToPreviousStep} className="btn-luxury-secondary">
+                                    <div className='bookingNavButtons'>
+                                        <Button variant="secondary" onClick={goToPreviousStep} className="btn-luxury-secondary">
                                             ← {t("modal_booking_previousstep")}
                                         </Button>
-
                                         <Button variant='primary' type='submit' className="btn-luxury-primary">
                                             {t("modal_booking_nextstep")} →
                                         </Button>
@@ -2173,106 +2194,100 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                         </div>
                     )}
 
-                    {/* Step 7: Payment Method */}
-                    {currentStep === BookingSteps.StepPaymentMethod && (
+                    {/* Step 7: Payment */}
+                    {currentStep === BookingSteps.StepPayment && (
                         <div>
                             <h2>{t("modal_booking_payment_title")}</h2>
-                            {process.env.IS_PRODUCTION !== 'true' && (
-                                <div className="portfolio-showcase-payment-disclaimer">
-                                    <h5>⚠️ Entorno de Demostración - Portafolio de Fernando González Serrano</h5>
-                                    <p>
-                                        Hotel Aura de Mallorca es una plataforma demostrativa que forma parte del portafolio profesional de Fernando González Serrano. El código fuente, la lógica transaccional y la arquitectura están completamente preparados y listos para producción real.
-                                    </p>
-                                    <p>
-                                        Cualquier pago procesado a través de Stripe se efectúa en modo de prueba o con cargos puramente demostrativos reembolsables.
-                                    </p>
-                                </div>
-                            )}
-                            <p style={{ opacity: 0.85, fontSize: '0.9rem', marginBottom: '18px' }}>
-                                Selecciona cómo deseas abonar tu estancia. Tu reserva se confirmará al instante.
+                            <p style={{ opacity: 0.85, fontSize: '0.92rem', marginBottom: '20px' }}>
+                                Selecciona cómo deseas abonar tu estancia en el Hotel Aura de Mallorca.
                             </p>
 
-                            <div className="cards-payment" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '20px' }}>
-                                <div
-                                    className={`booking-luxury-card ${checkedPaymentMethod === 1 ? 'selected' : ''}`}
-                                    onClick={() => paymentMethodSelected(1)}
-                                    role="button"
-                                    tabIndex={0}
-                                    style={{ background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))', minHeight: '110px' }}
-                                >
-                                    <div className="booking-card-overlay" style={{ padding: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <div>
-                                                <h4 className="booking-card-title" style={{ margin: 0, fontSize: '1.05rem' }}>💳 Tarjeta de Crédito / Débito</h4>
-                                                <span className="booking-card-subtitle" style={{ fontSize: '0.78rem' }}>Pasarela Stripe cifrada SSL</span>
-                                            </div>
-                                            <div className={`booking-card-pill ${checkedPaymentMethod === 1 ? 'selected' : ''}`}>
-                                                {checkedPaymentMethod === 1 ? '✓ Activo' : 'Elegir'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div
-                                    className={`booking-luxury-card ${checkedPaymentMethod === 2 ? 'selected' : ''}`}
-                                    onClick={() => paymentMethodSelected(2)}
-                                    role="button"
-                                    tabIndex={0}
-                                    style={{ background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))', minHeight: '110px' }}
-                                >
-                                    <div className="booking-card-overlay" style={{ padding: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <div>
-                                                <h4 className="booking-card-title" style={{ margin: 0, fontSize: '1.05rem' }}>🏨 Pagar en Recepción</h4>
-                                                <span className="booking-card-subtitle" style={{ fontSize: '0.78rem' }}>Abona a tu llegada en el hotel</span>
-                                            </div>
-                                            <div className={`booking-card-pill ${checkedPaymentMethod === 2 ? 'selected' : ''}`}>
-                                                {checkedPaymentMethod === 2 ? '✓ Activo' : 'Elegir'}
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div className="booking-showcase-disclaimer">
+                                <span style={{ fontSize: '1.4rem' }}>⚠️</span>
+                                <div>
+                                    <strong>AVISO IMPORTANTE DE DEMOSTRACIÓN / SHOWCASE:</strong>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.86rem', lineHeight: '1.45' }}>
+                                        Esta aplicación es un proyecto portfolio demostrativo. Por favor, <strong>NO introduzcas datos de tarjetas reales</strong>. Si deseas completar la reserva de prueba de manera inmediata y gratuita, utiliza la opción <strong>&quot;Pagar en Recepción&quot;</strong>.
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className='payment-selected'>
+                            <div className="cards-payment">
+                                {paymentMethods.map((method) => {
+                                    const isSelected = checkedPaymentMethod === method.id;
+                                    return (
+                                        <div
+                                            key={method.id}
+                                            className={`payment-method-card ${isSelected ? 'is-selected' : ''}`}
+                                            onClick={() => setCheckedPaymentMethod(method.id)}
+                                            role="button"
+                                            tabIndex={0}
+                                        >
+                                            <div>
+                                                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
+                                                    {method.name === 'Stripe' ? 'Tarjeta Bancaria (Stripe)' : (method.name === 'Hotel Reception' ? 'Pagar en Recepción' : method.name)}
+                                                </h4>
+                                                <span style={{ fontSize: '0.8rem', opacity: 0.75 }}>
+                                                    {method.name === 'Stripe' ? 'Pago seguro en línea' : 'Sin cargos por adelantado'}
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                checked={isSelected}
+                                                onChange={() => setCheckedPaymentMethod(method.id)}
+                                                style={{ width: '18px', height: '18px', accentColor: '#0d6efd' }}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="payment-action-area" style={{ marginTop: '24px' }}>
                                 {checkedPaymentMethod === 1 ? (
-                                    <div className="stripe" style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                        <h4 style={{ fontSize: '1.05rem', marginBottom: '12px' }}>Pago con Tarjeta Segura</h4>
-                                        {process.env.STRIPE_PUBLISHABLE_KEY ? (
+                                    <div>
+                                        {stripeOptions && process.env.STRIPE_PUBLISHABLE_KEY && (
                                             <Elements stripe={stripePromise} options={stripeOptions}>
-                                                <StripeCheckoutForm
-                                                    plan={checkedPlan ? checkedPlan : -1}
-                                                    stripeOptions={stripeOptions}
-                                                    totalPriceToPay={totalPriceToPay}
-                                                    onPay={bookingProcess}
-                                                />
+                                                <CheckoutForm onPay={async (paymentData: any) => {
+                                                    await handleSubmitBooking(paymentData);
+                                                }} />
                                             </Elements>
-                                        ) : (
-                                            <div style={{ textAlign: 'center', padding: '16px' }}>
-                                                <p style={{ opacity: 0.9 }}>Pasarela Stripe simulada de prueba. Haz clic para formalizar tu reserva:</p>
+                                        )}
+                                        {!process.env.STRIPE_PUBLISHABLE_KEY && (
+                                            <div style={{ textAlign: 'center', padding: '20px' }}>
+                                                <p style={{ opacity: 0.85, marginBottom: '14px' }}>
+                                                    Modo simulación Stripe activo. Haz clic para confirmar tu reserva de demostración:
+                                                </p>
                                                 <Button
                                                     variant="primary"
-                                                    className="btn-luxury-primary"
+                                                    size="lg"
                                                     disabled={isProcessingBooking}
-                                                    onClick={() => bookingProcess(null)}
+                                                    onClick={() => handleSubmitBooking(null)}
+                                                    className="btn-luxury-primary"
                                                 >
-                                                    {isProcessingBooking ? 'Procesando reserva...' : `Confirmar y Pagar ${totalPriceToPay.toFixed(2)} €`}
+                                                    {isProcessingBooking ? (
+                                                        <span>
+                                                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" style={{ marginRight: '8px' }} />
+                                                            Confirmando reserva...
+                                                        </span>
+                                                    ) : (
+                                                        `Confirmar Reserva (${totalPriceToPay.toFixed(2)} €)`
+                                                    )}
                                                 </Button>
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
-                                        <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>🏨 Pago al Check-in en el Hotel</h4>
-                                        <p style={{ fontSize: '0.9rem', opacity: 0.85, maxWidth: '480px', margin: '0 auto 16px auto' }}>
-                                            Tu reserva se confirmará inmediatamente sin cargos anticipados. Podrás abonar el total de <strong>{totalPriceToPay.toFixed(2)} €</strong> en efectivo o tarjeta a tu llegada.
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                                        <p style={{ opacity: 0.85, marginBottom: '14px' }}>
+                                            Has elegido pagar cómodamente en la recepción del hotel a tu llegada.
                                         </p>
                                         <Button
                                             variant="primary"
-                                            className="btn-luxury-primary"
+                                            size="lg"
                                             disabled={isProcessingBooking}
-                                            onClick={() => bookingProcess(null)}
-                                            style={{ minWidth: '240px' }}
+                                            onClick={() => handleSubmitBooking(null)}
+                                            className="btn-luxury-primary"
                                         >
                                             {isProcessingBooking ? (
                                                 <span>
@@ -2301,45 +2316,105 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                             <h2>{t("modal_booking_completed_title")}</h2>
                             <p style={{ color: '#51cf66', fontWeight: 600 }}>{bookingFinalMessage}</p>
 
-                            <div className="booking-digital-pass">
-                                <h4 style={{ margin: 0, fontWeight: 700, letterSpacing: '1px' }}>HOTEL AURA DE MALLORCA</h4>
-                                <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', opacity: 0.8 }}>Pase de Check-in Digital</span>
-
-                                <div className="booking-qr-wrapper">
-                                    <QRCodeSVG
-                                        value={`AURA-MALLORCA-BK-${selectedRoomID || 'RES'}-${Date.now()}`}
-                                        size={140}
-                                        level="H"
-                                    />
-                                </div>
-
-                                <div className="booking-pass-details">
-                                    <div className="booking-pass-field">
-                                        <span className="booking-pass-field-label">Titular</span>
-                                        <span className="booking-pass-field-value">{userPersonalData.name || 'Huésped'} {userPersonalData.surnames}</span>
+                            {/* Pass Container with printable ID */}
+                            <div id="aura-printable-hotel-pass" className="booking-digital-pass" style={{ textAlign: 'left', position: 'relative' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #c5a059', paddingBottom: '12px', marginBottom: '16px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontWeight: 800, letterSpacing: '1px', color: '#c5a059', fontSize: '1.3rem' }}>
+                                            HOTEL AURA DE MALLORCA
+                                        </h3>
+                                        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>
+                                            Boutique & Spa Retreat - Pase Oficial de Huésped
+                                        </span>
                                     </div>
-                                    <div className="booking-pass-field">
-                                        <span className="booking-pass-field-label">Plan</span>
-                                        <span className="booking-pass-field-value">{checkedPlan === 2 ? 'VIP Luxury' : 'Básico'}</span>
-                                    </div>
-                                    <div className="booking-pass-field">
-                                        <span className="booking-pass-field-label">Check-in</span>
-                                        <span className="booking-pass-field-value">{startDate ? new Date(startDate as any).toLocaleDateString('es-ES') : '-'}</span>
-                                    </div>
-                                    <div className="booking-pass-field">
-                                        <span className="booking-pass-field-label">Check-out</span>
-                                        <span className="booking-pass-field-value">{endDate ? new Date(endDate as any).toLocaleDateString('es-ES') : '-'}</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', display: 'block', opacity: 0.7 }}>
+                                            Localizador Oficial
+                                        </span>
+                                        <strong style={{ fontSize: '1.05rem', color: '#0d6efd', fontFamily: 'monospace' }}>
+                                            AURA-BK-{createdBookingId || selectedRoomID || '101'}
+                                        </strong>
                                     </div>
                                 </div>
 
-                                <div style={{ marginTop: '16px' }}>
-                                    <Button variant="outline-primary" size="sm" onClick={() => window.print()} style={{ marginRight: '8px' }}>
-                                        🖨️ Imprimir Pase
+                                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div className="booking-qr-wrapper" style={{ margin: 0, padding: '10px', background: '#ffffff', borderRadius: '10px', display: 'inline-block' }}>
+                                        <QRCodeSVG
+                                            value={`AURA-BK-${createdBookingId || selectedRoomID || '101'}`}
+                                            size={135}
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                        <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#334155', fontWeight: 800, marginTop: '4px' }}>
+                                            AURA-BK-{createdBookingId || selectedRoomID || '101'}
+                                        </div>
+                                    </div>
+
+                                    <div className="booking-pass-details" style={{ flex: 1, margin: 0 }}>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Titular de la Reserva</span>
+                                            <span className="booking-pass-field-value">
+                                                {userPersonalData.name || 'Huésped'} {userPersonalData.surnames}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Documento DNI / Pasaporte</span>
+                                            <span className="booking-pass-field-value">
+                                                {userPersonalData.dni || '-'}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Habitación Asignada</span>
+                                            <span className="booking-pass-field-value">
+                                                {rooms.find(r => r.id === selectedRoomID)?.name || 'Suite Seleccionada'}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Régimen & Plan</span>
+                                            <span className="booking-pass-field-value">
+                                                {plans.find(p => p.id === checkedPlan)?.name || (checkedPlan === 2 ? 'VIP Luxury' : 'Básico')}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Fecha de Entrada (Check-in)</span>
+                                            <span className="booking-pass-field-value" style={{ color: '#10b981' }}>
+                                                {startDate ? new Date(startDate as any).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Fecha de Salida (Check-out)</span>
+                                            <span className="booking-pass-field-value" style={{ color: '#ef4444' }}>
+                                                {endDate ? new Date(endDate as any).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Huéspedes Totales</span>
+                                            <span className="booking-pass-field-value">
+                                                {adults} {adults === 1 ? 'Adulto' : 'Adultos'}{children > 0 ? `, ${children} Niños` : ''}
+                                            </span>
+                                        </div>
+                                        <div className="booking-pass-field">
+                                            <span className="booking-pass-field-label">Total Liquidado</span>
+                                            <span className="booking-pass-field-value">
+                                                {Number(totalPriceToPay).toFixed(2)} €
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                                    <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        onClick={() => window.print()}
+                                        style={{ fontWeight: 700, borderRadius: '8px', padding: '6px 16px' }}
+                                    >
+                                        🖨️ Imprimir Pase de Check-in
                                     </Button>
                                 </div>
                             </div>
 
-                            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                            <div className="no-print" style={{ textAlign: 'center', marginTop: '20px' }}>
                                 <Button variant='primary' onClick={goToNextStep} className="btn-luxury-primary">
                                     {t("modal_booking_completed_close")}
                                 </Button>

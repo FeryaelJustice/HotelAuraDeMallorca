@@ -944,3 +944,180 @@
     gap: 12px;
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
 }
+
+/* Luxury Promo Coupon Selection Cards */
+.promo-cards-luxury-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.promo-luxury-card {
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1.5px solid transparent;
+}
+
+[data-bs-theme="dark"] .promo-luxury-card {
+    background: #131b2e;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+[data-bs-theme="light"] .promo-luxury-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #0f172a;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.promo-luxury-card:hover {
+    transform: translateY(-3px);
+}
+
+[data-bs-theme="dark"] .promo-luxury-card:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="light"] .promo-luxury-card:hover {
+    border-color: rgba(217, 119, 6, 0.5);
+    box-shadow: 0 8px 24px rgba(217, 119, 6, 0.08);
+}
+
+.promo-luxury-card.is-selected {
+    border-color: #f59e0b !important;
+}
+
+[data-bs-theme="dark"] .promo-luxury-card.is-selected {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(19, 27, 46, 0.95) 100%) !important;
+    box-shadow: 0 0 0 1px #f59e0b, 0 8px 25px rgba(245, 158, 11, 0.2) !important;
+}
+
+[data-bs-theme="light"] .promo-luxury-card.is-selected {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, #ffffff 100%) !important;
+    box-shadow: 0 0 0 1px #d97706, 0 8px 25px rgba(217, 119, 6, 0.14) !important;
+}
+
+.promo-luxury-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+.promo-luxury-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 65px;
+    margin-bottom: 12px;
+}
+
+.promo-luxury-name {
+    font-size: 1.12rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.promo-luxury-code-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    color: #d97706;
+}
+
+[data-bs-theme="dark"] .promo-luxury-code-box {
+    color: #fbbf24;
+}
+
+.promo-luxury-desc {
+    font-size: 0.86rem;
+    opacity: 0.85;
+    line-height: 1.45;
+    margin-bottom: 14px;
+}
+
+.promo-luxury-validity {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    opacity: 0.75;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    padding-top: 10px;
+    margin-bottom: 12px;
+}
+
+.promo-luxury-action-badge {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 7px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+}
+
+.promo-luxury-card.is-selected .promo-luxury-action-badge {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.promo-luxury-card:not(.is-selected) .promo-luxury-action-badge {
+    background: rgba(148, 163, 184, 0.12);
+    opacity: 0.85;
+}
+
+/* Printable Pass Layout and Isolation */
+@media print {
+    /* Hide everything except the hotel pass card */
+    body * {
+        visibility: hidden !important;
+    }
+
+    #aura-printable-hotel-pass,
+    #aura-printable-hotel-pass * {
+        visibility: visible !important;
+    }
+
+    #aura-printable-hotel-pass {
+        position: fixed !important;
+        left: 50% !important;
+        top: 20px !important;
+        transform: translateX(-50%) !important;
+        width: 180mm !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 24px !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 2px solid #0f172a !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        display: block !important;
+        page-break-inside: avoid !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}

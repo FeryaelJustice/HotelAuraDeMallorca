@@ -1,0 +1,255 @@
+/* ==========================================================================
+   HOTEL AURA DE MALLORCA - ADMIN PANEL & QR LOCATOR CHECK-IN
+   ========================================================================== */
+
+.admin-page {
+    min-height: 100vh;
+    padding-bottom: 5rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-page--dark {
+    background-color: #0b0f19;
+    color: #f1f5f9;
+}
+
+.admin-page--light {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.admin-hero {
+    position: relative;
+    padding: 4rem 1.5rem 2.5rem;
+    text-align: center;
+    background: radial-gradient(circle at 50% 25%, rgba(217, 119, 6, 0.15) 0%, transparent 70%);
+}
+
+.admin-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.25rem;
+}
+
+.admin-page--dark .admin-hero__badge {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+}
+
+.admin-page--light .admin-hero__badge {
+    background: rgba(217, 119, 6, 0.1);
+    border: 1px solid rgba(217, 119, 6, 0.25);
+    color: #b45309;
+}
+
+.admin-hero__title {
+    font-size: clamp(2rem, 4.5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 0.8rem;
+    letter-spacing: -0.02em;
+}
+
+.admin-hero__subtitle {
+    font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+    max-width: 650px;
+    margin: 0 auto;
+    opacity: 0.85;
+    line-height: 1.6;
+}
+
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* Tabs */
+.admin-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    padding-bottom: 12px;
+    overflow-x: auto;
+}
+
+.admin-tab-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-page--dark .admin-tab-btn {
+    color: #94a3b8;
+}
+
+.admin-page--light .admin-tab-btn {
+    color: #64748b;
+}
+
+.admin-page--dark .admin-tab-btn:hover {
+    color: #f1f5f9;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.admin-page--light .admin-tab-btn:hover {
+    color: #0f172a;
+    border-color: rgba(217, 119, 6, 0.3);
+}
+
+.admin-page--dark .admin-tab-btn.is-active {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #fbbf24;
+}
+
+.admin-page--light .admin-tab-btn.is-active {
+    background: rgba(217, 119, 6, 0.1);
+    border-color: #d97706;
+    color: #b45309;
+}
+
+/* Scanner Card */
+.admin-card {
+    border-radius: 20px;
+    padding: 2.2rem;
+    margin-bottom: 2.5rem;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.admin-page--dark .admin-card {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.admin-page--light .admin-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+}
+
+.admin-scanner-searchbox {
+    display: flex;
+    gap: 12px;
+    max-width: 680px;
+    margin-bottom: 1.5rem;
+}
+
+.admin-scanner-input {
+    font-family: monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+}
+
+.admin-camera-ready-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    margin-bottom: 2rem;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    color: #0284c7;
+}
+
+[data-bs-theme="dark"] .admin-camera-ready-notice {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+}
+
+/* Locator Booking Result */
+.admin-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    margin-bottom: 1.75rem;
+}
+
+.admin-grid-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.admin-info-box {
+    padding: 1.25rem;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-page--dark .admin-info-box {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-page--light .admin-info-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.admin-info-box-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.7;
+}
+
+.admin-info-box-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.admin-guest-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.92rem;
+}
+
+.admin-guest-table th,
+.admin-guest-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.admin-guest-table th {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+}
