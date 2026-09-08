@@ -231,7 +231,7 @@ const dbConfig = {
     connectionLimit: 100,
     connectTimeout: 30000,
     port: Number(process.env.DB_PORT) || 3306,
-    timezone: process.env.DB_TIMEZONE || "Europe/Madrid",
+    timezone: process.env.DB_TIMEZONE || "+02:00",
     ...(process.env.DB_SSL === "true" || process.env.DB_PORT == 4000
         ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
         : {}),

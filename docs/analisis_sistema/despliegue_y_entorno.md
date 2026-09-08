@@ -17,7 +17,7 @@ Este documento recopila la configuracion ambiental, topologia de red y el proces
 | `DB_PASSWORD` | Contrasena de la base de datos | `xxxx` |
 | `DB_NAME` | Nombre de la base de datos | `hotelaurademallorca` |
 | `DB_PORT` | Puerto de escucha de MySQL | `3306` |
-| `DB_TIMEZONE` | Zona horaria para consultas SQL | `+01:00` |
+| `DB_TIMEZONE` | Zona horaria para consultas SQL | `+02:00` |
 | `STRIPE_PRIVATE_KEY` | Clave secreta de Stripe | `sk_test_...` |
 | `STRIPE_PUBLIC_KEY` | Clave publica de Stripe | `pk_test_...` |
 | `BREVO_API_KEY` | Clave de API oficial de Brevo (v3) | `xkeysib-...` |
