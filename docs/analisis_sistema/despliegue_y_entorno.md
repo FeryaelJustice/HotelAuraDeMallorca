@@ -20,12 +20,12 @@ Este documento recopila la configuracion ambiental, topologia de red y el proces
 | `DB_TIMEZONE` | Zona horaria para consultas SQL | `+02:00` |
 | `STRIPE_PRIVATE_KEY` | Clave secreta de Stripe | `sk_test_...` |
 | `STRIPE_PUBLIC_KEY` | Clave publica de Stripe | `pk_test_...` |
-| `BREVO_API_KEY` | Clave de API oficial de Brevo (v3) | `xkeysib-...` |
-| `MAIL_HOST` | Host del servidor SMTP | `smtp-relay.brevo.com` |
-| `MAIL_PORT` | Puerto de escucha del servidor SMTP | `587` |
-| `MAIL_USERNAME` | Cuenta SMTP / usuario de Brevo | `nano9gs@hotmail.es` |
-| `MAIL_PASSWORD` | Credencial de autenticacion SMTP | `...` |
-| `MAIL_SENDER_EMAIL` | Remitente verificado en Brevo | `contact@feryaeljustice.dev` |
+| `MAIL_HOST` | Host del servidor SMTP (Hostinger) | `smtp.hostinger.com` |
+| `MAIL_PORT` | Puerto de escucha del servidor SMTP (SSL) | `465` |
+| `MAIL_SECURE` | Cifrado SSL nativo (true para puerto 465) | `true` |
+| `MAIL_USERNAME` | Buzon remitente de correo en Hostinger | `contact@feryaeljustice.dev` |
+| `MAIL_PASSWORD` | Contrasena del buzon de correo en Hostinger | `...` |
+| `MAIL_SENDER_EMAIL` | Direccion de remitente visible | `contact@feryaeljustice.dev` |
 | `MAIL_CONTACT_RECEIVERS` | Lista de destinatarios del formulario | Array JSON con direcciones |
 | `APP_NAME` | Nombre visible en cabeceras de correos | `Hotel Aura de Mallorca` |
 

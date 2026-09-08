@@ -338,9 +338,9 @@ const brevoClient = process.env.BREVO_API_KEY
     ? new BrevoClient({ apiKey: process.env.BREVO_API_KEY })
     : null;
 
-const mailHost = process.env.MAIL_HOST || "smtp-relay.brevo.com";
-const mailPort = Number(process.env.MAIL_PORT) || 587;
-const mailSecure = process.env.MAIL_SECURE === "true";
+const mailHost = process.env.MAIL_HOST || "smtp.hostinger.com";
+const mailPort = Number(process.env.MAIL_PORT) || 465;
+const mailSecure = process.env.MAIL_SECURE !== undefined ? process.env.MAIL_SECURE === "true" : mailPort === 465;
 
 const transporterConfig = {
     host: mailHost,
@@ -369,17 +369,17 @@ if (process.env.BREVO_API_KEY) {
                 `[MAIL] Advertencia SMTP (${error.code || "AUTH"}): ${error.message}`,
             );
             console.warn(
-                "[MAIL] Verifique MAIL_USERNAME y MAIL_PASSWORD o configure BREVO_API_KEY en backend/.env.",
+                "[MAIL] Verifique MAIL_USERNAME y MAIL_PASSWORD en backend/.env o en el panel de despliegue.",
             );
         } else {
             console.log(
-                "[MAIL] Servidor SMTP listo y autenticado (" + success + ").",
+                `[MAIL] Servidor SMTP listo y autenticado (${mailHost}:${mailPort} - ${success}).`,
             );
         }
     });
 } else {
     console.log(
-        "[MAIL] Modo desarrollo: Configure BREVO_API_KEY en backend/.env para enviar correos con Brevo.",
+        "[MAIL] Configure MAIL_USERNAME y MAIL_PASSWORD en backend/.env o panel de despliegue para enviar correos por SMTP.",
     );
 }
 
