@@ -298,14 +298,14 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 }
             }
 
-            const formattedStart = startDate.toISOString().split("T")[0];
-            const formattedEnd = endDate.toISOString().split("T")[0];
+            const formattedStart = extractFormattedDate(startDate);
+            const formattedEnd = extractFormattedDate(endDate);
 
             const payload = {
-                originalBookingID: bookingData?.id,
+                originalBookingID: Number(bookingData?.id),
                 startDate: formattedStart,
                 endDate: formattedEnd,
-                paymentMethodID: selectedPaymentMethod,
+                paymentMethodID: Number(selectedPaymentMethod),
                 paymentTransactionID: clientSecret,
                 amount: totalPrice,
             };
@@ -324,12 +324,25 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 onClose();
                 window.location.reload();
             } else {
-                setErrorMessage(response.data?.message || "No se pudo formalizar la nueva reserva.");
+                const failMsg = response.data?.message || "No se pudo formalizar la nueva reserva.";
+                setErrorMessage(failMsg);
+                await Swal.fire({
+                    title: "No se pudo crear la reserva",
+                    text: failMsg,
+                    icon: "error",
+                    confirmButtonColor: "#c5a059",
+                });
             }
         } catch (error: any) {
             console.error("Error al formalizar nueva reserva:", error);
-            const msg = error?.response?.data?.message || "Ocurrió un error al tramitar la reserva.";
+            const msg = error?.response?.data?.message || error?.message || "Ocurrió un error al tramitar la reserva.";
             setErrorMessage(msg);
+            await Swal.fire({
+                title: "Error al crear la reserva",
+                text: msg,
+                icon: "error",
+                confirmButtonColor: "#c5a059",
+            });
         } finally {
             setIsSubmitting(false);
         }

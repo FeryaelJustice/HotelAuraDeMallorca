@@ -3465,9 +3465,9 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
             });
         }
 
-        // 3. Crear la NUEVA reserva de forma transaccional usando la conexion dedicada del request
-        const conn = req.dbConnection;
-        await conn.promise().beginTransaction();
+        // 3. Crear la NUEVA reserva de forma transaccional usando la conexion dedicada
+        const conn = req.dbConnectionPool;
+        await conn.beginTransaction();
         let newBookingId = null;
         try {
             // A. Insertar nueva fila en booking (preservando la original intacta)
@@ -3475,7 +3475,7 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
                 INSERT INTO booking (user_id, plan_id, room_id, booking_start_date, booking_end_date, cancellation_deadline, is_cancelled)
                 VALUES (?, ?, ?, ?, ?, DATE_SUB(?, INTERVAL 3 DAY), 0)
             `;
-            const [bookingInsertRes] = await conn.promise().query(insertBookingSql, [
+            const [bookingInsertRes] = await conn.query(insertBookingSql, [
                 req.id,
                 original.plan_id,
                 original.room_id,
@@ -3487,85 +3487,81 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
             newBookingId = bookingInsertRes.insertId;
 
             // B. Clonar servicios vinculados de la reserva original
-            await conn.promise().query(
+            await conn.query(
                 "INSERT INTO booking_service (booking_id, service_id) SELECT ?, service_id FROM booking_service WHERE booking_id = ?",
-                [newBookingId, originalBookingID],
+                [newBookingId, Number(originalBookingID)],
             );
 
             // C. Clonar huespedes vinculados de la reserva original
-            await conn.promise().query(
+            await conn.query(
                 "INSERT INTO booking_guest (booking_id, guest_id) SELECT ?, guest_id FROM booking_guest WHERE booking_id = ?",
-                [newBookingId, originalBookingID],
+                [newBookingId, Number(originalBookingID)],
             );
 
             // D. Registrar el pago formal de la nueva reserva
-            const effectiveAmount = amount ? Number(amount) : 0;
+            const effectiveAmount = isNaN(Number(amount)) ? 0 : Number(amount);
             const insertPaymentSql = `
                 INSERT INTO payment (user_id, booking_id, payment_amount, payment_date, payment_method_id, payment_status)
                 VALUES (?, ?, ?, CURDATE(), ?, 'PAID')
             `;
-            const [paymentInsertRes] = await conn.promise().query(insertPaymentSql, [
+            const [paymentInsertRes] = await conn.query(insertPaymentSql, [
                 req.id,
                 newBookingId,
                 effectiveAmount,
-                paymentMethodID,
+                Number(paymentMethodID),
             ]);
 
             const newPaymentId = paymentInsertRes.insertId;
 
             // E. Si es Stripe, vincular el transaction_id
             if (Number(paymentMethodID) === 1 && paymentTransactionID) {
-                await conn.promise().query(
+                await conn.query(
                     "INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)",
-                    [newPaymentId, paymentTransactionID],
+                    [newPaymentId, String(paymentTransactionID)],
                 );
             }
 
-            // Confirmar transaccion antes de operaciones externas
-            await conn.promise().commit();
+            // Confirmar transaccion de base de datos
+            await conn.commit();
         } catch (txErr) {
             try {
-                await conn.promise().rollback();
+                await conn.rollback();
             } catch (rbErr) {
                 console.error("Error doing rollback in duplicateBooking:", rbErr);
             }
             throw txErr;
         }
 
-        // 4. Actualizar contador de reservas del usuario (no bloqueante para la respuesta si falla)
-        try {
-            await addBookingCountToUser(req.id, req.dbConnectionPool);
-        } catch (cntErr) {
-            console.warn("Advertencia actualizando contador de reservas:", cntErr);
-        }
+        // 4. Actualizar contador de reservas del usuario (en background, no bloqueante)
+        addBookingCountToUser(req.id, pool).catch((cntErr) => {
+            console.warn("Advertencia actualizando contador de reservas en background:", cntErr);
+        });
 
-        // 5. Enviar correo de confirmacion de la nueva reserva al cliente (no bloqueante)
+        // 5. Enviar correo de confirmacion de la nueva reserva al cliente (en background, no bloqueante para evitar timeouts HTTP)
         if (currentUser && currentUser.user_email) {
-            try {
-                const payMethodLabel = Number(paymentMethodID) === 1 ? "Tarjeta (Stripe)" : "Pago en Recepción";
-                await sendEmailNotification({
-                    to: currentUser.user_email,
-                    subject: `¡Tu nueva reserva #${newBookingId} está confirmada! - Hotel Aura de Mallorca`,
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                            <h2 style="color: #c5a059; margin-top: 0;">¡Reserva Confirmada!</h2>
-                            <p>Hola <strong>${currentUser.user_name || "Estimado/a cliente"}</strong>,</p>
-                            <p>Hemos creado tu nueva estancia a partir de tu configuración previa con el localizador <strong>#${newBookingId}</strong>.</p>
-                            <ul>
-                                <li><strong>Entrada (Check-in):</strong> ${formattedStartDate}</li>
-                                <li><strong>Salida (Check-out):</strong> ${formattedEndDate}</li>
-                                <li><strong>Método de Pago:</strong> ${payMethodLabel}</li>
-                                <li><strong>Total:</strong> ${Number(amount || 0).toFixed(2)} €</li>
-                            </ul>
-                            <p>Todos los servicios adicionales y huéspedes de tu estancia previa han sido transferidos a esta nueva reserva.</p>
-                            <p style="margin-top: 20px; color: #718096; font-size: 13px;">¡Te esperamos en Hotel Aura de Mallorca!</p>
-                        </div>
-                    `,
-                    text: `¡Tu nueva reserva #${newBookingId} del ${formattedStartDate} al ${formattedEndDate} está confirmada!\nTotal: ${Number(amount || 0).toFixed(2)} €\nMétodo: ${payMethodLabel}`,
-                });
-            } catch (mailErr) {
-                console.error("[MAIL] Error enviando confirmacion de reserva duplicada:", mailErr);
-            }
+            const payMethodLabel = Number(paymentMethodID) === 1 ? "Tarjeta (Stripe)" : "Pago en Recepción";
+            sendEmailNotification({
+                to: currentUser.user_email,
+                subject: `¡Tu nueva reserva #${newBookingId} está confirmada! - Hotel Aura de Mallorca`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <h2 style="color: #c5a059; margin-top: 0;">¡Reserva Confirmada!</h2>
+                        <p>Hola <strong>${currentUser.user_name || "Estimado/a cliente"}</strong>,</p>
+                        <p>Hemos creado tu nueva estancia a partir de tu configuración previa con el localizador <strong>#${newBookingId}</strong>.</p>
+                        <ul>
+                            <li><strong>Entrada (Check-in):</strong> ${formattedStartDate}</li>
+                            <li><strong>Salida (Check-out):</strong> ${formattedEndDate}</li>
+                            <li><strong>Método de Pago:</strong> ${payMethodLabel}</li>
+                            <li><strong>Total:</strong> ${Number(amount || 0).toFixed(2)} €</li>
+                        </ul>
+                        <p>Todos los servicios adicionales y huéspedes de tu estancia previa han sido transferidos a esta nueva reserva.</p>
+                        <p style="margin-top: 20px; color: #718096; font-size: 13px;">¡Te esperamos en Hotel Aura de Mallorca!</p>
+                    </div>
+                `,
+                text: `¡Tu nueva reserva #${newBookingId} del ${formattedStartDate} al ${formattedEndDate} está confirmada!\nTotal: ${Number(amount || 0).toFixed(2)} €\nMétodo: ${payMethodLabel}`,
+            }).catch((mailErr) => {
+                console.error("[MAIL] Error en background enviando confirmacion de reserva duplicada:", mailErr);
+            });
         }
 
         return res.status(200).json({
@@ -3577,7 +3573,7 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
         console.error("Error al duplicar reserva:", error);
         return res.status(500).json({
             status: "error",
-            message: error.message || "Error interno al crear la nueva reserva.",
+            message: error.sqlMessage || error.message || "Error interno al crear la nueva reserva.",
         });
     } finally {
         req.dbConnectionPool.release();
