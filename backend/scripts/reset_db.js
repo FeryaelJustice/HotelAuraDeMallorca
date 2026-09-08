@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { ensureAdminUser } from "../services/adminSeedService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,6 +101,10 @@ async function runReset() {
         // Execute the entire SQL script
         console.log("[RESET_DB] Executing schema creation and seed data insertion...");
         await connection.query(sqlContent);
+
+        // Step 3: Ensure Admin User exists via code with bcrypt and environment variables
+        console.log("[RESET_DB] Ensuring admin user exists and is synchronized...");
+        await ensureAdminUser(connection);
 
         console.log("[RESET_DB] SUCCESS! Database reset and seeded successfully.");
     } catch (error) {

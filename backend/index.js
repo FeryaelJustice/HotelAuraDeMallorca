@@ -27,6 +27,7 @@ import { BrevoClient } from "@getbrevo/brevo";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { v2 as cloudinary } from "cloudinary";
+import { ensureAdminUser } from "./services/adminSeedService.js";
 
 dotenv.config();
 
@@ -292,6 +293,14 @@ pool.query("SHOW COLUMNS FROM promotion LIKE 'is_active'", (err, rows) => {
             },
         );
     }
+});
+
+// Verificacion y sincronizacion por codigo del usuario administrador mediante variables de entorno
+ensureAdminUser(pool).catch((adminErr) => {
+    console.warn(
+        "[DB INIT] Advertencia en comprobacion/sincronizacion de administrador:",
+        adminErr.message,
+    );
 });
 
 // Clave secreta para firma y verificacion de JSON Web Tokens (JWT)
@@ -867,12 +876,10 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
 
         jwt.verify(token, jwtSecretKey, (jwtErr, decoded) => {
             if (jwtErr) {
-                return res
-                    .status(401)
-                    .json({
-                        status: "error",
-                        message: "Token expired or invalid",
-                    });
+                return res.status(401).json({
+                    status: "error",
+                    message: "Token expired or invalid",
+                });
             }
 
             const sql =
@@ -906,12 +913,10 @@ expressRouter.post("/loginByToken", authLimiter, (req, res) => {
                         });
                     }
                 } else {
-                    return res
-                        .status(401)
-                        .json({
-                            status: "error",
-                            message: "Session expired or invalid",
-                        });
+                    return res.status(401).json({
+                        status: "error",
+                        message: "Session expired or invalid",
+                    });
                 }
             });
         });
@@ -1027,12 +1032,10 @@ expressRouter.post("/sendRecoverAccountMail", authLimiter, (req, res) => {
                     })
                     .catch((err) => {
                         console.error("Error sending recovery email:", err);
-                        return res
-                            .status(500)
-                            .send({
-                                status: "error",
-                                message: "Error sending recovery email.",
-                            });
+                        return res.status(500).send({
+                            status: "error",
+                            message: "Error sending recovery email.",
+                        });
                     });
             })
             .catch((err) => {
@@ -3443,7 +3446,8 @@ expressRouter.get("/bookingByLocator/:locator", verifyAdmin, (req, res) => {
         if (!bookingId || isNaN(bookingId)) {
             return res.status(400).json({
                 status: "error",
-                message: "Formato de localizador o identificador de reserva no valido.",
+                message:
+                    "Formato de localizador o identificador de reserva no valido.",
             });
         }
 
@@ -3505,32 +3509,43 @@ expressRouter.get("/bookingByLocator/:locator", verifyAdmin, (req, res) => {
                 WHERE bg.booking_id = ?
             `;
 
-            req.dbConnectionPool.query(guestsSql, [bookingId], (guestErr, guestRows) => {
-                if (guestErr) {
-                    console.error("Error looking up booking guests:", guestErr);
-                }
+            req.dbConnectionPool.query(
+                guestsSql,
+                [bookingId],
+                (guestErr, guestRows) => {
+                    if (guestErr) {
+                        console.error(
+                            "Error looking up booking guests:",
+                            guestErr,
+                        );
+                    }
 
-                // Obtener servicios vinculados a la reserva
-                const servicesSql = `
+                    // Obtener servicios vinculados a la reserva
+                    const servicesSql = `
                     SELECT s.id, s.serv_name, s.serv_price
                     FROM service s
                     INNER JOIN booking_service bs ON bs.service_id = s.id
                     WHERE bs.booking_id = ?
                 `;
 
-                req.dbConnectionPool.query(servicesSql, [bookingId], (servErr, servRows) => {
-                    return res.status(200).json({
-                        status: "success",
-                        message: "Reserva localizada correctamente",
-                        data: {
-                            ...bookingData,
-                            guests: guestRows || [],
-                            services: servRows || [],
-                            locator: `AURA-BK-${bookingId}`,
+                    req.dbConnectionPool.query(
+                        servicesSql,
+                        [bookingId],
+                        (servErr, servRows) => {
+                            return res.status(200).json({
+                                status: "success",
+                                message: "Reserva localizada correctamente",
+                                data: {
+                                    ...bookingData,
+                                    guests: guestRows || [],
+                                    services: servRows || [],
+                                    locator: `AURA-BK-${bookingId}`,
+                                },
+                            });
                         },
-                    });
-                });
-            });
+                    );
+                },
+            );
         });
     } catch (error) {
         console.error("Catch in /bookingByLocator:", error);
@@ -3542,7 +3557,6 @@ expressRouter.get("/bookingByLocator/:locator", verifyAdmin, (req, res) => {
         req.dbConnectionPool.release();
     }
 });
-
 
 expressRouter.get("/bookingsByUser", verifyUser, (req, res) => {
     try {
@@ -3827,12 +3841,10 @@ expressRouter.post("/captchaSiteVerify", authLimiter, async (req, res) => {
             console.error(
                 "reCAPTCHA server secret key is not set in environment",
             );
-            return res
-                .status(500)
-                .json({
-                    success: false,
-                    message: "reCAPTCHA server misconfiguration",
-                });
+            return res.status(500).json({
+                success: false,
+                message: "reCAPTCHA server misconfiguration",
+            });
         }
 
         const reCaptchaURLEndpoint =
@@ -4104,12 +4116,10 @@ expressRouter.get("/promotions", (req, res) => {
                 "SELECT * FROM promotion",
                 (fallbackErr, fallbackResults) => {
                     if (fallbackErr) {
-                        return res
-                            .status(500)
-                            .send({
-                                status: "error",
-                                message: "Internal server error",
-                            });
+                        return res.status(500).send({
+                            status: "error",
+                            message: "Internal server error",
+                        });
                     }
                     return res
                         .status(200)
@@ -4126,12 +4136,10 @@ expressRouter.get("/promotions", (req, res) => {
 expressRouter.post("/checkPromoCode", (req, res) => {
     const code = req.body && req.body.code ? String(req.body.code).trim() : "";
     if (!code) {
-        return res
-            .status(400)
-            .json({
-                status: "error",
-                message: "El código de promoción es requerido",
-            });
+        return res.status(400).json({
+            status: "error",
+            message: "El código de promoción es requerido",
+        });
     }
     const sql =
         "SELECT * FROM promotion WHERE UPPER(TRIM(code)) = UPPER(?) AND (is_active IS NULL OR is_active = 1) AND (start_date IS NULL OR start_date <= CURDATE()) AND (end_date IS NULL OR end_date >= CURDATE())";
@@ -4143,21 +4151,17 @@ expressRouter.post("/checkPromoCode", (req, res) => {
                 .json({ status: "error", message: "Error en base de datos" });
         }
         if (results && results.length > 0) {
-            return res
-                .status(200)
-                .json({
-                    status: "success",
-                    valid: true,
-                    promotion: results[0],
-                });
-        }
-        return res
-            .status(200)
-            .json({
+            return res.status(200).json({
                 status: "success",
-                valid: false,
-                message: "Cupón no encontrado, expirado o inactivo",
+                valid: true,
+                promotion: results[0],
             });
+        }
+        return res.status(200).json({
+            status: "success",
+            valid: false,
+            message: "Cupón no encontrado, expirado o inactivo",
+        });
     });
 });
 expressRouter.get("/get-promo-discount/:id", (req, res) => {
