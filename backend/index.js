@@ -1988,7 +1988,9 @@ expressRouter.post("/sendContactForm", async (req, res) => {
             ];
         }
 
-        const info = await sendEmailNotification({
+        // Envio asincrono en segundo plano (non-blocking)
+        // Por que: Previene timeouts HTTP en el cliente si el servidor SMTP tiene latencia o reglas de firewall lentas.
+        sendEmailNotification({
             fromName: `Contacto: ${contactEmail}`,
             replyTo: contactEmail,
             to: receivers,
@@ -2004,16 +2006,23 @@ expressRouter.post("/sendContactForm", async (req, res) => {
                     <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #edf2f7; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${contactMessage}</div>
                 </div>
             `,
+        })
+            .then((info) => {
+                console.log("[MAIL] Correo de contacto enviado con éxito en background. MessageId: %s (Proveedor: %s)", info.messageId, info.provider);
+            })
+            .catch((mailErr) => {
+                console.error("[MAIL] Error en segundo plano al enviar correo de contacto:", mailErr.message);
+            });
+
+        return res.status(200).send({
+            status: "success",
+            message: "¡Tu mensaje ha sido recibido con éxito! Nos pondremos en contacto contigo a la mayor brevedad.",
         });
-        console.log("Message sent: %s", info.messageId);
-        return res
-            .status(200)
-            .send({ status: "success", message: "¡Tu mensaje ha sido enviado correctamente!" });
     } catch (error) {
-        console.error("[MAIL] Error al enviar correo de contacto:", error);
+        console.error("[MAIL] Error procesando solicitud de contacto:", error);
         return res
             .status(500)
-            .send({ status: "error", message: "No se pudo enviar el mensaje. Inténtalo de nuevo más tarde." });
+            .send({ status: "error", message: "Error interno al procesar el mensaje. Inténtalo de nuevo más tarde." });
     } finally {
         req.dbConnectionPool.release();
     }

@@ -52,27 +52,38 @@ const getMailConfig = () => {
 let cachedTransporter = null;
 let brevoClient = null;
 
-// Inicializacion o actualizacion del transporte Nodemailer
+// Constructor de transportador Nodemailer con parametros resilientes
+export function createSmtpTransporter({ host, port, isSecure, username, password }) {
+    return nodemailer.createTransport({
+        host: host || "smtp.hostinger.com",
+        port: port,
+        secure: isSecure,
+        auth: {
+            user: username,
+            pass: password,
+        },
+        tls: {
+            rejectUnauthorized: false,
+            servername: host || "smtp.hostinger.com",
+        },
+        family: 4, // Fuerza IPv4 para evitar retardos o cuelgues DNS en IPv6
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+    });
+}
+
+// Obtener o inicializar el transportador Nodemailer principal
 export function getTransporter() {
     const config = getMailConfig();
 
     if (!cachedTransporter) {
-        cachedTransporter = nodemailer.createTransport({
+        cachedTransporter = createSmtpTransporter({
             host: config.host,
             port: config.port,
-            secure: config.isSecure,
-            auth: {
-                user: config.username,
-                pass: config.password,
-            },
-            tls: {
-                rejectUnauthorized: false,
-                servername: config.host,
-            },
-            family: 4, // Fuerza IPv4 para evitar timeouts en ciertos proveedores
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
+            isSecure: config.isSecure,
+            username: config.username,
+            password: config.password,
         });
     }
     return cachedTransporter;
@@ -235,28 +246,68 @@ export async function sendEmailNotification({
     }
 
     // Intento 2 / Principal: SMTP Nodemailer (Hostinger u otro)
-    const transporter = getTransporter();
-    try {
-        const mailOptions = {
-            from: `"${senderName}" <${senderEmail}>`,
-            to: recipients.join(", "),
-            subject: subject,
-            text: text || "",
-            html: html || (text ? `<pre>${text}</pre>` : ""),
-            replyTo: replyTo || undefined,
-        };
+    const mailOptions = {
+        from: `"${senderName}" <${senderEmail}>`,
+        to: recipients.join(", "),
+        subject: subject,
+        text: text || "",
+        html: html || (text ? `<pre>${text}</pre>` : ""),
+        replyTo: replyTo || undefined,
+    };
 
+    let transporter = getTransporter();
+    try {
         const info = await transporter.sendMail(mailOptions);
         return {
             status: "success",
             provider: "smtp",
+            port: config.port,
             messageId: info.messageId,
             raw: info,
         };
     } catch (smtpErr) {
-        console.error(
-            `[MAIL] Error critico enviando correo via SMTP (${smtpErr.code || "ERR"}): ${smtpErr.message}`,
+        console.warn(
+            `[MAIL] Error en puerto principal SMTP ${config.port} (${smtpErr.code || "ERR"}): ${smtpErr.message}`,
         );
+
+        // Fallback automatico a puerto alternativo (465 SSL <-> 587 STARTTLS) si hay bloqueo de red o timeout
+        const isNetworkTimeout =
+            smtpErr.code === "ETIMEDOUT" ||
+            smtpErr.code === "ESOCKETTIMEDOUT" ||
+            smtpErr.code === "ECONNREFUSED" ||
+            smtpErr.code === "EHOSTUNREACH" ||
+            smtpErr.message?.toLowerCase().includes("timeout");
+
+        if (isNetworkTimeout) {
+            const altPort = config.port === 465 ? 587 : 465;
+            const altSecure = altPort === 465;
+            console.log(`[MAIL] Probando puerto alternativo SMTP ${altPort} (secure: ${altSecure}) por timeout en ${config.port}...`);
+
+            try {
+                const altTransporter = createSmtpTransporter({
+                    host: config.host,
+                    port: altPort,
+                    isSecure: altSecure,
+                    username: config.username,
+                    password: config.password,
+                });
+
+                const altInfo = await altTransporter.sendMail(mailOptions);
+                console.log(`[MAIL] Correo enviado exitosamente a traves del puerto alternativo ${altPort}!`);
+                return {
+                    status: "success",
+                    provider: "smtp-fallback-port",
+                    port: altPort,
+                    messageId: altInfo.messageId,
+                    raw: altInfo,
+                };
+            } catch (altErr) {
+                console.error(
+                    `[MAIL] Tambien fallo el puerto alternativo ${altPort} (${altErr.code || "ERR"}): ${altErr.message}`,
+                );
+            }
+        }
+
         if (smtpErr.code === "EAUTH" || smtpErr.responseCode === 535) {
             console.error(
                 "[MAIL] Hostinger rechazo el login SMTP (535 Authentication failed). Revisa la contrasena del buzon.",
