@@ -13,7 +13,10 @@ dotenv.config();
 const cleanEnv = (val) => {
     if (!val) return "";
     let str = String(val).trim();
-    if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    if (
+        (str.startsWith('"') && str.endsWith('"')) ||
+        (str.startsWith("'") && str.endsWith("'"))
+    ) {
         str = str.slice(1, -1).trim();
     }
     return str;
@@ -27,7 +30,10 @@ const getMailConfig = () => {
     const isSecure = secureEnv !== "" ? secureEnv === "true" : port === 465;
     const username = cleanEnv(process.env.MAIL_USERNAME);
     const password = cleanEnv(process.env.MAIL_PASSWORD);
-    const senderEmail = cleanEnv(process.env.MAIL_SENDER_EMAIL) || username || "contact@feryaeljustice.dev";
+    const senderEmail =
+        cleanEnv(process.env.MAIL_SENDER_EMAIL) ||
+        username ||
+        "contact@feryaeljustice.dev";
     const appName = cleanEnv(process.env.APP_NAME) || "Hotel Aura de Mallorca";
     const brevoApiKey = cleanEnv(process.env.BREVO_API_KEY);
 
@@ -49,7 +55,7 @@ let brevoClient = null;
 // Inicializacion o actualizacion del transporte Nodemailer
 export function getTransporter() {
     const config = getMailConfig();
-    
+
     if (!cachedTransporter) {
         cachedTransporter = nodemailer.createTransport({
             host: config.host,
@@ -79,7 +85,10 @@ export function getBrevoClient() {
         try {
             brevoClient = new BrevoClient({ apiKey: config.brevoApiKey });
         } catch (e) {
-            console.warn("[MAIL] No se pudo inicializar BrevoClient:", e.message);
+            console.warn(
+                "[MAIL] No se pudo inicializar BrevoClient:",
+                e.message,
+            );
             brevoClient = null;
         }
     }
@@ -97,7 +106,10 @@ export function sanitizeRecipients(recipients) {
         if (typeof item === "string") {
             let str = item.trim();
             // Remover comillas envolventes dobles o simples
-            if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+            if (
+                (str.startsWith('"') && str.endsWith('"')) ||
+                (str.startsWith("'") && str.endsWith("'"))
+            ) {
                 str = str.slice(1, -1).trim();
             }
             if (str) cleaned.push(str);
@@ -113,26 +125,45 @@ export async function verifyMailService() {
     const config = getMailConfig();
 
     if (config.brevoApiKey) {
-        console.log("[MAIL] Servicio de correo configurado con Brevo API (@getbrevo/brevo).");
+        console.log(
+            "[MAIL] Servicio de correo configurado con Brevo API (@getbrevo/brevo).",
+        );
         return true;
     }
 
-    if (!config.username || !config.password || config.password === "TU_PASSWORD_AQUI" || config.password === "jasxbcqMTcQxrBtpsY") {
-        console.warn("[MAIL] Configure MAIL_USERNAME y MAIL_PASSWORD con credenciales reales para enviar correos por SMTP.");
+    if (
+        !config.username ||
+        !config.password ||
+        config.password === "TU_PASSWORD_AQUI" ||
+        config.password === "jasxbcqMTcQxrBtpsY"
+    ) {
+        console.warn(
+            "[MAIL] Configure MAIL_USERNAME y MAIL_PASSWORD con credenciales reales para enviar correos por SMTP.",
+        );
         return false;
     }
 
     const transporter = getTransporter();
     try {
         await transporter.verify();
-        console.log(`[MAIL] Servidor SMTP autenticado y listo (${config.host}:${config.port} - secure: ${config.isSecure}).`);
+        console.log(
+            `[MAIL] Servidor SMTP autenticado y listo (${config.host}:${config.port} - secure: ${config.isSecure}).`,
+        );
         return true;
     } catch (error) {
-        console.warn(`[MAIL] Advertencia de conexion SMTP (${error.code || "AUTH"} - ${error.responseCode || "N/A"}): ${error.message}`);
+        console.warn(
+            `[MAIL] Advertencia de conexion SMTP (${error.code || "AUTH"} - ${error.responseCode || "N/A"}): ${error.message}`,
+        );
         if (error.code === "EAUTH" || error.responseCode === 535) {
-            console.warn("[MAIL] ATENCION: El servidor de Hostinger rechazo la autenticacion (Error 535).");
-            console.warn("        1. Verifique que MAIL_USERNAME sea la direccion completa del buzon (ej. contacto@dominio.com).");
-            console.warn("        2. Verifique que MAIL_PASSWORD sea la contrasena de ESE buzon en Hostinger Webmail, NO la del panel general.");
+            console.warn(
+                "[MAIL] ATENCION: El servidor de Hostinger rechazo la autenticacion (Error 535).",
+            );
+            console.warn(
+                "        1. Verifique que MAIL_USERNAME sea la direccion completa del buzon (ej. contacto@dominio.com).",
+            );
+            console.warn(
+                "        2. Verifique que MAIL_PASSWORD sea la contrasena de ESE buzon en Hostinger Webmail, NO la del panel general.",
+            );
         }
         return false;
     }
@@ -145,7 +176,6 @@ export async function sendEmailNotification({
     html,
     text,
     fromName,
-    fromEmail,
     replyTo,
 }) {
     const config = getMailConfig();
@@ -169,19 +199,26 @@ export async function sendEmailNotification({
                 return { email: clean };
             });
 
-            const brevoResponse = await brevo.transactionalEmails.sendTransacEmail({
-                subject: subject,
-                htmlContent: html || `<pre>${text || ""}</pre>`,
-                textContent: text || "",
-                sender: { name: senderName, email: senderEmail },
-                to: recipientList,
-                replyTo: replyTo ? (typeof replyTo === "string" ? { email: replyTo } : replyTo) : undefined,
-            });
+            const brevoResponse =
+                await brevo.transactionalEmails.sendTransacEmail({
+                    subject: subject,
+                    htmlContent: html || `<pre>${text || ""}</pre>`,
+                    textContent: text || "",
+                    sender: { name: senderName, email: senderEmail },
+                    to: recipientList,
+                    replyTo: replyTo
+                        ? typeof replyTo === "string"
+                            ? { email: replyTo }
+                            : replyTo
+                        : undefined,
+                });
 
             const messageId =
                 brevoResponse?.messageId ||
                 brevoResponse?.body?.messageId ||
-                (typeof brevoResponse === "string" ? brevoResponse : "brevo-sent");
+                (typeof brevoResponse === "string"
+                    ? brevoResponse
+                    : "brevo-sent");
 
             return {
                 status: "success",
@@ -190,7 +227,10 @@ export async function sendEmailNotification({
                 raw: brevoResponse,
             };
         } catch (brevoErr) {
-            console.warn("[MAIL] Fallo el envio mediante Brevo API, intentando fallback SMTP:", brevoErr.message);
+            console.warn(
+                "[MAIL] Fallo el envio mediante Brevo API, intentando fallback SMTP:",
+                brevoErr.message,
+            );
         }
     }
 
@@ -214,9 +254,13 @@ export async function sendEmailNotification({
             raw: info,
         };
     } catch (smtpErr) {
-        console.error(`[MAIL] Error critico enviando correo via SMTP (${smtpErr.code || "ERR"}): ${smtpErr.message}`);
+        console.error(
+            `[MAIL] Error critico enviando correo via SMTP (${smtpErr.code || "ERR"}): ${smtpErr.message}`,
+        );
         if (smtpErr.code === "EAUTH" || smtpErr.responseCode === 535) {
-            console.error("[MAIL] Hostinger rechazo el login SMTP (535 Authentication failed). Revisa la contrasena del buzon.");
+            console.error(
+                "[MAIL] Hostinger rechazo el login SMTP (535 Authentication failed). Revisa la contrasena del buzon.",
+            );
         }
         throw smtpErr;
     }
