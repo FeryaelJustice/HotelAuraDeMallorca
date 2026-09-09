@@ -1672,8 +1672,20 @@ async function sendConfirmationEmail(connection, userId) {
                 // Send the email
                 const info = await sendEmailNotification({
                     to: userRes.user_email,
-                    subject: "Email Confirmation",
-                    html: `<html><body>Click the following link to verify your email: <a href="${verificationUrl}">${verificationUrl}</a></body></html>`,
+                    subject: "Email Confirmation - Hotel Aura de Mallorca",
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <h2 style="color: #c5a059; margin-top: 0;">Hotel Aura de Mallorca</h2>
+                            <p>¡Bienvenido/a a Hotel Aura de Mallorca!</p>
+                            <p>Para activar tu cuenta y poder disfrutar de todas las funcionalidades, por favor haz clic en el siguiente botón:</p>
+                            <p style="margin: 25px 0;">
+                                <a href="${verificationUrl}" style="background-color: #c5a059; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verificar mi cuenta</a>
+                            </p>
+                            <p style="color: #718096; font-size: 13px;">O copia y pega el siguiente enlace en tu navegador:<br><a href="${verificationUrl}">${verificationUrl}</a></p>
+                            <p style="color: #a0aec0; font-size: 12px; margin-top: 20px;">Este enlace tiene una validez de 1 hora.</p>
+                        </div>
+                    `,
+                    text: `Bienvenido/a a Hotel Aura de Mallorca.\n\nPara verificar tu cuenta, por favor visita el siguiente enlace:\n${verificationUrl}\n\nEste enlace expirará en 1 hora.`,
                 });
 
                 console.log("Message sent: %s", info.messageId);
@@ -1709,8 +1721,19 @@ async function sendRecoverPasswordEmail(connection, userId, userEmail) {
                 // Send the email
                 const info = await sendEmailNotification({
                     to: userEmail,
-                    subject: "Recover your account",
-                    html: `<html><body>Paste the following token in the field to reset your password: ${resetToken}</body></html>`,
+                    subject: "Recupera tu cuenta - Hotel Aura de Mallorca",
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <h2 style="color: #c5a059; margin-top: 0;">Hotel Aura de Mallorca</h2>
+                            <p>Has solicitado restablecer tu contraseña.</p>
+                            <p>Introduce el siguiente código en la aplicación para crear una nueva clave:</p>
+                            <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; font-size: 20px; font-weight: bold; letter-spacing: 2px; text-align: center; color: #1a202c; margin: 20px 0;">
+                                ${resetToken}
+                            </div>
+                            <p style="color: #a0aec0; font-size: 12px;">Este código tiene una validez de 10 minutos. Si no solicitaste este cambio, puedes ignorar este mensaje.</p>
+                        </div>
+                    `,
+                    text: `Has solicitado restablecer tu contraseña en Hotel Aura de Mallorca.\n\nTu código de recuperación es: ${resetToken}\n\nEste código tiene una validez de 10 minutos.`,
                 });
 
                 console.log("Message sent: %s", info.messageId);

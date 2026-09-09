@@ -1199,6 +1199,16 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
 
             let clientSecret = `offline_hotel_pay_${Date.now()}`;
 
+            Swal.fire({
+                title: 'Procesando tu reserva...',
+                text: 'Confirmando estancia y finalizando la transacción...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             // Si se selecciono Stripe (1) y la pasarela esta configurada
             if (checkedPaymentMethod === 1 && process.env.STRIPE_PUBLISHABLE_KEY) {
                 if (!stripeContext || !stripeContext.stripe || !stripeContext.elements) {
@@ -1238,8 +1248,19 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
             // Formalizar reserva en base de datos
             await doBooking(userID, clientSecret, effectivePrice, effectivePromoID);
 
+            Swal.close();
+            await Swal.fire({
+                title: '¡Reserva confirmada!',
+                text: 'Hemos tramitado tu reserva con éxito. Mostrando tu comprobante...',
+                icon: 'success',
+                confirmButtonColor: '#c5a059',
+                timer: 3000,
+                timerProgressBar: true,
+            });
+
         } catch (error: any) {
             console.error('Error durante el proceso de reserva/pago:', error);
+            Swal.close();
             const errorMsg = error?.response?.data?.message || error?.message || "Ocurrio un error procesando tu reserva. Por favor, intentalo de nuevo.";
             await Swal.fire({
                 title: 'Error en la reserva',

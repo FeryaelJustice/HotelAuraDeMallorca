@@ -4,7 +4,8 @@ import Form from 'react-bootstrap/Form';
 import serverAPI from './../services/serverAPI';
 import { useTranslation } from "react-i18next";
 import { useCookies } from 'react-cookie';
-import BackgroundImage from './../assets/images/laptop-1920.webp'
+import BackgroundImage from './../assets/images/laptop-1920.webp';
+import Swal from 'sweetalert2';
 
 interface ContactProps {
     colorScheme: string,
@@ -69,9 +70,24 @@ export const Contact = ({ colorScheme }: ContactProps) => {
         const trimmedMessage = message.trim();
 
         if (!trimmedEmail || !trimmedSubject || !trimmedMessage) {
-            alert(t("contact_validation_error") || "Por favor, completa todos los campos requeridos.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos incompletos',
+                text: t("contact_validation_error") || "Por favor, completa todos los campos requeridos.",
+                confirmButtonColor: '#c5a059'
+            });
             return;
         }
+
+        Swal.fire({
+            title: 'Enviando mensaje...',
+            text: 'Por favor, espera un instante...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         const data = {
             email: trimmedEmail,
@@ -80,12 +96,24 @@ export const Contact = ({ colorScheme }: ContactProps) => {
         };
 
         serverAPI.post('/sendContactForm', data).then(response => {
-            alert(response?.data?.message || t("contact_sent_success") || "¡Mensaje enviado con éxito!");
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: '¡Mensaje enviado!',
+                text: response?.data?.message || t("contact_sent_success") || "¡Tu mensaje ha sido recibido con éxito!",
+                confirmButtonColor: '#c5a059'
+            });
             emptyForm();
         }).catch(error => {
             console.error("Error al enviar formulario de contacto:", error);
+            Swal.close();
             const errorMsg = error?.response?.data?.message || error?.message || "No se pudo enviar el mensaje.";
-            alert(errorMsg);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al enviar mensaje',
+                text: errorMsg,
+                confirmButtonColor: '#c5a059'
+            });
         });
     }
 

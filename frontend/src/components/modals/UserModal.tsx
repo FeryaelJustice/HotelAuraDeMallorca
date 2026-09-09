@@ -260,7 +260,18 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
             setCaptchaLoginError(true);
         }
         if ((isFormValid && captchaLoginValid) || import.meta.env.MODE == 'development') {
+            Swal.fire({
+                title: 'Iniciando sesión...',
+                text: 'Por favor, espera un momento...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             serverAPI.post('/login', userLogin).then(res => {
+                Swal.close();
                 if (!res.data.cookieJWT) {
                     resetUserModal();
                     onClose();
@@ -290,6 +301,7 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
                 }
             }).catch(err => {
                 console.error("Login error:", err);
+                Swal.close();
                 if (err.response?.data?.code === 'ACCOUNT_DISABLED' || err.response?.status === 403) {
                     const disabledMsg = err.response?.data?.message || 'Tu cuenta está inhabilitada por un castigo. Por favor, ponte en contacto con nosotros para reactivarla.';
                     MySwal.fire({
@@ -352,39 +364,88 @@ const UserModal = ({ colorScheme, show, onClose }: UserModalProps) => {
         event.stopPropagation();
         let form = event.currentTarget;
 
+        let passwordsMatching = userRegister.password === userRegister.repeatpassword;
+        if (!passwordsMatching) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Las contraseñas no coinciden',
+                text: 'Asegúrate de que ambas contraseñas sean idénticas.',
+                confirmButtonColor: '#c5a059'
+            });
+            return;
+        }
+
+        if (!captchaRegisterValid && import.meta.env.MODE != 'development') {
+            setCaptchaRegisterError(true);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Captcha requerido',
+                text: 'Por favor, resuelve el captcha de seguridad antes de continuar.',
+                confirmButtonColor: '#c5a059'
+            });
+            return;
+        }
+
+        const isFormValid = form.checkValidity();
+        setRegisterValidated(isFormValid);
+        if (!isFormValid) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Formulario incompleto',
+                text: 'Por favor, rellena todos los campos obligatorios correctamente.',
+                confirmButtonColor: '#c5a059'
+            });
+            return;
+        }
+
+        // Mostrar spinner de carga interactivo con SweetAlert2
+        Swal.fire({
+            title: 'Creando tu cuenta...',
+            text: 'Registrando datos y preparando el correo de verificación...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         // Check if Email or DNI exists
         serverAPI.post('/checkUserExists', { email: userRegister.email, dni: userRegister.dni }).then(_ => {
-            let formValidity = true;
-            let passwordsMatching = userRegister.password === userRegister.repeatpassword;
-            if (!captchaRegisterValid && import.meta.env.MODE != 'development') {
-                setCaptchaRegisterError(true);
-            }
-            formValidity = ((form.checkValidity() && captchaRegisterValid) || import.meta.env.MODE == 'development') && (passwordsMatching)
-            setRegisterValidated(formValidity);
-            if (formValidity) {
-                // api call
-                serverAPI.post('/register', userRegister).then(res => {
-                    alert(res.data.message)
+            // Llamada al endpoint de registro
+            serverAPI.post('/register', userRegister).then(res => {
+                Swal.close();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Registro completado con éxito!',
+                    text: 'Hemos creado tu cuenta. Te hemos enviado un correo de confirmación a tu dirección de email para activarla.',
+                    confirmButtonText: 'Continuar',
+                    confirmButtonColor: '#c5a059'
+                }).then(() => {
                     resetUserModal();
                     onClose();
-                }).catch(err => {
-                    console.log(err)
-                    if (err.response.data && err.response.data.message) {
-                        alert(err.response.data.message)
-                    }
-                })
-            } else {
-                if (!passwordsMatching) {
-                    alert("Passwords don't match!")
-                } else {
-                    alert("Form not valid!")
-                }
-            }
+                });
+            }).catch(err => {
+                console.error("Error en registro:", err);
+                Swal.close();
+                const errorMsg = getCleanErrorMessage(err, 'No se pudo crear la cuenta de usuario.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al registrarte',
+                    text: errorMsg,
+                    confirmButtonColor: '#c5a059'
+                });
+            });
         }).catch(error => {
-            if (error && error.response && error.response.data && error.response.data.message) {
-                alert(error.response.data.message)
-            }
-        })
+            console.error("Error validando usuario:", error);
+            Swal.close();
+            const errorMsg = getCleanErrorMessage(error, 'El correo electrónico o DNI ya están en uso.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Datos ya registrados',
+                text: errorMsg,
+                confirmButtonColor: '#c5a059'
+            });
+        });
     }
 
     const onRegisterCaptchaChange = async (token: string | null) => {

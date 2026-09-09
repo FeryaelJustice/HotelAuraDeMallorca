@@ -223,19 +223,36 @@ export async function sendEmailNotification({
                 return { email: clean };
             });
 
-            const brevoResponse =
-                await brevo.transactionalEmails.sendTransacEmail({
-                    subject: subject,
-                    htmlContent: html || `<pre>${text || ""}</pre>`,
-                    textContent: text || "",
-                    sender: { name: senderName, email: senderEmail },
-                    to: recipientList,
-                    replyTo: replyTo
-                        ? typeof replyTo === "string"
-                            ? { email: replyTo }
-                            : replyTo
-                        : undefined,
-                });
+            // Generar textContent obligatorio y no vacio para Brevo API v3
+            let cleanText = text && String(text).trim().length > 0 ? String(text).trim() : "";
+            if (!cleanText && html) {
+                cleanText = String(html)
+                    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                    .replace(/<[^>]+>/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+            }
+            if (!cleanText) {
+                cleanText = subject || "Notificación de Hotel Aura de Mallorca";
+            }
+
+            const sendPayload = {
+                subject: subject,
+                textContent: cleanText,
+                sender: { name: senderName, email: senderEmail },
+                to: recipientList,
+            };
+
+            if (html && String(html).trim().length > 0) {
+                sendPayload.htmlContent = html;
+            }
+
+            if (replyTo) {
+                sendPayload.replyTo = typeof replyTo === "string" ? { email: replyTo } : replyTo;
+            }
+
+            const brevoResponse = await brevo.transactionalEmails.sendTransacEmail(sendPayload);
 
             const messageId =
                 brevoResponse?.messageId ||
