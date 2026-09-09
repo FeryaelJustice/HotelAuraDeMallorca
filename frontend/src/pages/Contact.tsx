@@ -29,10 +29,13 @@ export const Contact = ({ colorScheme }: ContactProps) => {
     useEffect(() => {
         if (cookies.token) {
             getAllLoggedUserData().then(res => {
-                if (res) {
-                    setEmail(res.user_email)
+                const userEmail = res?.data?.user_email || res?.user_email;
+                if (userEmail) {
+                    setEmail(userEmail);
                 }
-            })
+            }).catch(err => {
+                console.error("Error loading logged user data:", err);
+            });
         }
     }, [cookies.token]);
 
@@ -49,7 +52,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
     };
 
     const isFormValid = () => {
-        return email !== '' && subject !== '' && message !== '';
+        return email.trim() !== '' && subject.trim() !== '' && message.trim() !== '';
     };
 
     const handleReset = () => {
@@ -61,20 +64,29 @@ export const Contact = ({ colorScheme }: ContactProps) => {
     const handleSubmit = (event: any) => {
         event.preventDefault();
 
-        const data = {
-            email,
-            subject,
-            message
+        const trimmedEmail = email.trim();
+        const trimmedSubject = subject.trim();
+        const trimmedMessage = message.trim();
+
+        if (!trimmedEmail || !trimmedSubject || !trimmedMessage) {
+            alert(t("contact_validation_error") || "Por favor, completa todos los campos requeridos.");
+            return;
         }
+
+        const data = {
+            email: trimmedEmail,
+            subject: trimmedSubject,
+            message: trimmedMessage
+        };
+
         serverAPI.post('/sendContactForm', data).then(response => {
-            alert(response.data.message)
+            alert(response?.data?.message || t("contact_sent_success") || "¡Mensaje enviado con éxito!");
             emptyForm();
         }).catch(error => {
-            console.log(error)
-            if (error.response.data && error.response.data.message) {
-                alert(error.response.data.message)
-            }
-        })
+            console.error("Error al enviar formulario de contacto:", error);
+            const errorMsg = error?.response?.data?.message || error?.message || "No se pudo enviar el mensaje.";
+            alert(errorMsg);
+        });
     }
 
     function emptyForm() {
@@ -92,7 +104,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
             removeCookie('token', { path: '/' });
             removeCookie('refreshToken', { path: '/' });
         });
-        if (loggedUserID) {
+        if (loggedUserID && loggedUserID.data && loggedUserID.data.userID) {
             const getLoggedUserData = await serverAPI.get('/loggedUser/' + loggedUserID.data.userID, { headers: { 'Authorization': cookies.token } }).catch(err => {
                 removeCookie('token', { path: '/' });
                 removeCookie('refreshToken', { path: '/' });
@@ -113,7 +125,7 @@ export const Contact = ({ colorScheme }: ContactProps) => {
 
                     <Form.Group className="mb-3" controlId="email">
                         <Form.Label>{t("contact_email_label")}</Form.Label>
-                        <Form.Control type="email" name='email' disabled={cookies.token} placeholder={t("contact_email_placeholder")} className='input' onChange={(event) => setEmail(event.target.value)} value={email} />
+                        <Form.Control type="email" name='email' disabled={Boolean(cookies.token && email)} placeholder={t("contact_email_placeholder")} className='input' onChange={(event) => setEmail(event.target.value)} value={email} required />
                         <Form.Text className="text-muted">
                             {t("contact_email_description")}
                         </Form.Text>

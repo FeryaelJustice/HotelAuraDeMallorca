@@ -1965,7 +1965,18 @@ expressRouter.get("/usersID", verifyAdmin, (req, res) => {
 // CONTACT FORM
 expressRouter.post("/sendContactForm", async (req, res) => {
     try {
-        let formData = req.body;
+        const formData = req.body || {};
+        const contactEmail = (formData.email || "").trim();
+        const contactSubject = (formData.subject || "").trim();
+        const contactMessage = (formData.message || "").trim();
+
+        if (!contactEmail || !contactSubject || !contactMessage) {
+            return res.status(400).send({
+                status: "error",
+                message: "Por favor, completa todos los campos (email, asunto y mensaje).",
+            });
+        }
+
         let receivers = [];
         try {
             receivers = JSON.parse(process.env.MAIL_CONTACT_RECEIVERS || "[]");
@@ -1978,22 +1989,31 @@ expressRouter.post("/sendContactForm", async (req, res) => {
         }
 
         const info = await sendEmailNotification({
-            fromName: formData.email,
-            replyTo: formData.email,
+            fromName: `Contacto: ${contactEmail}`,
+            replyTo: contactEmail,
             to: receivers,
-            subject: formData.subject,
-            text: formData.message,
-            html: "<pre>" + formData.message + "</pre>",
+            subject: `[Contacto Web] ${contactSubject}`,
+            text: `Mensaje recibido desde el formulario web:\nDe: ${contactEmail}\nAsunto: ${contactSubject}\n\nMensaje:\n${contactMessage}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <h2 style="color: #c5a059; margin-top: 0;">Nuevo mensaje de contacto web</h2>
+                    <p><strong>Remitente:</strong> <a href="mailto:${contactEmail}">${contactEmail}</a></p>
+                    <p><strong>Asunto:</strong> ${contactSubject}</p>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;" />
+                    <p><strong>Mensaje:</strong></p>
+                    <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #edf2f7; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${contactMessage}</div>
+                </div>
+            `,
         });
         console.log("Message sent: %s", info.messageId);
         return res
             .status(200)
-            .send({ status: "success", message: "Your message was sent!" });
+            .send({ status: "success", message: "¡Tu mensaje ha sido enviado correctamente!" });
     } catch (error) {
         console.error("[MAIL] Error al enviar correo de contacto:", error);
         return res
             .status(500)
-            .send({ status: "error", message: "Message couldn't be sent!" });
+            .send({ status: "error", message: "No se pudo enviar el mensaje. Inténtalo de nuevo más tarde." });
     } finally {
         req.dbConnectionPool.release();
     }
