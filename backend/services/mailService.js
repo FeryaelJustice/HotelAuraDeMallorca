@@ -6,6 +6,7 @@
 import nodemailer from "nodemailer";
 import { BrevoClient } from "@getbrevo/brevo";
 import dotenv from "dotenv";
+import dns from "node:dns";
 
 dotenv.config();
 
@@ -53,7 +54,13 @@ let cachedTransporter = null;
 let brevoClient = null;
 
 // Constructor de transportador Nodemailer con parametros resilientes
-export function createSmtpTransporter({ host, port, isSecure, username, password }) {
+export function createSmtpTransporter({
+    host,
+    port,
+    isSecure,
+    username,
+    password,
+}) {
     return nodemailer.createTransport({
         host: host || "smtp.hostinger.com",
         port: port,
@@ -66,7 +73,13 @@ export function createSmtpTransporter({ host, port, isSecure, username, password
             rejectUnauthorized: false,
             servername: host || "smtp.hostinger.com",
         },
-        family: 4, // Fuerza IPv4 para evitar retardos o cuelgues DNS en IPv6
+        family: 4, // Fuerza IPv4 a nivel de socket
+        lookup: (hostname, options, callback) => {
+            // Resuelve estrictamente direcciones IPv4 para prevenir errores ENETUNREACH en contenedores (ej. Render/Docker)
+            dns.lookup(hostname, { family: 4, all: false }, (err, address, family) => {
+                callback(err, address, family);
+            });
+        },
         connectionTimeout: 8000,
         greetingTimeout: 8000,
         socketTimeout: 10000,
@@ -276,12 +289,17 @@ export async function sendEmailNotification({
             smtpErr.code === "ESOCKETTIMEDOUT" ||
             smtpErr.code === "ECONNREFUSED" ||
             smtpErr.code === "EHOSTUNREACH" ||
+            smtpErr.code === "ENETUNREACH" ||
+            smtpErr.code === "ESOCKET" ||
+            smtpErr.message?.includes("ENETUNREACH") ||
             smtpErr.message?.toLowerCase().includes("timeout");
 
         if (isNetworkTimeout) {
             const altPort = config.port === 465 ? 587 : 465;
             const altSecure = altPort === 465;
-            console.log(`[MAIL] Probando puerto alternativo SMTP ${altPort} (secure: ${altSecure}) por timeout en ${config.port}...`);
+            console.log(
+                `[MAIL] Probando puerto alternativo SMTP ${altPort} (secure: ${altSecure}) por error de red en ${config.port}...`,
+            );
 
             try {
                 const altTransporter = createSmtpTransporter({
@@ -293,7 +311,9 @@ export async function sendEmailNotification({
                 });
 
                 const altInfo = await altTransporter.sendMail(mailOptions);
-                console.log(`[MAIL] Correo enviado exitosamente a traves del puerto alternativo ${altPort}!`);
+                console.log(
+                    `[MAIL] Correo enviado exitosamente a traves del puerto alternativo ${altPort}!`,
+                );
                 return {
                     status: "success",
                     provider: "smtp-fallback-port",
@@ -306,6 +326,12 @@ export async function sendEmailNotification({
                     `[MAIL] Tambien fallo el puerto alternativo ${altPort} (${altErr.code || "ERR"}): ${altErr.message}`,
                 );
             }
+        }
+
+        if (smtpErr.code === "ENETUNREACH" || smtpErr.message?.includes("ENETUNREACH")) {
+            console.error(
+                "[MAIL] AVISO ENTORNO RENDER/NUBE: Render bloquea las conexiones SMTP salientes directas (puertos 25, 465, 587). Para enviar correos desde Render sin bloqueos de red, añade BREVO_API_KEY en las variables de entorno de Render.",
+            );
         }
 
         if (smtpErr.code === "EAUTH" || smtpErr.responseCode === 535) {
