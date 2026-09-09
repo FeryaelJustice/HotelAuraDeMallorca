@@ -1215,12 +1215,18 @@ const BookingModal = ({ colorScheme, show, onClose, initialPromoCode }: BookingM
                     throw new Error('La pasarela de pago seguro Stripe no esta lista o no se pudo inicializar.');
                 }
 
+                const customerEmail = userPersonalData?.email || userAllData?.email || (guests && guests[0]?.email) || undefined;
+                const customerName = `${userPersonalData?.name || userAllData?.name || ''} ${userPersonalData?.surnames || userAllData?.surnames || ''}`.trim() || undefined;
                 const paymentAmountInCents = Math.max(50, Math.round(effectivePrice * 100));
+
                 const purchaseRes = await serverAPI.post('/purchase', {
                     data: {
                         amount: paymentAmountInCents,
                         currency: 'eur',
-                        plan: checkedPlan
+                        plan: checkedPlan,
+                        email: customerEmail,
+                        name: customerName,
+                        description: `Reserva Hotel Aura de Mallorca - ${customerName || customerEmail || 'Huésped'}`
                     }
                 });
 

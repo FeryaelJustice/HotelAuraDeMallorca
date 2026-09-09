@@ -1,17 +1,27 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import BaseModal from "./BaseModal";
 import { useCookies } from "react-cookie";
-import { Booking } from "./../../models";
+import { Booking, Promotion } from "./../../models";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./BookingModal.css";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Button, Spinner, Badge, Alert } from "react-bootstrap";
+import { Button, Spinner, Badge, Alert, Form } from "react-bootstrap";
 import serverAPI from "./../../services/serverAPI";
 import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
+
+// Stripe
+import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
+import {
+    PaymentElement,
+    Elements,
+    useStripe,
+    useElements,
+} from "@stripe/react-stripe-js";
+const stripePromise = loadStripe(process.env.STRIPE_PUBLISHABLE_KEY ? process.env.STRIPE_PUBLISHABLE_KEY : "");
 
 interface DuplicateBookingModalProps {
     colorScheme: string;
@@ -42,14 +52,78 @@ interface BookingGuestItem {
     id: number;
     guest_name: string;
     guest_surnames?: string;
+    guest_email?: string;
     isAdult: string | number;
 }
+
+interface StripeCheckoutFormProps {
+    stripeOptions?: StripeElementsOptions;
+    totalPriceToPay: number;
+    onPay: (stripeContext: { stripe: any; elements: any }) => Promise<void>;
+    isProcessing?: boolean;
+}
+
+const StripeCheckoutForm = ({ stripeOptions, totalPriceToPay, onPay, isProcessing }: StripeCheckoutFormProps) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [errorMessage, setErrorMessage] = useState<string | undefined>();
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (elements == null || stripe == null) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        setErrorMessage(undefined);
+
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+            setErrorMessage(submitError.message);
+            setIsSubmitting(false);
+            return;
+        }
+
+        try {
+            await onPay({ stripe, elements });
+        } catch (err: any) {
+            setErrorMessage(err.message || "Error al procesar el pago.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} style={{ marginTop: "16px" }}>
+            <PaymentElement />
+            <Button
+                variant="primary"
+                type="submit"
+                disabled={!stripe || !elements || isSubmitting || isProcessing}
+                className="mt-4 btn-luxury-primary w-100"
+                size="lg"
+                style={{ backgroundColor: "#c5a059", borderColor: "#c5a059", fontWeight: 700, padding: "12px" }}
+            >
+                {isSubmitting || isProcessing ? (
+                    <span>
+                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" style={{ marginRight: "8px" }} />
+                        Procesando pago seguro...
+                    </span>
+                ) : (
+                    `Pagar con Tarjeta (${Number(totalPriceToPay).toFixed(2)} €)`
+                )}
+            </Button>
+            {errorMessage && <div className="text-danger mt-3" style={{ fontWeight: 600, textAlign: "center" }}>{errorMessage}</div>}
+        </form>
+    );
+};
 
 const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: DuplicateBookingModalProps) => {
     const { t } = useTranslation();
     const [cookies] = useCookies(["token"]);
 
-    // Steps: 1 = Dates & Configuration, 2 = Payment selection
+    // Steps: 1 = Dates & Configuration, 2 = Coupons, 3 = Payment selection
     const [step, setStep] = useState<number>(1);
 
     // Dates (default today + 2 to today + 5 to strictly satisfy 48h advance booking policy)
@@ -74,17 +148,36 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
     const [planDetails, setPlanDetails] = useState<any>(null);
     const [servicesList, setServicesList] = useState<BookingServiceItem[]>([]);
     const [guestsList, setGuestsList] = useState<BookingGuestItem[]>([]);
+    const [currentUserData, setCurrentUserData] = useState<any>(null);
+
+    // Coupons / Promotions state
+    const [publicPromotions, setPublicPromotions] = useState<Promotion[]>([]);
+    const [isLoadingPromotions, setIsLoadingPromotions] = useState<boolean>(false);
+    const [userSelectedPromoCode, setUserSelectedPromoCode] = useState<string>("");
+    const [userSelectedPromoID, setUserSelectedPromoID] = useState<number>(-1);
+    const [appliedPromoDiscount, setAppliedPromoDiscount] = useState<number>(0);
+    const [promoValidationStatus, setPromoValidationStatus] = useState<{ checked: boolean; valid: boolean; message: string; discount?: number } | null>(null);
 
     // Payment state
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<number>(1); // 1 = Stripe, 2 = Recepcion
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [stripeOptions, setStripeOptions] = useState<StripeElementsOptions | undefined>({
+        mode: "payment",
+        amount: 5000,
+        currency: "eur",
+        appearance: {},
+    });
 
     // Load detailed data of the cancelled booking when modal opens
     useEffect(() => {
         if (show && bookingData && bookingData.id) {
             setStep(1);
             setErrorMessage(null);
+            setUserSelectedPromoCode("");
+            setUserSelectedPromoID(-1);
+            setAppliedPromoDiscount(0);
+            setPromoValidationStatus(null);
             setIsLoadingDetails(true);
 
             serverAPI
@@ -106,6 +199,15 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                         });
                         setServicesList(services || []);
                         setGuestsList(guests || []);
+
+                        if (booking.user_name || booking.user_email) {
+                            setCurrentUserData({
+                                id: booking.user_id,
+                                user_name: booking.user_name,
+                                user_surnames: booking.user_surnames,
+                                user_email: booking.user_email,
+                            });
+                        }
 
                         // Set preferred payment method from previous booking or default to Stripe
                         if (booking.payment_method_id) {
@@ -140,6 +242,47 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 });
         }
     }, [show]);
+
+    // Fetch promotions when entering coupon step
+    const fetchPromotions = async () => {
+        setIsLoadingPromotions(true);
+        let uidParam = "";
+        const effectiveUserID = currentUserData?.id;
+        if (effectiveUserID) {
+            uidParam = `&userID=${effectiveUserID}`;
+        } else if (cookies.token) {
+            try {
+                const loggedRes = await serverAPI.post("/getLoggedUserID", { token: cookies.token });
+                if (loggedRes?.data?.userID) {
+                    uidParam = `&userID=${loggedRes.data.userID}`;
+                }
+            } catch (e) {
+                console.log("Error verifying session in duplicate booking modal:", e);
+            }
+        }
+
+        try {
+            const res = await serverAPI.get(`/promotions?visible=true${uidParam}`);
+            const promos = res.data.data || [];
+            const parsedPromos = promos.map((p: any) => new Promotion({
+                id: p.id,
+                code: p.code,
+                discount_price: p.discount_price,
+                name: p.name,
+                description: p.description,
+                start_date: p.start_date,
+                end_date: p.end_date,
+                is_active: p.is_active,
+                is_visible: p.is_visible,
+                is_user_exclusive: Boolean(p.is_user_exclusive),
+            }));
+            setPublicPromotions(parsedPromos);
+        } catch (err) {
+            console.error("Error fetching promotions for duplicate modal:", err);
+        } finally {
+            setIsLoadingPromotions(false);
+        }
+    };
 
     // Format date string as YYYY-MM-DD
     const extractFormattedDate = (date: any): string => {
@@ -231,10 +374,23 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
     const roomPrice = Number(roomDetails?.price || 0);
     const planPrice = Number(planDetails?.price || 0);
     const servicesTotal = servicesList.reduce((acc, s) => acc + Number(s.serv_price || 0), 0);
-    const totalPrice = (roomPrice * nights) + planPrice + servicesTotal;
+    const basePrice = (roomPrice * nights) + planPrice + servicesTotal;
+    const discountAmount = appliedPromoDiscount > 0 ? (basePrice * appliedPromoDiscount) / 100 : 0;
+    const totalPrice = Math.max(0, Math.round((basePrice - discountAmount) * 100) / 100);
 
-    // Check availability and advance to payment step
-    const handleProceedToPayment = async () => {
+    // Update stripeOptions whenever totalPrice changes
+    useEffect(() => {
+        const paymentAmountInCents = Math.max(50, Math.round(totalPrice * 100));
+        setStripeOptions({
+            mode: "payment",
+            currency: "eur",
+            amount: paymentAmountInCents,
+            appearance: {},
+        });
+    }, [totalPrice]);
+
+    // Check availability and advance from step 1 (Dates) to step 2 (Coupons)
+    const handleProceedToCoupons = async () => {
         setErrorMessage(null);
         if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
             setErrorMessage("Por favor, selecciona las fechas de entrada y salida en los calendarios.");
@@ -257,7 +413,8 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
             });
 
             if (availabilityRes.data && availabilityRes.data.status === "success" && availabilityRes.data.isAvailable) {
-                // Room is free for these dates, go to step 2
+                // Room is free for these dates, go to step 2 (Coupons)
+                fetchPromotions();
                 setStep(2);
             } else {
                 setErrorMessage(availabilityRes.data?.message || "La habitación está ocupada en estas fechas. Por favor, elige otros días.");
@@ -270,31 +427,170 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
         }
     };
 
-    // Final submission to create the duplicate booking
-    const handleConfirmBooking = async () => {
+    // Validate coupon code manually
+    const validatePromoCodeManual = async (codeToValidate?: string) => {
+        const code = (codeToValidate || userSelectedPromoCode || "").trim();
+        if (!code) {
+            setPromoValidationStatus({
+                checked: true,
+                valid: false,
+                message: "Introduce un código de cupón para validar",
+            });
+            setAppliedPromoDiscount(0);
+            setUserSelectedPromoID(-1);
+            return;
+        }
+
+        try {
+            const res = await serverAPI.post("/checkPromoCode", {
+                code,
+                userID: currentUserData?.id,
+            });
+            if (res.data && res.data.valid && res.data.promotion) {
+                const promo = res.data.promotion;
+                setUserSelectedPromoCode(promo.code);
+                setUserSelectedPromoID(promo.id);
+                setAppliedPromoDiscount(Number(promo.discount_price));
+                setPromoValidationStatus({
+                    checked: true,
+                    valid: true,
+                    message: `Cupón "${promo.code}" aplicado con éxito: ¡${promo.discount_price}% de descuento!`,
+                    discount: promo.discount_price,
+                });
+            } else {
+                setPromoValidationStatus({
+                    checked: true,
+                    valid: false,
+                    message: res.data?.message || "Cupón no encontrado, inactivo o expirado",
+                });
+                setAppliedPromoDiscount(0);
+                setUserSelectedPromoID(-1);
+            }
+        } catch (err) {
+            setPromoValidationStatus({
+                checked: true,
+                valid: false,
+                message: "Error al verificar el cupón. Inténtalo de nuevo.",
+            });
+        }
+    };
+
+    // Advance from step 2 (Coupons) to step 3 (Payment)
+    const handleProceedToPayment = async () => {
+        setErrorMessage(null);
+        if (userSelectedPromoCode && userSelectedPromoCode.trim() !== "") {
+            try {
+                const checkRes = await serverAPI.post("/checkPromoCode", {
+                    code: userSelectedPromoCode.trim(),
+                    userID: currentUserData?.id,
+                });
+                if (checkRes.data && checkRes.data.valid && checkRes.data.promotion) {
+                    const promo = checkRes.data.promotion;
+                    setAppliedPromoDiscount(Number(promo.discount_price));
+                    setUserSelectedPromoID(promo.id);
+                    setStep(3);
+                } else {
+                    setErrorMessage(checkRes.data?.message || "El cupón introducido no es válido o ha expirado.");
+                    return;
+                }
+            } catch (err) {
+                console.error("Error validando cupón:", err);
+                setErrorMessage("No se pudo verificar el cupón introducido. Inténtalo de nuevo o continúa sin cupón.");
+                return;
+            }
+        } else {
+            setAppliedPromoDiscount(0);
+            setUserSelectedPromoID(-1);
+            setStep(3);
+        }
+    };
+
+    // Execute booking creation (used for both Reception and Stripe payment completion)
+    const executeDuplicateBooking = async (stripeContext?: { stripe: any; elements: any }) => {
         setErrorMessage(null);
         if (!(startDate instanceof Date) || !(endDate instanceof Date)) return;
 
         setIsSubmitting(true);
         try {
-            let clientSecret = `duplicate_booking_${Date.now()}`;
+            let clientSecret = `offline_hotel_pay_${Date.now()}`;
 
-            // Si se selecciona Stripe y no es recepcion, generar payment intent
-            if (selectedPaymentMethod === 1) {
+            // Verification of promo expiration before payment
+            let effectivePromoID = userSelectedPromoID;
+            let effectivePrice = totalPrice;
+
+            if (userSelectedPromoCode && userSelectedPromoCode.trim() !== "") {
                 try {
-                    const paymentAmountInCents = Math.max(50, Math.round(totalPrice * 100));
-                    const purchaseRes = await serverAPI.post("/purchase", {
-                        data: {
-                            amount: paymentAmountInCents,
-                            currency: "eur",
-                            description: `Nueva estancia duplicada a partir de #${bookingData?.id}`,
-                        },
+                    const promoVerifyRes = await serverAPI.post("/checkPromoCode", {
+                        code: userSelectedPromoCode.trim(),
+                        userID: currentUserData?.id,
                     });
-                    if (purchaseRes.data && purchaseRes.data.client_secret) {
-                        clientSecret = purchaseRes.data.client_secret;
+                    if (!promoVerifyRes.data || !promoVerifyRes.data.valid) {
+                        const confirmContinue = await Swal.fire({
+                            title: "Cupón de descuento caducado",
+                            text: `El cupón "${userSelectedPromoCode}" ha caducado o ya no está disponible. ¿Deseas continuar con la reserva por el importe original (${basePrice.toFixed(2)} €)?`,
+                            icon: "warning",
+                            showCancelButton: true,
+                            confirmButtonText: "Sí, continuar sin descuento",
+                            cancelButtonText: "Cancelar y revisar",
+                            confirmButtonColor: "#c5a059",
+                        });
+
+                        if (!confirmContinue.isConfirmed) {
+                            setIsSubmitting(false);
+                            return;
+                        }
+
+                        setUserSelectedPromoCode("");
+                        setUserSelectedPromoID(-1);
+                        setAppliedPromoDiscount(0);
+                        setPromoValidationStatus(null);
+                        effectivePromoID = -1;
+                        effectivePrice = basePrice;
                     }
-                } catch (stripeErr: any) {
-                    console.warn("Stripe purchase fallback:", stripeErr.message);
+                } catch (promoErr) {
+                    console.error("Error al verificar caducidad del cupón:", promoErr);
+                }
+            }
+
+            // Si se selecciona Stripe y la pasarela está disponible
+            if (selectedPaymentMethod === 1 && process.env.STRIPE_PUBLISHABLE_KEY) {
+                if (!stripeContext || !stripeContext.stripe || !stripeContext.elements) {
+                    throw new Error("La pasarela de pago seguro Stripe no está lista o no se pudo inicializar.");
+                }
+
+                const customerEmail = currentUserData?.user_email || (guestsList && guestsList[0]?.guest_email) || undefined;
+                const customerName = `${currentUserData?.user_name || ""} ${currentUserData?.user_surnames || ""}`.trim() || undefined;
+                const paymentAmountInCents = Math.max(50, Math.round(effectivePrice * 100));
+
+                const purchaseRes = await serverAPI.post("/purchase", {
+                    data: {
+                        amount: paymentAmountInCents,
+                        currency: "eur",
+                        plan: planDetails?.id,
+                        email: customerEmail,
+                        name: customerName,
+                        description: `Reserva Duplicada Hotel Aura - Ref #${bookingData?.id} (${customerName || customerEmail || "Huésped"})`,
+                    },
+                });
+
+                if (!purchaseRes.data || purchaseRes.data.status !== "success" || !purchaseRes.data.client_secret) {
+                    throw new Error("No se pudo inicializar la intención de pago en el servidor.");
+                }
+
+                clientSecret = purchaseRes.data.client_secret;
+
+                // Confirmación del pago seguro con Stripe Elements
+                const confirmResult = await stripeContext.stripe.confirmPayment({
+                    elements: stripeContext.elements,
+                    clientSecret: clientSecret,
+                    confirmParams: {
+                        return_url: window.location.origin,
+                    },
+                    redirect: "if_required",
+                });
+
+                if (confirmResult.error) {
+                    throw new Error(confirmResult.error.message || "El banco ha rechazado la transacción.");
                 }
             }
 
@@ -307,7 +603,8 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                 endDate: formattedEnd,
                 paymentMethodID: Number(selectedPaymentMethod),
                 paymentTransactionID: clientSecret,
-                amount: totalPrice,
+                amount: effectivePrice,
+                promoID: effectivePromoID > 0 ? effectivePromoID : undefined,
             };
 
             const response = await serverAPI.post("/duplicateBooking", payload, {
@@ -562,7 +859,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                     </Button>
                                     <Button
                                         variant="primary"
-                                        onClick={handleProceedToPayment}
+                                        onClick={handleProceedToCoupons}
                                         disabled={isSubmitting}
                                         style={{ backgroundColor: "#c5a059", borderColor: "#c5a059", fontWeight: 700 }}
                                     >
@@ -571,22 +868,221 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                                 <Spinner animation="border" size="sm" style={{ marginRight: "6px" }} /> Comprobando disponibilidad...
                                             </span>
                                         ) : (
-                                            `Continuar al Pago (${totalPrice.toFixed(2)} €) →`
+                                            "Elegir Cupones de Descuento →"
                                         )}
                                     </Button>
                                 </div>
                             </div>
                         )}
 
-                        {/* STEP 2: PAYMENT METHOD SELECTION */}
+                        {/* STEP 2: COUPONS SELECTION */}
                         {step === 2 && (
                             <div>
+                                <h6 style={{ fontWeight: 800, marginBottom: "10px", color: isDarkMode ? "#ffffff" : "#1a202c" }}>
+                                    2. Cupones de Descuento
+                                </h6>
+                                <p style={{ opacity: 0.85, fontSize: "0.9rem", marginBottom: "18px" }}>
+                                    Aplica un cupón promocional para disfrutar de descuentos exclusivos en tu nueva estancia. Puedes seleccionar uno de tus cupones, introducir un código privado o continuar sin cupón.
+                                </p>
+
+                                {isLoadingPromotions ? (
+                                    <div style={{ textAlign: "center", padding: "24px 0" }}>
+                                        <Spinner animation="border" size="sm" variant="primary" />
+                                        <p style={{ marginTop: "8px", fontSize: "0.85rem", opacity: 0.8 }}>Cargando cupones disponibles...</p>
+                                    </div>
+                                ) : publicPromotions && publicPromotions.length > 0 ? (
+                                    <div style={{ marginBottom: "24px" }}>
+                                        <h4 style={{ fontSize: "1rem", color: "#c5a059", marginBottom: "14px", fontWeight: 700 }}>
+                                            ✨ Cupones Disponibles para Seleccionar:
+                                        </h4>
+                                        <div className="promo-cards-luxury-grid">
+                                            {publicPromotions.map((promo) => {
+                                                const isSelected = userSelectedPromoCode.trim().toUpperCase() === (promo.code || "").trim().toUpperCase();
+                                                const startStr = promo.start_date ? new Date(promo.start_date).toLocaleDateString("es-ES") : null;
+                                                const endStr = promo.end_date ? new Date(promo.end_date).toLocaleDateString("es-ES") : null;
+
+                                                return (
+                                                    <div
+                                                        key={promo.id}
+                                                        className={`promo-luxury-card ${isSelected ? "is-selected" : ""} ${promo.is_user_exclusive ? "promo-luxury-card--exclusive" : ""}`}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setUserSelectedPromoCode("");
+                                                                setAppliedPromoDiscount(0);
+                                                                setUserSelectedPromoID(-1);
+                                                                setPromoValidationStatus(null);
+                                                            } else {
+                                                                setUserSelectedPromoCode(promo.code || "");
+                                                                validatePromoCodeManual(promo.code || "");
+                                                            }
+                                                        }}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                    >
+                                                        <div className="promo-luxury-badges-group">
+                                                            {promo.is_user_exclusive && (
+                                                                <span className="promo-luxury-exclusive-tag">
+                                                                    ⭐ Solo para ti
+                                                                </span>
+                                                            )}
+                                                            <span className="promo-luxury-badge">
+                                                                -{promo.discount_price}%
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="promo-luxury-header">
+                                                            <span className="promo-luxury-name">
+                                                                {promo.name || promo.code}
+                                                            </span>
+                                                            <span className="promo-luxury-code-box">
+                                                                <span>🎟️</span>
+                                                                <strong>{promo.code}</strong>
+                                                            </span>
+                                                        </div>
+
+                                                        {promo.description && (
+                                                            <p className="promo-luxury-desc">
+                                                                {promo.description}
+                                                            </p>
+                                                        )}
+
+                                                        {(startStr || endStr) && (
+                                                            <div className="promo-luxury-validity">
+                                                                <span>⏳</span>
+                                                                <span>
+                                                                    Válido: {startStr ? startStr : "Ahora"} - {endStr ? endStr : "Indefinido"}
+                                                                </span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="promo-luxury-action-badge">
+                                                            {isSelected ? "✓ Cupón Seleccionado" : "Clic para Seleccionar"}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                <div className="promo-manual-input-box" style={{ marginBottom: "20px" }}>
+                                    <h4 style={{ fontSize: "0.95rem", marginBottom: "8px" }}>
+                                        ¿Dispones de un cupón privado o exclusivo?
+                                    </h4>
+                                    <p style={{ fontSize: "0.84rem", opacity: 0.85, marginBottom: "12px" }}>
+                                        Introduce tu código para validarlo y aplicarlo a la reserva:
+                                    </p>
+                                    <Form
+                                        onSubmit={(e: any) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            validatePromoCodeManual();
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", gap: "10px", maxWidth: "440px", marginBottom: "12px" }}>
+                                            <Form.Control
+                                                type="text"
+                                                name="promoCode"
+                                                placeholder="Ej: AURA2026"
+                                                maxLength={255}
+                                                value={userSelectedPromoCode}
+                                                onChange={(e: any) => {
+                                                    setUserSelectedPromoCode(e.target.value);
+                                                    setPromoValidationStatus(null);
+                                                }}
+                                                style={{ textTransform: "uppercase" }}
+                                            />
+                                            <Button
+                                                variant="outline-primary"
+                                                onClick={() => validatePromoCodeManual()}
+                                                style={{ whiteSpace: "nowrap", borderColor: "#c5a059", color: "#c5a059" }}
+                                            >
+                                                Comprobar
+                                            </Button>
+                                        </div>
+
+                                        {promoValidationStatus && (
+                                            <div
+                                                style={{
+                                                    padding: "10px 14px",
+                                                    borderRadius: "8px",
+                                                    fontSize: "0.88rem",
+                                                    marginBottom: "16px",
+                                                    maxWidth: "440px",
+                                                    background: promoValidationStatus.valid ? "rgba(40,167,69,0.15)" : "rgba(220,53,69,0.15)",
+                                                    border: `1px solid ${promoValidationStatus.valid ? "rgba(40,167,69,0.4)" : "rgba(220,53,69,0.4)"}`,
+                                                    color: promoValidationStatus.valid ? "#51cf66" : "#ff6b6b",
+                                                }}
+                                            >
+                                                {promoValidationStatus.message}
+                                            </div>
+                                        )}
+                                    </Form>
+                                </div>
+
+                                {/* Summary Box with Discount */}
+                                <div
+                                    style={{
+                                        background: isDarkMode ? "rgba(197, 160, 89, 0.1)" : "#f8fafc",
+                                        border: "1.5px solid #c5a059",
+                                        borderRadius: "10px",
+                                        padding: "16px",
+                                        margin: "15px 0",
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "0.95rem" }}>
+                                        <span>Importe estancia ({nights} {nights === 1 ? "noche" : "noches"}):</span>
+                                        <strong>{basePrice.toFixed(2)} €</strong>
+                                    </div>
+                                    {appliedPromoDiscount > 0 && (
+                                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "0.95rem", color: "#28a745" }}>
+                                            <span>Descuento aplicado ({appliedPromoDiscount}%):</span>
+                                            <strong>-{discountAmount.toFixed(2)} €</strong>
+                                        </div>
+                                    )}
+                                    <hr style={{ margin: "10px 0" }} />
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>Total Final:</span>
+                                        <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "#c5a059" }}>
+                                            {totalPrice.toFixed(2)} €
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
+                                    <Button variant="outline-secondary" onClick={() => setStep(1)}>
+                                        ← Volver a fechas
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleProceedToPayment}
+                                        style={{ backgroundColor: "#c5a059", borderColor: "#c5a059", fontWeight: 700 }}
+                                    >
+                                        Continuar al Pago ({totalPrice.toFixed(2)} €) →
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 3: PAYMENT METHOD SELECTION & STRIPE ELEMENTS */}
+                        {step === 3 && (
+                            <div>
                                 <h6 style={{ fontWeight: 800, marginBottom: "14px", color: isDarkMode ? "#ffffff" : "#1a202c" }}>
-                                    2. Selecciona el método de pago para tu nueva estancia
+                                    3. Selecciona el método de pago para tu nueva estancia
                                 </h6>
                                 <p style={{ fontSize: "0.85rem", opacity: 0.8, marginBottom: "15px" }}>
-                                    Como la reserva anterior fue cancelada y su pago gestionado/reembolsado, esta nueva estancia requiere formalizar un nuevo método de pago:
+                                    Como la reserva anterior fue cancelada y su cobro reembolsado o cerrado, esta nueva estancia requiere formalizar un nuevo método de pago:
                                 </p>
+
+                                <div className="booking-showcase-disclaimer" style={{ marginBottom: "18px" }}>
+                                    <span style={{ fontSize: "1.4rem" }}>⚠️</span>
+                                    <div>
+                                        <strong>AVISO DE DEMOSTRACIÓN / SHOWCASE:</strong>
+                                        <p style={{ margin: "4px 0 0", fontSize: "0.86rem", lineHeight: "1.45" }}>
+                                            Esta aplicación es un proyecto portfolio demostrativo. Por favor, <strong>NO introduzcas datos de tarjetas reales</strong>. Puedes utilizar las tarjetas de prueba de Stripe o la opción <strong>&quot;Pagar en Recepción&quot;</strong>.
+                                        </p>
+                                    </div>
+                                </div>
 
                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
                                     {/* Option 1: Stripe Card */}
@@ -619,7 +1115,7 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                                     <Badge bg="success">Inmediato</Badge>
                                                 </div>
                                                 <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", opacity: 0.8 }}>
-                                                    Abona los {totalPrice.toFixed(2)} € de forma cifrada con tu tarjeta de crédito o débito a través de la pasarela Stripe.
+                                                    Abona los {totalPrice.toFixed(2)} € de forma cifrada con tu tarjeta a través de Stripe Elements.
                                                 </p>
                                             </div>
                                         </div>
@@ -662,23 +1158,50 @@ const DuplicateBookingModal = ({ colorScheme, show, onClose, bookingData }: Dupl
                                     </div>
                                 </div>
 
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "25px" }}>
-                                    <Button variant="outline-secondary" onClick={() => setStep(1)} disabled={isSubmitting}>
-                                        ← Volver a fechas
-                                    </Button>
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleConfirmBooking}
-                                        disabled={isSubmitting}
-                                        style={{ backgroundColor: "#c5a059", borderColor: "#c5a059", fontWeight: 700, padding: "10px 24px" }}
-                                    >
-                                        {isSubmitting ? (
-                                            <span>
-                                                <Spinner animation="border" size="sm" style={{ marginRight: "8px" }} /> Creando nueva reserva...
-                                            </span>
-                                        ) : (
-                                            `Confirmar y Crear Reserva (${totalPrice.toFixed(2)} €)`
-                                        )}
+                                {/* Stripe Form or Direct Reception Action */}
+                                <div style={{ marginTop: "20px" }}>
+                                    {selectedPaymentMethod === 1 ? (
+                                        <div>
+                                            {stripeOptions && process.env.STRIPE_PUBLISHABLE_KEY ? (
+                                                <Elements stripe={stripePromise} options={stripeOptions} key={totalPrice}>
+                                                    <StripeCheckoutForm
+                                                        stripeOptions={stripeOptions}
+                                                        totalPriceToPay={totalPrice}
+                                                        isProcessing={isSubmitting}
+                                                        onPay={async (stripeCtx) => {
+                                                            await executeDuplicateBooking(stripeCtx);
+                                                        }}
+                                                    />
+                                                </Elements>
+                                            ) : (
+                                                <Alert variant="warning">
+                                                    La pasarela de pago Stripe no está configurada o no se encontró la clave pública en el entorno. Puedes seleccionar &quot;Pagar en Recepción&quot; para completar tu reserva.
+                                                </Alert>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "15px" }}>
+                                            <Button
+                                                variant="primary"
+                                                onClick={() => executeDuplicateBooking()}
+                                                disabled={isSubmitting}
+                                                style={{ backgroundColor: "#c5a059", borderColor: "#c5a059", fontWeight: 700, padding: "12px 28px", width: "100%" }}
+                                            >
+                                                {isSubmitting ? (
+                                                    <span>
+                                                        <Spinner animation="border" size="sm" style={{ marginRight: "8px" }} /> Creando nueva reserva...
+                                                    </span>
+                                                ) : (
+                                                    `Confirmar y Crear Reserva en Recepción (${totalPrice.toFixed(2)} €)`
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
+                                    <Button variant="outline-secondary" onClick={() => setStep(2)} disabled={isSubmitting}>
+                                        ← Volver a cupones
                                     </Button>
                                 </div>
                             </div>

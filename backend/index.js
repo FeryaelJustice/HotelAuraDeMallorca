@@ -3271,11 +3271,13 @@ expressRouter.get("/bookingDetailsForDuplication/:id", verifyUser, async (req, r
             `SELECT b.id, b.user_id, b.plan_id, b.room_id, b.booking_start_date, b.booking_end_date, b.is_cancelled,
                     r.room_name, r.room_price, r.room_description,
                     p.plan_name, p.plan_price, p.plan_description,
-                    pay.payment_method_id, pay.payment_amount, pay.payment_status
+                    pay.payment_method_id, pay.payment_amount, pay.payment_status,
+                    u.user_name, u.user_surnames, u.user_email
              FROM booking b
              LEFT JOIN room r ON r.id = b.room_id
              LEFT JOIN plan p ON p.id = b.plan_id
              LEFT JOIN payment pay ON pay.booking_id = b.id
+             LEFT JOIN app_user u ON u.id = b.user_id
              WHERE b.id = ?`,
             [bookingId],
         );
@@ -3336,6 +3338,7 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
             paymentMethodID,
             paymentTransactionID,
             amount,
+            promoID,
         } = req.body;
 
         if (!originalBookingID || !startDate || !endDate || !paymentMethodID) {
@@ -3454,6 +3457,20 @@ expressRouter.post("/duplicateBooking", verifyUser, async (req, res) => {
                 await conn.query(
                     "INSERT INTO payment_transaction (payment_id, transaction_id) VALUES (?, ?)",
                     [newPaymentId, String(paymentTransactionID)],
+                );
+            }
+
+            // F. Si se aplico cupón de descuento, vincularlo en booking_promotion
+            if (promoID && Number(promoID) > 0) {
+                await conn.query(
+                    "INSERT INTO booking_promotion (booking_id, promotion_id) VALUES (?, ?)",
+                    [newBookingId, Number(promoID)],
+                );
+
+                // Si era un cupon exclusivo de usuario, marcarlo como usado
+                await conn.query(
+                    "UPDATE user_promotion SET isUsed = 1 WHERE user_id = ? AND promotion_id = ?",
+                    [req.id, Number(promoID)],
                 );
             }
 
@@ -4419,14 +4436,28 @@ expressRouter.post("/purchase", async (req, res) => {
     try {
         const { data } = req.body;
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        const paymentIntentData = {
             amount: data.amount,
             currency: data.currency,
-            description: "Hotel booking",
+            description: data.description || "Hotel booking",
             automatic_payment_methods: {
                 enabled: true,
             },
-        });
+        };
+
+        if (data.email) {
+            paymentIntentData.receipt_email = data.email;
+        }
+        if (data.metadata) {
+            paymentIntentData.metadata = data.metadata;
+        } else if (data.email || data.name) {
+            paymentIntentData.metadata = {
+                customer_email: data.email || "",
+                customer_name: data.name || "",
+            };
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
 
         const { client_secret } = paymentIntent;
 
