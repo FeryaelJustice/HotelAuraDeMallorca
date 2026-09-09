@@ -154,8 +154,19 @@ export const AmbientAudioPlayer = ({ colorScheme, audioSrc }: AmbientAudioPlayer
             </div>
 
             <div className="ambient-audio-label">
-                <span>Aura Sound</span>
-                <span className="ambient-audio-sub">{isPlaying ? 'Mallorca Vibes' : 'En pausa'}</span>
+                <a
+                    href="https://open.spotify.com/intl-es/track/794OUWECfhF2c0tFZVx6wv"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ambient-track-link"
+                    title="Escuchar 'Summer Party' de Top Flow en Spotify (abre en nueva pestaña)"
+                >
+                    <span className="ambient-track-title">Top Flow - Summer Party</span>
+                    <span className="ambient-track-badge">Spotify ↗</span>
+                </a>
+                <span className="ambient-audio-disclaimer">
+                    © Todos los derechos reservados a su autor original (Top Flow). Sin afiliación ni propiedad comercial.
+                </span>
             </div>
 
             {/* Time progress slider and counter */}

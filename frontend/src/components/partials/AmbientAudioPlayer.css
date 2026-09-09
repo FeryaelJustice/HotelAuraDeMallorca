@@ -122,19 +122,50 @@
 }
 
 .ambient-audio-label {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
     display: flex;
     flex-direction: column;
+    max-width: 220px;
+    line-height: 1.25;
 }
 
-.ambient-audio-sub {
-    font-size: 0.65rem;
-    opacity: 0.7;
+.ambient-track-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.74rem;
+    letter-spacing: 0.2px;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.ambient-track-link:hover {
+    color: #1db954;
+    text-decoration: underline;
+}
+
+.ambient-track-badge {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #1db954;
+    background: rgba(29, 185, 84, 0.15);
+    border: 1px solid rgba(29, 185, 84, 0.4);
+    padding: 1px 4px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ambient-audio-disclaimer {
+    font-size: 0.55rem;
+    opacity: 0.65;
     font-weight: 400;
-    text-transform: none;
+    line-height: 1.15;
+    margin-top: 2px;
+    letter-spacing: -0.1px;
 }
 
 .ambient-progress-control {
