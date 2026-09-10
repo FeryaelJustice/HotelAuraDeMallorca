@@ -30,6 +30,7 @@ import { useCookies } from 'react-cookie';
 import serverAPI from './services/serverAPI';
 import { UserRoles } from "./constants";
 import { Role, Booking } from './models/index';
+import Swal from 'sweetalert2';
 
 import summerParty from './assets/music/summer-party.mp3'
 
@@ -87,6 +88,31 @@ function App() {
             localStorage.setItem('aura_theme', colorScheme);
         }
     }, [colorScheme]);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const hasSeenNotice = sessionStorage.getItem('aura_backend_notice_shown');
+            if (!hasSeenNotice) {
+                sessionStorage.setItem('aura_backend_notice_shown', 'true');
+                const isDark = colorScheme === 'dark';
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Aviso sobre el servicio',
+                    text: 'El backend esta alojado en un servicio gratuito de Render que suspende el servidor por inactividad. Si es la primera solicitud, puede tardar entre 1 y 2 minutos en arrancar. Si notas alguna carga lenta o fallo temporal al inicio, espera unos instantes; la web funciona correctamente.',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#0d6efd',
+                    background: isDark ? '#1a1a24' : '#ffffff',
+                    color: isDark ? '#f8fafc' : '#0f172a',
+                    showClass: {
+                        backdrop: 'swal2-noanimation'
+                    },
+                    hideClass: {
+                        backdrop: 'swal2-noanimation'
+                    }
+                });
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (cookies.token) {
