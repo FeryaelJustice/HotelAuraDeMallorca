@@ -162,14 +162,15 @@ FRONT_URL=https://hotelaurademallorca.com
 # Dominio autorizado para CORS (sin protocolo)
 CORS_ORIGIN_FRONT_URL=hotelaurademallorca.com
 
-# Conexión a la base de datos
+# Conexión a la base de datos (según schema en database/db.sql)
 DB_URL=127.0.0.1
 DB_USER=root
 DB_PASSWORD=tu_password
-DB_NAME=hotel_aura_db
+DB_NAME=hotelaurademallorca
 
-# Claves de terceros (Stripe, Clima, etc.)
-STRIPE_SECRET_KEY=sk_test_...
+# Pasarela de pagos y servicios de terceros
+STRIPE_PRIVATE_KEY=sk_test_...
+STRIPE_PUBLIC_KEY=pk_test_...
 ```
 
 ---
@@ -179,8 +180,8 @@ STRIPE_SECRET_KEY=sk_test_...
 ### 1. Desarrollo Local
 
 #### Prerrequisitos
-- Node.js (v18 o superior) y npm
-- MySQL / MariaDB activo (o XAMPP)
+- **Node.js:** v20.19.0 o >=v22.12.0 (requerido por Vite 8) y npm
+- **MySQL / MariaDB** activo (o XAMPP) con la base de datos `hotelaurademallorca` importada (`database/db.sql`)
 
 #### Pasos:
 
