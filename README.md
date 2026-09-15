@@ -1,247 +1,312 @@
-# Hotel Aura de Mallorca
-
-*Aura de Mallorca: Vive la magia de la isla en un rincón exclusivo.*
-
-[Documentación del proyecto](./docs/Presentacion%20Final/Presentacion%20Proyecto%20Web%20Aura%20de%20Mallorca.pdf)
-
-## URL: [https://hotel-aura-de-mallorca.vercel.app/](https://hotel-aura-de-mallorca.vercel.app/)
-
-![Wireframe](./docs/Wireframe/Final/Home%20Page.png)
-
-En React y Express JS.
-Web de un hotel con servicios extra para complejidad de implementar
-api de meteorologia que te diga en base al clima local cuando reservas si puedes reservar o no.
-
-Optional feature: crear una seccion de comunidad.
-
-### Web del Hotel
-
-#### Modals
-
-Los modales serán ventanas "pop-up" para hacer la web más cómoda y sin tantas secciones, habrá modales user management (login, register and edit profile) y de booking.
-
-#### Secciones
-
-##### Inicio
-
-* Página de bienvenida al Hotel Aura de Mallorca.
-
-##### Servicios
-
-* Página de servicios del hotel, donde se verá toda la información y
-habrá la posibilidad de reservar directamente cada servicio.
-
-##### Contacto
-
-* Página de contacto donde a través de un formulario se podrá poner al cliente en comunicación con la empresa.
-
-##### Reservar (Reservas botón)
-
-* Modal de reservas abierta por el botón, aquí estará la funcionalidad principal de la web:
-  * Datos personales (si está logeado se autorellena y no se puede modificar).
-  * Decidir el plan (si VIP o Basic).
-  * Seleccionar fechas de check-in y check-out (aquí se comprobará si está disponible por el servicio de detección meteorológica).
-  * Seleccionar servicios (opcional).
-  * Rellenar los guests de la reserva (puede incluirse al que hace la reserva del primer paso de datos personales o no).
-  * Forma de pago (y pagar con Stripe o similares).
-  * Página de confirmación de reserva (reserva realizada)
-
-
-
-###### Diseño y planificación
-
-* Planificación:
-
-  Se usa el diagrama de Gantt con Gantt Project y Trello (Kanban metodologia ágil).
-
-* Diseño;
-
-  Se usa Figma para el Wireframe y el Prototype.
-
-  [Herramienta de contraste de colores (accesibilidad)](https://webaim.org/resources/contrastchecker/)
-
-###### Desarrollo
-
-* Backend:
-
-  Creado haciendo mkdir (nombre carpeta), luego entrando al folder y hacer ```npm init``` y ```npm install express```.
-
-* Frontend:
-
-  Creado haciendo ```npm create vite@latest appname```.
-
-###### Notas
-
-Para testear weather API: crear acceso directo del chrome y poner:
-```"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\chromeTemp```
-
-Si un usuario es desactivado por el sistema de castigos, además de poner el isEnabled a true de app_user, hay que poner el enabledByAdmin a 1 también para que haga el doble check.
-
-### Configuración e instalación
-
-#### Configuración
-
-Debemos cambiar el root password de mysql en XAMPP (si es windows, sino, después de instalar mariadb entraremos con ```sudo mysql o sudo mariadb``` y hacemos el ```CREATE USER 'x'@localhost IDENTIFIED BY 'password';``` y después hacer el ```GRANT ALL PRIVILEGES ON *.* TO 'x'@localhost IDENTIFIED BY 'password';``):
-
-```Panel de control -> shell -> mysqladmin -u root password```
-
-ENVIRONMENT VARIABLES:
-
-* Frontend (.env):
-  * FRONT_URL = dominio de la web CON HTTP ya que se redirigirá automáticamente (ej: http ://aurademallorca.com). Sin el espacio.
-  * TRANSLATIONS_DATA_URL = ./
-  * API_URL = dominio de la web CON HTTPS (ej: https ://aurademallorca.com). Sin el espacio.
-* Backend (.env):
-  * API_URL = dominio de la web CON HTTPS + /api (ej: https ://aurademallorca.com/api). Sin el espacio.
-  * FRONT_URL = dominio de la web CON HTTP ya que se redirigirá automáticamente (ej: http ://aurademallorca.com). Sin el espacio.
-  * CORS_ORIGIN_FRONT_URL = dominio de la web SIN HTTP ya que se sólo es para identificacion del dominio del cors, no del protocolo
-  (ej: aurademallorca.com).
-  * DB_URL ='127.0.0.1', referente a localhost, si falla poner este.
-
-NO OLVIDARSE DE PONER EL .htaccess en el root de la carpeta de la app (si es en /var/www/html o dentro de alguna carpeta como /var/www/html) y configurar en /etc/apache2/apache2.conf en el ```<Directory>``` un AllowOverride all.
-
-PONER EN ADAPTADOR PUENTE LA MÁQUINA VIRTUAL LINUX SI SE USA.
-
-#### Instalación en Linux
-
-* Requirements
-
-  ```sudo apt update```
-
-  ```sudo apt upgrade```
-
-  ```sudo apt install openssh-server```
-
-  ```sudo systemctl enable ssh```
-
-  ```sudo apt install nodejs npm```
-
-  ```sudo apt install mariadb-server mariadb-client -y```
-
-  ```sudo systemctl enable mariadb```
-
-  ```sudo mysql_secure_installation``` (poner la password a 1234 y darle a que sí a eliminar root externo y dbs de test y todo lo que dice)
-
-  ```sudo apt install apache2 -y```
-
-  ```sudo systemctl enable apache2```
-
-  ```sudo apt -y install php php-common```
-
-  ```sudo apt -y install php-cli php-fpm php-json php-pdo php-mysql php-zip php-gd php-mbstring php-curl php-xml php-pear php-bcmath```
-
-  ```sudo apt -y install libapache2-mod-php```
-
-  ```sudo a2enmod php8.*```
-
-  ```sudo apt install net-tools```
-
-  ```sudo apt install openssl -y```
-
-  ```sudo a2enmod rewrite / sudo a2enmod headers```
-
-  ```sudo a2enmod proxy / sudo a2enmod proxy_http```
-
-  ```sudo systemctl restart apache2```
-
-  ```sudo npm -g install pm2```
-
-  ```sudo pm2 startup```
-
-  ```sudo apt install ufw```
-
-  ```sudo systemctl enable ufw```
-
-  ```sudo ufw allow 80```
-
-  ```sudo ufw allow 443```
-
-  ```sudo ufw allow 3000```
-
-  ```sudo ufw allow http```
-
-  ```sudo ufw allow https```
-
-  ```sudo ufw allow mysql```
-
-  ```sudo ufw allow ssh```
-
-IMPORTANTE: EL PROXYPASS DEFINE QUE SI LLAMO A EL DOMINIO DEL VIRTUAL HOST + lo que haya en el proxy pass, me redirige a otra IP o Dominio con un puerto que yo quiera. Ejemplo: ProxyPass /api http ://localhost:3000/api.
-Esto me está redirigiendo las peticiones de https ://hotelaurademallorca.com/api (que puedo hacer con axios en el front) en la maquina destino donde esta el frontend servido en producción a redirigir la petición axios al localhost de esa máquina al puerto 3000 + /api endpoint donde escucha mi nodejs express.
-
-* Configuración de la web
-
-  * Pre-config:
-
-    ```sudo apt install phpmyadmin```
-
-    ```sudo mysql < /usr/share/phpmyadmin/sql/create_tables.sql```
-
-    (si los 2 pasos anteriores fallan): [Instalación de PHPMyAdmin manual en Debian](https://www.digitalocean.com/community/tutorials/how-to-install-phpmyadmin-from-source-debian-10)
-
-    ```sudo mariadb```
-
-    ```GRANT SELECT, INSERT, UPDATE, DELETE ON phpmyadmin.* TO 'pma'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
-
-    ```GRANT ALL PRIVILEGES ON ON *.* TO 'admin'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
-
-    ```GRANT ALL PRIVILEGES ON *.* TO 'fer'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
-
-    ```GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY 'password';``` (put the same password that you gonna put in the .env of the app for the connection and that u put in mariadb secure installation)
-
-    ```FLUSH PRIVILEGES;```
-
-    ```EXIT;```
-
-    (if you installed phpmyadmin with the manual way link, you can avoid this, you choose the way you want to install phpmyadmin)
-
-    ```wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz```
-
-    ```sudo tar xvf phpMyAdmin-latest-all-languages.tar.gz```
-
-    ```sudo mv phpMyAdmin-*-all-languages/ /var/www/html/phpmyadmin```
-
-    ```cd /var/www/html/phpmyadmin```
-
-    ```sudo cp config.sample.inc.php config.inc.php```
-
-    ```sudo mkdir tmp```
-
-    ```openssl rand -base64 32``` (copy the value given)
-
-    ```sudo nano /var/www/html/phpmyadmin/config.inc.php```
-
-    Copy the value of pwgen into $cfg['blowfish_secret']
-
-    Uncomment all the lines of the sections: *User used to manipulate with storage* and *Storage database and tables* and one last line to this last mentioned section with: ```$cfg['TempDir'] = '/var/lib/phpmyadmin/tmp';```
-
-    ```sudo chown -R www-data:www-data /var/www/html/phpmyadmin```
-
-    (avoid until here)
-
-    ```sudo nano /etc/apache2/conf-available/phpmyadmin.conf```: put the content of phpmyadmin-virtualhost
-
-    ```sudo a2enconf phpmyadmin.conf```
-
-    ```sudo systemctl restart apache2```
-
-* ACTIVAR SSL antes de config de la app (que se configura para https):
-  Seguir el tutorial de: <https://wiki.debian.org/Self-Signed_Certificate>, hacer cada paso con ```sudo```
-
-* Config de la app:
-
-  1. Recibir el código fuente completo con git o con FTP.
-  2. Borrar los node_modules de las carpetas frontend y backend por tema permisos con ```sudo rm -r nombrecarpeta/```.
-  3. Hacer un ```sudo npm install``` para cada carpeta.
-  4. Setear los .env de cada carpeta (con un sudo nano mismo).
-  5. Ir a la carpeta de frontend y generar el dist con ```sudo npm run build```.
-  6. ```sudo mkdir /var/www/html/hotelaurademallorca```
-  7. ```sudo chown www-data:www-data /var/www/html/hotelaurademallorca```
-  8. ```sudo chmod 755 /var/www/html/hotelaurademallorca```
-  9. Entrar al dist/ del frontend con ```cd``` y ejecutar ```sudo cp * -r /var/www/html/hotelaurademallorca```
-  10. Ir a la carpeta root del codigo fuente y moveremos la carpeta backend por cuestiones de claridad con ```sudo mv backend/ /var/www/html/hotelaurademallorca```.
-  11. Nos movemos a esa carpeta backend con el comando ya visto y vamos a hacer: ```sudo pm2 start index.js``` y ```sudo pm2 save``` en este orden.
-  12. Creamos los virtualhosts de apache con ```sudo nano /etc/apache2/sites-available/hotelaurademallorca.conf``` (para HTTP) y ```sudo nano /etc/apache2/sites-available/hotelaurademallorca-ssl.conf``` (para HTTPS) y ponemos el contenido que necesitan los dos dentro de los archivos txt en el root del codigo fuente.
-  13. Activamos los virtualhosts con ```sudo a2ensite hotelaurademallorca.conf``` y ```sudo a2ensite hotelaurademallorca-ssl.conf``` y luego debemos hacer un ```sudo systemctl reload apache2```.
-  14. Agregamos a nuestro archivo /etc/hosts una línea nueva con: 127.0.0.1 hotelaurademallorca.com
-  15. Hacemos lo mismo que el paso 13 pero en la máquina windows pero en vez de poner esa IP, ponemos la IP que tiene la VM o en donde esté alojado la app en ese momento (ej: 192.168.1.102 hotelaurademallorca.com).
+<div align="center">
+
+# 🏨 Hotel Aura de Mallorca
+
+### *Vive la magia de la isla en un rincón exclusivo.*
+
+[![React](https://img.shields.io/badge/Frontend-React%2019%20%7C%20Vite-61DAFB?logo=react&logoColor=black)](#frontend)
+[![Express](https://img.shields.io/badge/Backend-Express%205%20%7C%20Node.js-000000?logo=express&logoColor=white)](#backend)
+[![MySQL](https://img.shields.io/badge/Database-MariaDB%20%7C%20MySQL-4479A1?logo=mysql&logoColor=white)](#base-de-datos)
+[![TypeScript](https://img.shields.io/badge/Type_Safety-TypeScript-3178C6?logo=typescript&logoColor=white)](#frontend)
+[![Stripe](https://img.shields.io/badge/Payments-Stripe-635BFF?logo=stripe&logoColor=white)](#pasarela-de-pago)
+[![Vercel Deployment](https://img.shields.io/badge/Live_Demo-Vercel-000000?logo=vercel&logoColor=white)](https://hotel-aura-de-mallorca.vercel.app/)
+
+<br />
+
+**🌐 Demo en Producción:** [hotel-aura-de-mallorca.vercel.app](https://hotel-aura-de-mallorca.vercel.app/)  
+**📄 Documentación Completa:** [Presentación de Proyecto Web (PDF)](./docs/Presentacion%20Final/Presentacion%20Proyecto%20Web%20Aura%20de%20Mallorca.pdf)
+
+<br />
+
+<img src="./docs/Wireframe/Final/Home%20Page.png" alt="Vista Principal - Hotel Aura de Mallorca" width="850" style="border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-width: 100%; height: auto;" />
+
+</div>
+
+---
+
+## 📖 Índice
+
+- [Acerca del Proyecto](#-acerca-del-proyecto)
+- [Características Principales](#-características-principales)
+- [Arquitectura y Stack Tecnológico](#-arquitectura-y-stack-tecnológico)
+  - [Frontend](#frontend)
+  - [Backend](#backend)
+  - [Gestor de Traducciones](#gestor-de-traducciones)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Variables de Entorno](#-variables-de-entorno)
+- [Guía de Instalación y Despliegue](#-guía-de-instalación-y-despliegue)
+  - [Desarrollo Local](#1-desarrollo-local)
+  - [Despliegue en Servidor Linux (Apache + PM2)](#2-despliegue-en-servidor-linux-apache--pm2)
+- [Diseño y Planificación](#-diseño-y-planificación)
+- [Notas y Consideraciones Técnicas](#-notas-y-consideraciones-técnicas)
+- [Autor](#-autor)
+
+---
+
+## 🌟 Acerca del Proyecto
+
+**Hotel Aura de Mallorca** es una plataforma web integral de gestión y reservas hoteleras diseñada para ofrecer una experiencia prémium y fluida a los usuarios. Combina una interfaz moderna basada en modales interactivos con un backend robusto capaz de gestionar reservas, perfiles, transacciones seguras con Stripe y validaciones inteligentes en tiempo real.
+
+Una de sus señas de identidad técnicas es la integración con una **API de meteorología en tiempo real**, que analiza y condiciona las recomendaciones o disponibilidades de reserva en función de la previsión climática local en Mallorca.
+
+---
+
+## ✨ Características Principales
+
+### 🖥️ Experiencia de Usuario sin Fricción (Modales Interactivos)
+Para evitar recargas innecesarias y saltos bruscos entre secciones, el sistema utiliza **modales contextuales**:
+- **Gestión de Cuentas:** Modales ágiles para inicio de sesión, registro de nuevos clientes y edición de perfil.
+- **Flujo Integral de Reserva (Booking Wizard):**
+  1. **Datos Personales:** Detección de sesión activa con autorrelleno protegido frente a alteraciones no deseadas.
+  2. **Selección de Plan:** Modalidad *VIP* o *Basic*.
+  3. **Fechas de Estancia (Check-in / Check-out):** Validación con motor de disponibilidad y comprobación de pronóstico meteorológico.
+  4. **Servicios Extras Adicionales:** Selección modular y personalizable de actividades y amenidades.
+  5. **Gestión de Huéspedes:** Registro detallado de acompañantes y viajeros.
+  6. **Pasarela de Pago Segura:** Procesamiento de pagos electrónicos mediante **Stripe**.
+  7. **Confirmación Inmediata:** Resumen detallado con generación de comprobante y código QR.
+
+### 🌐 Secciones Públicas de la Web
+- **Inicio:** Presentación envolvente del hotel, atmósfera balear y accesos directos de reserva.
+- **Servicios:** Catálogo interactivo de amenidades exclusivas con opción de reserva individualizada.
+- **Contacto:** Formulario validado de comunicación directa entre el cliente y el equipo del hotel.
+- **Comunidad / Extras:** Módulos opcionales pensados para feedback, fidelización y eventos.
+
+---
+
+## 🛠️ Arquitectura y Stack Tecnológico
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       Cliente Web                           │
+│   React 19 + TypeScript + Vite + Bootstrap + i18next        │
+└───────────────┬─────────────────────────────▲───────────────┘
+                │ HTTP / REST                 │
+                ▼                             │
+┌─────────────────────────────────────────────┴───────────────┐
+│                      Backend API                            │
+│   Express 5 + Node.js + Helmet + Rate Limit + JWT           │
+│   Integraciones: Stripe + Brevo/Mailer + Cloudinary + Clima │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Pool Connection
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Base de Datos Relacional                  │
+│                      MariaDB / MySQL                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Frontend
+- **Framework & Build:** [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
+- **Estilos & UI:** [React Bootstrap 2](https://react-bootstrap.netlify.app/), [Bootstrap 5](https://getbootstrap.com/), [SweetAlert2](https://sweetalert2.github.io/)
+- **Internacionalización:** [i18next](https://www.i18next.com/) con detección automática de idioma
+- **Pasarela de Pago:** [@stripe/react-stripe-js](https://stripe.com/)
+- **Utilidades UI:** `qrcode.react`, `react-calendar`, `react-parallax`, `react-cookie-consent`, `react-google-recaptcha`
+- **Testing & QA:** [Vitest](https://vitest.dev/), Testing Library, ESLint
+
+### Backend
+- **Core Runtime:** [Node.js](https://nodejs.org/) con [Express 5](https://expressjs.com/) (ES Modules)
+- **Seguridad & Rendimiento:** [Helmet](https://helmetjs.github.io/), `express-rate-limit`, `cors`, `compression`, `cookie-parser`
+- **Autenticación:** Tokens [JWT](https://jwt.io/) y cifrado [bcryptjs](https://www.npmjs.com/package/bcryptjs)
+- **Base de Datos:** Driver [mysql2](https://github.com/sidorares/node-mysql2)
+- **Integraciones:** Pasarela de pago [Stripe API](https://stripe.com/docs/api), emails transaccionales con [Brevo](https://www.brevo.com/) & [Nodemailer](https://nodemailer.com/), almacenamiento en [Cloudinary](https://cloudinary.com/), lectura QR con `jsqr`.
+
+### Gestor de Traducciones
+- Subproyecto auxiliar en `translator/` desarrollado en **Laravel + Vue 3 + Vite** para la administración centralizada de cadenas multi-idioma.
+
+---
+
+## 📁 Estructura del Proyecto
+
+```text
+HotelAuraDeMallorca/
+├── backend/            # Servidor API RESTful con Express y MySQL
+│   ├── routes/         # Endpoints de reservas, usuarios, clima, pagos...
+│   ├── scripts/        # Scripts de inicialización y migración (seed_admin, reset_db)
+│   └── package.json
+├── frontend/           # Aplicación cliente en React 19 + TypeScript + Vite
+│   ├── src/            # Componentes, vistas, contextos de reserva y modales
+│   └── package.json
+├── translator/         # Gestor de traducciones (Laravel + Vue 3)
+├── database/           # Scripts SQL y modelos relacionales
+├── docs/               # Documentación, diagramas, presentaciones y wireframes
+│   ├── Wireframe/      # Assets gráficos y capturas de diseño
+│   └── Presentacion Final/
+├── phpmyadmin-virtualhost.txt # Configuración modelo para Apache
+└── README.md
+```
+
+---
+
+## 🔐 Variables de Entorno
+
+### Frontend (`frontend/.env`)
+```ini
+# URL pública del frontend (con HTTP/HTTPS según entorno)
+FRONT_URL=https://hotelaurademallorca.com
+
+# Ruta de los ficheros de traducción
+TRANSLATIONS_DATA_URL=./
+
+# URL del backend
+API_URL=https://hotelaurademallorca.com
+```
+
+### Backend (`backend/.env`)
+```ini
+# URL base de los endpoints del backend
+API_URL=https://hotelaurademallorca.com/api
+
+# URL base del cliente para redirecciones
+FRONT_URL=https://hotelaurademallorca.com
+
+# Dominio autorizado para CORS (sin protocolo)
+CORS_ORIGIN_FRONT_URL=hotelaurademallorca.com
+
+# Conexión a la base de datos (según schema en database/db.sql)
+DB_URL=127.0.0.1
+DB_USER=root
+DB_PASSWORD=tu_password
+DB_NAME=hotelaurademallorca
+
+# Pasarela de pagos y servicios de terceros
+STRIPE_PRIVATE_KEY=sk_test_...
+STRIPE_PUBLIC_KEY=pk_test_...
+```
+
+---
+
+## 🚀 Guía de Instalación y Despliegue
+
+### 1. Desarrollo Local
+
+#### Prerrequisitos
+- **Node.js:** v20.19.0 o >=v22.12.0 (requerido por Vite 8) y npm
+- **MySQL / MariaDB** activo (o XAMPP) con la base de datos `hotelaurademallorca` importada (`database/db.sql`)
+
+#### Pasos:
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/tu-usuario/HotelAuraDeMallorca.git
+   cd HotelAuraDeMallorca
+   ```
+
+2. **Configurar y levantar el Backend:**
+   ```bash
+   cd backend
+   npm install
+   # Configura tu fichero .env a partir de las variables requeridas
+   npm run dev
+   ```
+
+3. **Configurar y levantar el Frontend:**
+   ```bash
+   cd ../frontend
+   npm install
+   npm run dev
+   ```
+
+---
+
+### 2. Despliegue en Servidor Linux (Apache + PM2)
+
+#### Preparación del Sistema y Paquetes Base:
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y openssh-server nodejs npm mariadb-server mariadb-client apache2 openssl net-tools ufw
+sudo systemctl enable ssh mariadb apache2
+sudo mysql_secure_installation
+```
+
+#### Módulos de Apache y PM2:
+```bash
+sudo a2enmod rewrite headers proxy proxy_http ssl
+sudo systemctl restart apache2
+sudo npm install -g pm2
+sudo pm2 startup
+```
+
+#### Reglas de Firewall (UFW):
+```bash
+sudo systemctl enable ufw
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow ssh
+```
+
+> [!NOTE]
+> **Mapeo con Reverse Proxy (ProxyPass):**  
+> Para comunicar Apache con el servicio Node.js en producción, se configura una directiva:
+> ```apache
+> ProxyPass /api http://localhost:3000/api
+> ProxyPassReverse /api http://localhost:3000/api
+> ```
+> De este modo, las solicitudes a `https://tudominio.com/api` se despachan transparentemente hacia el puerto `3000` gestionado por PM2.
+
+#### Despliegue del Frontend y Backend:
+1. Compilar el cliente:
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   ```
+2. Publicar archivos en el directorio web:
+   ```bash
+   sudo mkdir -p /var/www/html/hotelaurademallorca
+   sudo chown -R www-data:www-data /var/www/html/hotelaurademallorca
+   sudo chmod -R 755 /var/www/html/hotelaurademallorca
+   sudo cp -r dist/* /var/www/html/hotelaurademallorca/
+   ```
+3. Configurar el Backend con PM2:
+   ```bash
+   cd ../backend
+   npm install --production
+   sudo pm2 start index.js --name "hotel-aura-backend"
+   sudo pm2 save
+   ```
+4. Configurar los VirtualHosts (`/etc/apache2/sites-available/`):
+   - Crear `hotelaurademallorca.conf` (HTTP) y `hotelaurademallorca-ssl.conf` (HTTPS) basándose en las plantillas adjuntas en el repositorio.
+   - Habilitar sitios y recargar:
+     ```bash
+     sudo a2ensite hotelaurademallorca.conf hotelaurademallorca-ssl.conf
+     sudo systemctl reload apache2
+     ```
+
+---
+
+## 🎨 Diseño y Planificación
+
+- **Metodología Ágil:** Gestión de sprints y tableros con Trello (Kanban).
+- **Planificación Temporal:** Estimación y seguimiento de hitos con diagramas de Gantt (**GanttProject**).
+- **Prototipado UI/UX:** Wireframes de baja fidelidad y prototipo de alta fidelidad diseñados en **Figma**.
+- **Accesibilidad:** Pruebas y validaciones de ratios de legibilidad y accesibilidad mediante [WebAIM Color Contrast Checker](https://webaim.org/resources/contrastchecker/).
+
+---
+
+## 📌 Notas y Consideraciones Técnicas
+
+> [!TIP]
+> **Pruebas Locales con Weather API:**  
+> Si se presentan bloqueos por políticas de origen cruzado en modo de depuración local, se puede arrancar una sesión de prueba en Google Chrome:
+> ```cmd
+> "C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\chromeTemp
+> ```
+
+> [!IMPORTANT]
+> **Sistema de Moderación y Cuentas de Usuario:**  
+> Si un usuario resulta deshabilitado por el sistema de sanciones, la reactivación administrativa exige actualizar dos flags en la base de datos para completar la verificación de seguridad:
+> 1. Establecer `isEnabled = true` en la tabla `app_user`.
+> 2. Establecer `enabledByAdmin = 1` para validar la auditoría interna.
+
+---
+
+## 👤 Autor
+
+- **Fernando GS** ([@FeryaelJustice](https://github.com/FeryaelJustice))
+- **Email:** nano9gs@hotmail.es
+
+---
+<div align="center">
+  <sub>Hotel Aura de Mallorca © Todos los derechos reservados.</sub>
+</div>
