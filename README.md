@@ -4,8 +4,7 @@
 
 [Documentación del proyecto](./docs/Presentacion%20Final/Presentacion%20Proyecto%20Web%20Aura%20de%20Mallorca.pdf)
 
-(Antigua URL: https://hotel-aura-de-mallorca.vercel.app/)
-(URL Producción sin Backend, se necesita VPS): https://blanchedalmond-shark-422521.hostingersite.com/
+## URL[https://hotel-aura-de-mallorca.vercel.app/](https://hotel-aura-de-mallorca.vercel.app/)
 
 ![Wireframe](./docs/Wireframe/Final/Home%20Page.png)
 
