@@ -1,45 +1,45 @@
-# Guia de Despliegue y Variables de Entorno - Hotel Aura de Mallorca
+# Guía de Despliegue y Variables de Entorno - Hotel Aura de Mallorca
 
-Este documento recopila la configuracion ambiental, topologia de red y el proceso de despliegue en servidores Linux con Apache y Node.js.
+Este documento recopila la configuración ambiental, topología de red y el proceso de despliegue en servidores Linux con Apache y Node.js.
 
 ---
 
 ## 1. Matriz de Variables de Entorno
 
 ### 1.1. Backend (`backend/.env`)
-| Variable | Descripcion | Ejemplo |
+| Variable | Descripción | Ejemplo |
 |---|---|---|
-| `API_URL` | URL publica base de la API (con HTTPS y `/api`) | `https://hotelaurademallorca.com/api` |
-| `FRONT_URL` | URL publica del frontend | `http://hotelaurademallorca.com` |
+| `API_URL` | URL pública base de la API (con HTTPS y `/api`) | `https://hotelaurademallorca.com/api` |
+| `FRONT_URL` | URL pública del frontend | `http://hotelaurademallorca.com` |
 | `CORS_ORIGIN_FRONT_URL` | Dominio permitido en CORS (sin protocolo) | `hotelaurademallorca.com` |
 | `DB_URL` | Host del motor MySQL / MariaDB | `127.0.0.1` |
 | `DB_USER` | Usuario de base de datos | `root` o `admin` |
-| `DB_PASSWORD` | Contrasena de la base de datos | `xxxx` |
+| `DB_PASSWORD` | Contraseña de la base de datos | `xxxx` |
 | `DB_NAME` | Nombre de la base de datos | `hotelaurademallorca` |
 | `DB_PORT` | Puerto de escucha de MySQL | `3306` |
 | `DB_TIMEZONE` | Zona horaria para consultas SQL | `+02:00` |
 | `STRIPE_PRIVATE_KEY` | Clave secreta de Stripe | `sk_test_...` |
-| `STRIPE_PUBLIC_KEY` | Clave publica de Stripe | `pk_test_...` |
+| `STRIPE_PUBLIC_KEY` | Clave pública de Stripe | `pk_test_...` |
 | `MAIL_HOST` | Host del servidor SMTP (Hostinger) | `smtp.hostinger.com` |
 | `MAIL_PORT` | Puerto de escucha del servidor SMTP (SSL) | `465` |
 | `MAIL_SECURE` | Cifrado SSL nativo (true para puerto 465) | `true` |
-| `MAIL_USERNAME` | Buzon remitente de correo en Hostinger | `contact@feryaeljustice.dev` |
-| `MAIL_PASSWORD` | Contrasena del buzon de correo en Hostinger | `...` |
-| `MAIL_SENDER_EMAIL` | Direccion de remitente visible | `contact@feryaeljustice.dev` |
+| `MAIL_USERNAME` | Buzón remitente de correo en Hostinger | `contact@feryaeljustice.dev` |
+| `MAIL_PASSWORD` | Contraseña del buzón de correo en Hostinger | `...` |
+| `MAIL_SENDER_EMAIL` | Dirección de remitente visible | `contact@feryaeljustice.dev` |
 | `MAIL_CONTACT_RECEIVERS` | Lista de destinatarios del formulario | Array JSON con direcciones |
 | `APP_NAME` | Nombre visible en cabeceras de correos | `Hotel Aura de Mallorca` |
 
 ### 1.2. Frontend (`frontend/.env`)
-| Variable | Descripcion | Ejemplo |
+| Variable | Descripción | Ejemplo |
 |---|---|---|
-| `FRONT_URL` | Direccion raiz de la aplicacion cliente | `http://hotelaurademallorca.com` |
+| `FRONT_URL` | Dirección raíz de la aplicación cliente | `http://hotelaurademallorca.com` |
 | `TRANSLATIONS_DATA_URL` | Ruta o URL de almacenamiento de i18n | `https://hotelaurademallorca.com` |
-| `FRONT_ASSETS_URL` | URL de recursos estaticos | `https://hotelaurademallorca.com/assets` |
+| `FRONT_ASSETS_URL` | URL de recursos estáticos | `https://hotelaurademallorca.com/assets` |
 | `API_URL` | URL base para peticiones Axios | `https://hotelaurademallorca.com` |
 | `reCAPTCHA_SITE_KEY` | Clave de sitio para Google reCAPTCHA v2 | `abc...` |
-| `reCAPTCHA_SECRET_KEY` | Clave secreta para verificacion de captcha | `def...` |
+| `reCAPTCHA_SECRET_KEY` | Clave secreta para verificación de captcha | `def...` |
 | `STRIPE_PUBLISHABLE_KEY`| Clave publicable de Stripe para frontend | `pk_test_...` |
-| `APP_NAME` | Nombre de la aplicacion | `Hotel Aura de Mallorca` |
+| `APP_NAME` | Nombre de la aplicación | `Hotel Aura de Mallorca` |
 | `OPENWEATHERMAP_API_KEY`| Token de API para OpenWeatherMap | `...` |
 | `OPENWEATHERMAP_BASE_URL`| Endpoint base de OpenWeatherMap | `https://api.openweathermap.org/` |
 | `ACCUWEATHER_API_KEY`   | Token alternativo AccuWeather | `...` |
@@ -49,8 +49,8 @@ Este documento recopila la configuracion ambiental, topologia de red y el proces
 
 ## 2. Arquitectura de Despliegue en Linux (Apache + PM2)
 
-### 2.1. Configuracion de Reverse Proxy en Apache
-El servidor Apache atiende peticiones en el puerto 80/443, sirviendo los estaticos del frontend (`dist/`) y canalizando las peticiones de la API hacia Node.js en el puerto 3000:
+### 2.1. Configuración de Reverse Proxy en Apache
+El servidor Apache atiende peticiones en el puerto 80/443, sirviendo los estáticos del frontend (`dist/`) y canalizando las peticiones de la API hacia Node.js en el puerto 3000:
 
 ```apache
 # ProxyPass en VirtualHost SSL
@@ -75,8 +75,8 @@ El servidor Apache atiende peticiones en el puerto 80/443, sirviendo los estatic
 </VirtualHost>
 ```
 
-### 2.2. Gestion de Procesos con PM2
-El servidor Express se ejecuta bajo PM2 para garantizar resiliencia y reinicio automatico:
+### 2.2. Gestión de Procesos con PM2
+El servidor Express se ejecuta bajo PM2 para garantizar resiliencia y reinicio automático:
 ```bash
 cd /var/www/html/hotelaurademallorca/backend
 pm2 start index.js --name "hotel-aura-backend"
@@ -84,7 +84,7 @@ pm2 save
 pm2 startup
 ```
 
-### 2.3. Resolucion Local DNS y Hosts
+### 2.3. Resolución Local DNS y Hosts
 Para entornos de prueba o maquinas virtuales locales:
 - En `/etc/hosts` (Linux):
   ```text

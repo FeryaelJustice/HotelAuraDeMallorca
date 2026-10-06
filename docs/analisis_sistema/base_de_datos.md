@@ -1,6 +1,6 @@
-# Analisis del Modelo de Datos - Hotel Aura de Mallorca
+# Análisis del Modelo de Datos - Hotel Aura de Mallorca
 
-Este documento describe la estructura relacional, tablas, restricciones y logica de persistencia contenida en `database/db.sql`.
+Este documento describe la estructura relacional, tablas, restricciones y lógica de persistencia contenida en `database/db.sql`.
 
 > **AVISO IMPORTANTE**:
 > El directorio `database/` y su contenido son de **estricta solo lectura**. No deben realizarse modificaciones directas en `database/db.sql` ni en sus archivos asociados.
@@ -34,27 +34,27 @@ erDiagram
 
 ---
 
-## 2. Descripcion Detallada de Tablas
+## 2. Descripción Detallada de Tablas
 
 ### 2.1. Usuarios, Roles y Seguridad
 - **`app_user`**:
-  - `id`: Identificador unico (PK, autoincremental).
+  - `id`: Identificador único (PK, autoincremental).
   - `user_name`, `user_surnames`, `user_email` (UNIQUE), `user_dni` (UNIQUE).
-  - `user_password`: Hash bcrypt de la contrasena.
-  - `user_verified`: Booleano para confirmacion de email.
+  - `user_password`: Hash bcrypt de la contraseña.
+  - `user_verified`: Booleano para confirmación de email.
   - `verification_token`, `verification_token_expiry`: Token temporal de activacion.
-  - `access_token`: Token JWT activo (1 dia) para validacion cruzada.
-  - `refresh_token`, `refresh_token_expiry`: Token JWT de larga duracion (7 dias) para renovacion silenciosa de sesion.
-  - `reset_token`, `reset_token_expiry`: Gestion de recuperacion de clave (validez 10 minutos).
+  - `access_token`: Token JWT activo (1 dia) para validación cruzada.
+  - `refresh_token`, `refresh_token_expiry`: Token JWT de larga duración (7 días) para renovación silenciosa de sesión.
+  - `reset_token`, `reset_token_expiry`: Gestión de recuperación de clave (validez 10 minutos).
   - `isEnabled`: Flag de estado de cuenta. Se desactiva ante sanciones.
   - `enabledByAdmin`: Flag de doble aprobacion requerida para reactivacion tras suspension.
 - **`role`**:
   - `id`: PK.
   - `name`: Enumeracion (`CLIENT`, `ADMIN`, `EMPLOYEE`).
 - **`user_role`**:
-  - Vincula `user_id` con `role_id` (claves foraneas con eliminacion en cascada para usuario).
+  - Vincula `user_id` con `role_id` (claves foráneas con eliminación en cascada para usuario).
 
-### 2.2. Huespedes y Capacidad
+### 2.2. Huéspedes y Capacidad
 - **`guest`**:
   - Informacion de los ocupantes de las habitaciones.
   - `isAdult`: `CHAR(1)` indicando si es mayor de edad.
@@ -62,7 +62,7 @@ erDiagram
 - **`booking_guest`**:
   - Tabla asociativa N:M entre `booking` y `guest`.
 
-### 2.3. Catalogo Hotelero
+### 2.3. Catálogo Hotelero
 - **`plan`**:
   - Modalidades de estancia (`Basic` a 50.00 EUR, `VIP` a 150.00 EUR).
 - **`room`**:
@@ -83,29 +83,29 @@ erDiagram
 
 ### 2.5. Promociones y Fidelizacion
 - **`promotion`**:
-  - Codigo de cupon (`code` UNIQUE), importe de descuento (`discount_price`), fechas de validez.
+  - Código de cupón (`code` UNIQUE), importe de descuento (`discount_price`), fechas de validez.
 - **`booking_promotion`**:
-  - Registra que promocion se desconto en una reserva especifica.
+  - Registra que promoción se descontó en una reserva específica.
 - **`user_promotion`**:
-  - Asigna promociones directas a usuarios con control de uso unico (`isUsed`).
+  - Asigna promociones directas a usuarios con control de uso único (`isUsed`).
 - **`user_booking_count`**:
-  - Contador de reservas completadas por usuario, utilizado para logica de premios o castigos.
+  - Contador de reservas completadas por usuario, utilizado para lógica de premios o castigos.
 
-### 2.6. Meteorologia Local
+### 2.6. Meteorología Local
 - **`weather`**:
-  - `weather_date`: Fecha de la observacion o prevision.
+  - `weather_date`: Fecha de la observación o previsión.
   - `weather_state`: Estado atmosferico (ej. `Rain`, `Clear`, `Clouds`).
-  - Sirve como cache local para no saturar las cuotas de la API externa y permitir consultas rapidas en la comprobacion de reservas.
+  - Sirve como caché local para no saturar las cuotas de la API externa y permitir consultas rápidas en la comprobacion de reservas.
 
 ### 2.7. Pasarela y Transacciones de Pago
 - **`payment_method`**:
-  - Metodos configurados (tarjeta bancaria, pasarela digital, Stripe).
+  - Métodos configurados (tarjeta bancaria, pasarela digital, Stripe).
 - **`payment`**:
   - Registro contable interno del importe abonado, fecha y relacion con `booking_id` y `user_id`.
 - **`payment_transaction`**:
   - Almacena el `transaction_id` devuelto por Stripe u otra pasarela externa.
 
-### 2.8. Gestion Multimedia
+### 2.8. Gestión Multimedia
 - **`media`**:
   - Tabla polimorfica para recursos (`type` ENUM `'image'/'video'`, `url`).
 - **Tablas de asociacion**:
