@@ -4,7 +4,7 @@ CMS genérico para ser consumido por cualquier página.
 
 ## Antes de arrancar
 
-Meter en el .env la ip host de la conexion a la bdd y el nombre de la base de datos (usamos "gestortraducciones"), un usuario y password de acceso.
+Incluye en el .env la dirección IP del host de la base de datos y su nombre (en este caso, "gestortraducciones"), así como un usuario y su contraseña.
 TENER LA BDD creada antes de arrancar, sea en xampp o en el hosting.
 
 ANTES DE ARRANCAR, CONFIGURAR LA DB:
